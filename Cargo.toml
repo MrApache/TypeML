@@ -1,9 +1,8 @@
-[package]
-name = "rml-lsp"
-version = "0.1.0"
-edition = "2024"
+[workspace]
+members = ["crates/*"]
+resolver = "3"
 
-[dependencies]
+[workspace.dependencies]
 tokio = { version = "1.47.1", features = ["full"]}
 tower-lsp = "0.20.0"
 serde = "1.0.219"
