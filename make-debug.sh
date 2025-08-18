@@ -1,3 +1,3 @@
 #!/bin/bash
-cargo build --debug
+cargo build
 cargo install --path .
