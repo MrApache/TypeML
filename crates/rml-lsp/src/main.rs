@@ -1,6 +1,7 @@
 use tower_lsp::jsonrpc::Result;
 use tower_lsp::lsp_types::*;
 use tower_lsp::{Client, LanguageServer, LspService, Server};
+use xml_lexer::XmlLexer;
 
 #[derive(Debug)]
 struct Backend {
@@ -52,6 +53,9 @@ impl LanguageServer for Backend {
 
 #[tokio::main]
 async fn main() {
+    let mut lexer = XmlLexer::new("content", "file");
+    let token = lexer.read();
+
     let stdin = tokio::io::stdin();
     let stdout = tokio::io::stdout();
 

@@ -3,6 +3,8 @@ members = ["crates/*"]
 resolver = "3"
 
 [workspace.dependencies]
+xml-lexer = { path = "crates/xml-lexer" }
+
 tokio = { version = "1.47.1", features = ["full"]}
 tower-lsp = "0.20.0"
 serde = "1.0.219"
