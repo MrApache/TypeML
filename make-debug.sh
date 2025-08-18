@@ -1,3 +1,3 @@
 #!/bin/bash
 cargo build
-cargo install --path .
+cargo install --path ./crates/rml-lsp
