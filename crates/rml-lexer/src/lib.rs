@@ -72,11 +72,8 @@ impl<T> Token<T> {
 #[derive(Logos, Debug, PartialEq, Eq, Clone)]
 #[logos(extras = Position)]
 pub enum DefaultContext {
-    #[token(";", priority = 1)]
-    CommentLine,
-
-    #[token(";;", priority = 2)]
-    CommentBlock,
+    #[token("/", comment_context_callback)]
+    Comment(Vec<Token<CommentContext>>),
 
     #[token("<", tag_context_callback)]
     Tag(Vec<Token<TagContext>>),
@@ -84,7 +81,7 @@ pub enum DefaultContext {
     #[token("#", directive_context_callback)]
     Directive(Vec<Token<DirectiveContext>>),
 
-    #[regex(r"[^;#<]", text_context_callback)]
+    #[regex(r"[^/#<]", text_context_callback)]
     Text(Token<Text>),
 }
 

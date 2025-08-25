@@ -24,7 +24,17 @@ struct FileData {
 
 #[tower_lsp::async_trait]
 impl LanguageServer for Backend {
-    async fn initialize(&self, _: InitializeParams) -> Result<InitializeResult> {
+    async fn initialize(&self, params: InitializeParams) -> Result<InitializeResult> {
+        let multiline = params
+            .capabilities
+            .text_document
+            .as_ref()
+            .and_then(|td| td.semantic_tokens.as_ref())
+            .and_then(|st| st.multiline_token_support)
+            .unwrap_or(false);
+
+        self.client.log_message(MessageType::INFO, format!("multiline support: {multiline}")).await;
+
         Ok(InitializeResult {
             capabilities: ServerCapabilities {
                 text_document_sync: Some(TextDocumentSyncCapability::Kind(
@@ -46,6 +56,7 @@ impl LanguageServer for Backend {
                                     SemanticTokenType::TYPE,
                                     SemanticTokenType::OPERATOR,
                                     SemanticTokenType::NUMBER,
+                                    SemanticTokenType::COMMENT,
                                 ],
                                 token_modifiers: vec![],
                             },
@@ -188,10 +199,18 @@ impl LanguageServer for Backend {
                             }]
                         }
                     }).collect()
+                },
+                DefaultContext::Comment(inner_tokens) => {
+                    inner_tokens.iter().map(|t| {
+                        SemanticToken {
+                            delta_line: t.delta_line(),
+                            delta_start: t.delta_start(),
+                            length: t.length(),
+                            token_type: t.kind().get_token_type(),
+                            token_modifiers_bitset: 0,
+                        }
+                    }).collect()
                 }
-                //DefaultContext::CommentLine => todo!(),
-                //DefaultContext::CommentBlock => todo!(),
-                _ => vec![],
             })
             .collect();
 

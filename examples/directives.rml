@@ -1,9 +1,26 @@
 #expressions "expression.rmlx" as expr
 #import "path"
 
+//Hello, world!
+
+/*
+    Hello, world 
+    Second line
+    Hello
+    twtw
+*/
+
+/* Hello */
+
+
+/*
+    Data
+*/
+
+
+
 <Layout>
     <Container>
         <Node width="100px"/>
     </Container>
 </Layout>
-

@@ -113,19 +113,17 @@ impl<'a> RmlParser<'a> {
 
 #[cfg(test)]
 mod tests {
-    use std::ops::Range;
     use rml_lexer::RmlTokenStream;
     use crate::parser::RmlParser;
 
     #[test]
     fn test() {
         const CONTENT: &str =
-r#"
-<Layout attribute="data"/>
-"#;
+r#"/* Hello, world!
+Second line
+*/"#;
 
-        let xd: Range<usize> = 0..5;
-        let tokens = RmlTokenStream::new(CONTENT).to_vec();
+        let _tokens = RmlTokenStream::new(CONTENT).to_vec();
         let mut parser = RmlParser::new(CONTENT, "");
         let directives = parser.read_directives();
         println!("{directives:#?}");

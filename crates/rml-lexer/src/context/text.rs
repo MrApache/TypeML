@@ -8,10 +8,10 @@ pub enum Text {
     #[token("\n")]
     Newline,
 
-    #[regex(r"[^\n;#<]+")]
+    #[regex(r"[^\n/#<]+")]
     Other,
 
-    #[token(";")]
+    #[token("/")]
     End1,
 
     #[token("#")]
@@ -42,7 +42,7 @@ pub(crate) fn text_context_callback(
     let mut inner = lex.clone().morph::<Text>();
     for ch in inner.remainder().chars() {
         match ch {
-            ';' | '#' | '<' => break,
+            '/' | '#' | '<' => break,
             '\n' => {
                 chars += 1;
                 bytes += '\n'.encode_utf8(&mut [0; 2]).len();
