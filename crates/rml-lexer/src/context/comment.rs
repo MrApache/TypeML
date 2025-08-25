@@ -100,34 +100,32 @@ pub(crate) fn comment_context_callback(
         let text_delta_start = inner.extras.get_delta_start();
         while let Some(ch) = iter.next() {
             bytes += ch.encode_utf8(&mut [0; 2]).len();
-            if ch == '\n' {
-                inner.extras.new_line();
-            }
-            else if ch == '*' {
-                if let Some('/') = iter.peek() {
-                    bytes += '/'.encode_utf8(&mut [0; 2]).len();
+            match ch {
+                '\n' => inner.extras.new_line(),
+                '*'  => {
+                    if let Some('/') = iter.peek() {
+                        bytes += '/'.encode_utf8(&mut [0; 2]).len();
 
-                    tokens.push(Token {
-                        kind: CommentContext::Text,
-                        span: last_token_pos..last_token_pos + chars,
-                        delta_line: delta_line_position,
-                        delta_start: text_delta_start,
-                    });
+                        tokens.push(Token {
+                            kind: CommentContext::Text,
+                            span: last_token_pos..last_token_pos + chars,
+                            delta_line: delta_line_position,
+                            delta_start: text_delta_start,
+                        });
 
-                    last_token_pos += chars;
+                        last_token_pos += chars;
 
-                    tokens.push(Token {
-                        kind: CommentContext::EndBlock,
-                        span: last_token_pos..last_token_pos + 2,
-                        delta_line: inner.extras.get_delta_line(),
-                        delta_start: inner.extras.get_delta_start(),
-                    });
+                        tokens.push(Token {
+                            kind: CommentContext::EndBlock,
+                            span: last_token_pos..last_token_pos + 2,
+                            delta_line: inner.extras.get_delta_line(),
+                            delta_start: inner.extras.get_delta_start(),
+                        });
 
-                    break;
+                        break;
+                    }
                 }
-            }
-            else {
-                inner.extras.current_column += 1;
+                _ => inner.extras.current_column += 1,
             }
 
             chars += 1;
