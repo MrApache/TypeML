@@ -64,7 +64,7 @@ pub(crate) fn tag_context_callback(lex: &mut Lexer<DefaultContext>) -> Option<Ve
                 });
                 inner.extras.previous_token_end_column = delta_start as u32;
                 delta_start += inner.span().len();
-                inner.extras.current_line = delta_start as u32;
+                inner.extras.current_column = delta_start as u32;
             }
             Err(_) => return None,
         }
