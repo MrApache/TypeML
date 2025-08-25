@@ -1,0 +1,19 @@
+expr Text -> Resource {
+    Target: PlayerList,
+    Path:   display_list
+}
+
+expr Test -> Component {
+    Target:  Health,
+    Path:    value,
+    With:    [Player],
+    Without: [Bot],
+
+    Body: {
+        println!("Hello, world!");
+    }
+}
+
+expr LoadIcon -> Asset {
+    Path: "images/icon.png"
+}

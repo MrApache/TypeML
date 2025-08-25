@@ -1,0 +1,15 @@
+#import "../base.ron"
+#import "../schema.ron"
+#expressions "../file.rmlx" as expr
+
+<Layout>
+    <Node width="60px" height="100px"/>
+    <Container id="Background">
+        <Node/>
+        <Image path="{expr:LoadIcon}">
+        <Container id="Text">
+            <Text self="{expr:Text}">
+            <Tag attribute="{expr:Test}">
+        </Container>
+    </Container>
+</Layout>

@@ -1,0 +1,279 @@
+[
+    Include(["base"]),
+    Type(
+        name: "Display",
+        kind: "enum",
+        metadata: {
+            "path": "bevy::prelude::Display",
+        },
+        values: [
+            ("Flex",  None),
+            ("Grid",  None),
+            ("Block", None),
+            ("None",  None),
+        ]
+    ),
+    Type(
+        name: "BoxSizing",
+        kind: "enum",
+        metadata: {
+            "path": "bevy::prelude::BoxSizing",
+        },
+        values: [
+            ("BorderBox",  None),
+            ("ContentBox", None),
+        ]
+    ),
+    Type(
+        name: "PositionType",
+        kind: "enum",
+        metadata: {
+            "path": "bevy::prelude::PositionType",
+        },
+        values: [
+            ("Relative", None),
+            ("Absolute", None),
+        ]
+    ),
+    Enum(
+        name: "OverflowAxis",
+        metadata: {
+            "path": "bevy::prelude::OverflowAxis",
+        },
+        values: [
+            ("Visible", None),
+            ("Clip", None),
+            ("Hidden", None),
+            ("Scroll", None),
+        ]
+    ),
+    Struct(
+        name: "Overflow",
+        metadata: {
+            "path": "bevy::prelude::Overflow",
+        },
+        fields: {
+            "x": "OverflowAxis",
+            "y": "OverflowAxis",
+        }
+    ),
+    Enum(
+        name: "OverflowClipBox",
+        metadata: {
+            "path": "bevy::prelude::OverflowClipBox",
+        },
+        values: [
+            ("ContentBox", None),
+            ("PaddingBox", None),
+            ("BorderBox",  None),
+        ]
+    ),
+    Struct(
+        name: "OverflowClipMargin",
+        metadata: {
+            "path": "bevy::prelude::OverflowClipMargin",
+        },
+        fields: {
+            "visual_box": "OverflowClipBox",
+            "margin": "f32",
+        }
+    )
+    Enum(
+        name: "Val",
+        metadata: {
+            "path": "bevy::prelude::Val",
+        },
+        values: [
+            ("Auto",         None),
+            ("Px(f32)",      Some("([0-9]+(?:\.[0-9]+)?)px")),
+            ("Percent(f32)", Some("([0-9]+(?:\.[0-9]+)?)%")),
+            ("Vw(f32)",      Some("([0-9]+(?:\.[0-9]+)?)vw")),
+            ("Vh(f32)",      Some("([0-9]+(?:\.[0-9]+)?)vh")),
+            ("VMin(f32)",    Some("([0-9]+(?:\.[0-9]+)?)vmin")),
+            ("VMax(f32)",    Some("([0-9]+(?:\.[0-9]+)?)vmax")),
+        ]
+    ),
+    Enum(
+        name: "AlignItems",
+        metadata: {
+            "path": "bevy::prelude::AlignItems",
+        },
+        values: [
+            ("Default", None),
+            ("Start", None),
+            ("End", None),
+            ("FlexStart", None),
+            ("FlexEnd", None),
+            ("Center", None),
+            ("Baseline", None),
+            ("Stretch", None)
+        ]
+    ),
+    Enum(
+        name: "JustifyItems",
+        metadata: {
+            "path": "bevy::prelude::JustifyItems",
+        },
+        values: [
+            ("Default", None),
+            ("Start", None),
+            ("End", None),
+            ("Center", None),
+            ("Baseline", None),
+            ("Stretch", None)
+        ]
+    ),
+    Enum(
+        name: "AlignSelf",
+        metadata: {
+            "path": "bevy::prelude::AlignSelf",
+        },
+        values: [
+            ("Auto", None),
+            ("Start", None),
+            ("End", None),
+            ("FlexStart", None),
+            ("FlexEnd", None),
+            ("Center", None),
+            ("Baseline", None),
+            ("Stretch", None)
+        ]
+    ),
+    Enum(
+        name: "JustifySelf",
+        metadata: {
+            "path": "bevy::prelude::JustifySelf",
+        },
+        values: [
+            ("Auto", None),
+            ("Start", None),
+            ("End", None),
+            ("Center", None),
+            ("Baseline", None),
+            ("Stretch", None)
+        ]
+    ),
+    Enum(
+        name: "AlignContent",
+        metadata: {
+            "path": "bevy::prelude::AlignContent",
+        },
+        values: [
+            ("Default", None),
+            ("Start", None),
+            ("End", None),
+            ("FlexStart", None),
+            ("FlexEnd", None),
+            ("Center", None),
+            ("Stretch", None),
+            ("SpaceBetween", None),
+            ("SpaceEvenly", None),
+            ("SpaceAround", None)
+        ]
+    ),
+    Enum(
+        name: "JustifyContent",
+        metadata: {
+            "path": "bevy::prelude::JustifyContent",
+        },
+        values: [
+            ("Default", None),
+            ("Start", None),
+            ("End", None),
+            ("FlexStart", None),
+            ("FlexEnd", None),
+            ("Center", None),
+            ("Stretch", None),
+            ("SpaceBetween", None),
+            ("SpaceEvenly", None),
+            ("SpaceAround", None)
+        ]
+    ),
+    Struct(
+        name: "UiRect",
+        metadata: {
+            "path": "bevy::prelude::UiRect",
+        },
+        fields: {
+            "left":   "Val",
+            "right":  "Val",
+            "top":    "Val",
+            "bottom": "Val"
+        }
+    ),
+    Enum(
+        name: "FlexDirection",
+        metadata: {
+            "path": "bevy::prelude::FlexDirection",
+        },
+        values: [
+            ("Row", None),
+            ("Column", None),
+            ("RowReverse", None),
+            ("ColumnReverse", None)
+        ]
+    ),
+    Enum(
+        name: "FlexWrap",
+        metadata: {
+            "path": "bevy::prelude::FlexWrap",
+        },
+        values: [
+            ("NoWrap", None),
+            ("Wrap", None),
+            ("WrapReverse", None)
+        ]
+    ),
+
+    Element(
+        name: "Node",
+        group: "base:Component",
+        metadata: {
+            "path": "bevy::prelude::Node",
+        },
+        properties: {
+            "display": "Display",
+            "box_sizing": "BoxSizing",
+            "position_type": "PositionType",
+            "overflow": "Overflow",
+            "overflow_clip_margin": "OverflowClipMargin",
+            "left":   "Val",
+            "right":  "Val",
+            "top":    "Val",
+            "bottom": "Val",
+            "width":  "Val",
+            "height": "Val",
+            "min_width":  "Val",
+            "min_height": "Val",
+            "max_width":  "Val",
+            "max_height": "Val",
+            "aspect_ratio": "Option<f32>",
+            "align_items": "AlignItems",
+            "justify_items": "JustifyItems",
+            "align_self": "AlignSelf",
+            "justify_self": "JustifySelf",
+            "align_content": "AlignContent",
+            "justify_content": "JustifyContent",
+            "margin": "UiRect",
+            "padding": "UiRect",
+            "border": "UiRect",
+            "flex_direction": "FlexDirection",
+            "flex_wrap": "FlexWrap",
+            "flex_grow": "f32",
+            "flex_shrink": "f32",
+            "flex_basis": "Val",
+            "row_gap": "Val",
+            "column_gap": "Val",
+        },
+    ),
+    Element(
+        name:  "BackgroundColor",
+        group: "base:Component",
+        metadata: {
+            "path": "bevy::prelude::BackgroundColor",
+        },
+        properties: {
+            "self": "String",
+        },
+    ),
+]

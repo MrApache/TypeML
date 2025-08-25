@@ -3,8 +3,10 @@ members = ["crates/*"]
 resolver = "3"
 
 [workspace.dependencies]
-xml-lexer = { path = "crates/xml-lexer" }
+rml-lexer = { path = "crates/rml-lexer" }
 
+ron = "0.10.1"
 tokio = { version = "1.47.1", features = ["full"]}
 tower-lsp = "0.20.0"
 serde = "1.0.219"
+logos = "0.15.1"
