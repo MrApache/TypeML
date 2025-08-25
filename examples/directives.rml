@@ -1,2 +1,9 @@
-#expressions   "expression.rmlx" as expr
-#import    "path"
+#expressions "expression.rmlx" as expr
+#import "path"
+
+<Layout>
+    <Container>
+        <Node width="100px"/>
+    </Container>
+</Layout>
+

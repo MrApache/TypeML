@@ -121,9 +121,7 @@ mod tests {
     fn test() {
         const CONTENT: &str =
 r#"
-
-#import "/var/opt"
-#expressions "expression.rmlx" as expr
+<Layout attribute="data"/>
 "#;
 
         let xd: Range<usize> = 0..5;

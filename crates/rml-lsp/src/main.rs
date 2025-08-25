@@ -1,8 +1,10 @@
 mod parser;
 mod schema;
 
+use rml_lexer::context::TagContext;
 use rml_lexer::{DefaultContext, RmlTokenStream, TokenType};
 use std::collections::HashMap;
+use std::iter;
 use std::sync::RwLock;
 use tower_lsp::jsonrpc::Result;
 use tower_lsp::lsp_types::*;
@@ -41,6 +43,9 @@ impl LanguageServer for Backend {
                                     SemanticTokenType::KEYWORD,
                                     SemanticTokenType::PARAMETER,
                                     SemanticTokenType::STRING,
+                                    SemanticTokenType::TYPE,
+                                    SemanticTokenType::OPERATOR,
+                                    SemanticTokenType::NUMBER,
                                 ],
                                 token_modifiers: vec![],
                             },
@@ -159,16 +164,36 @@ impl LanguageServer for Backend {
                         token_type: u32::MAX,
                         token_modifiers_bitset: 0,
                     }]
+                },
+                DefaultContext::Tag(inner_tokens) => {
+                    inner_tokens.iter().flat_map(|t| {
+                        if let TagContext::Attribute(inner_tokens) = t.kind() {
+                            inner_tokens.iter().map(|t| {
+                                SemanticToken {
+                                    delta_line: t.delta_line(),
+                                    delta_start: t.delta_start(),
+                                    length: t.length(),
+                                    token_type: t.kind().get_token_type(),
+                                    token_modifiers_bitset: 0,
+                                }
+                            }).collect()
+                        }
+                        else {
+                            vec![SemanticToken {
+                                delta_line: t.delta_line(),
+                                delta_start: t.delta_start(),
+                                length: t.length(),
+                                token_type: t.kind().get_token_type(),
+                                token_modifiers_bitset: 0,
+                            }]
+                        }
+                    }).collect()
                 }
                 //DefaultContext::CommentLine => todo!(),
                 //DefaultContext::CommentBlock => todo!(),
-                //DefaultContext::TagStart(tokens) => todo!(),
-                //DefaultContext::TagCloseStart(tokens) => todo!(),
                 _ => vec![],
             })
             .collect();
-
-        dbg!(&tokens);
 
         Ok(Some(SemanticTokensResult::Tokens(SemanticTokens {
             result_id: None,
