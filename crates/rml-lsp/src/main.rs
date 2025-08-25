@@ -1,7 +1,7 @@
 mod parser;
 mod schema;
 
-use rml_lexer::{DefaultContext, RmlTokenStream, Token, TokenType};
+use rml_lexer::{DefaultContext, RmlTokenStream, TokenType};
 use std::collections::HashMap;
 use std::sync::RwLock;
 use tower_lsp::jsonrpc::Result;
@@ -17,7 +17,7 @@ struct Backend {
 #[derive(Debug)]
 struct FileData {
     content: String,
-    tokens: Vec<Token<DefaultContext>>,
+    tokens: Vec<DefaultContext>,
 }
 
 #[tower_lsp::async_trait]
@@ -140,7 +140,7 @@ impl LanguageServer for Backend {
         let tokens: Vec<SemanticToken> = file
             .tokens
             .iter()
-            .flat_map(|token| match token.kind() {
+            .flat_map(|token| match token {
                 DefaultContext::Directive(inner_tokens) => inner_tokens
                     .iter()
                     .map(|t| SemanticToken {
@@ -151,7 +151,7 @@ impl LanguageServer for Backend {
                         token_modifiers_bitset: 0,
                     })
                     .collect(),
-                DefaultContext::Text => {
+                DefaultContext::Text(token) => {
                     vec![SemanticToken {
                         delta_line: token.delta_line(),
                         delta_start: token.delta_start(),

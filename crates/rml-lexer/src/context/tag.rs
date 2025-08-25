@@ -8,6 +8,12 @@ use crate::{
 #[derive(Logos, Debug, PartialEq, Eq, Clone)]
 #[logos(extras = Position)]
 pub enum TagContext {
+    #[token("<")]
+    TagStart,
+
+    #[token("</")]
+    TagCloseStart,
+
     #[token(">")]
     TagEnd,
 
@@ -31,9 +37,21 @@ pub enum TagContext {
 }
 
 pub(crate) fn tag_context_callback(lex: &mut Lexer<DefaultContext>) -> Option<Vec<Token<TagContext>>> {
-    let mut inner = lex.clone().morph::<TagContext>();
     let mut tokens = Vec::new();
-    let mut delta_start = 1;
+    let kind = match lex.span().len() {
+        1 => TagContext::TagStart,
+        2 => TagContext::TagCloseStart,
+        _ => unreachable!()
+    };
+
+    tokens.push(Token {
+        kind,
+        span: lex.span(),
+        delta_line: lex.extras.get_delta_line(),
+        delta_start: lex.extras.get_delta_start(),
+    });
+
+    let mut inner = lex.clone().morph::<TagContext>();
 
     while let Some(token) = inner.next() {
         match token {
@@ -43,15 +61,12 @@ pub(crate) fn tag_context_callback(lex: &mut Lexer<DefaultContext>) -> Option<Ve
                 }
 
                 if kind == TagContext::NewLine {
-                    inner.extras.current_line += 1;
-                    inner.extras.previous_token_end_column = 0;
-                    inner.extras.current_column = 0;
-                    delta_start = 0;
+                    inner.extras.new_line();
                     continue;
                 }
 
                 if kind == TagContext::Whitespace {
-                    delta_start += inner.span().len();
+                    inner.extras.current_column += inner.span().len() as u32;
                     continue;
                 }
 
@@ -59,12 +74,10 @@ pub(crate) fn tag_context_callback(lex: &mut Lexer<DefaultContext>) -> Option<Ve
                     kind,
                     span: inner.span(),
                     delta_line: inner.extras.get_delta_line(),
-                    delta_start: delta_start as u32 - inner.extras.previous_token_end_column,
-                    length: inner.span().len() as u32,
+                    delta_start: inner.extras.get_delta_start(),
                 });
-                inner.extras.previous_token_end_column = delta_start as u32;
-                delta_start += inner.span().len();
-                inner.extras.current_column = delta_start as u32;
+
+                inner.extras.current_column += inner.span().len() as u32;
             }
             Err(_) => return None,
         }

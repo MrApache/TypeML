@@ -5,6 +5,9 @@ use crate::{context::attribute::AttributeContext, Position, Token};
 #[derive(Logos, Debug, PartialEq, Eq, Clone)]
 #[logos(extras = Position)]
 pub enum ExpressionContext {
+    #[token("{")]
+    Start,
+
     #[token("}")]
     End,
 
@@ -23,38 +26,38 @@ pub enum ExpressionContext {
 
 
 pub(crate) fn expression_context_callback(lex: &mut logos::Lexer<AttributeContext>) -> Option<Vec<Token<ExpressionContext>>> {
-    let mut inner = lex.clone().morph::<ExpressionContext>();
     let mut tokens = Vec::new();
-    let mut delta_start = 1;
+    tokens.push(Token {
+        kind: ExpressionContext::Start,
+        span: lex.span(),
+        delta_line: lex.extras.get_delta_line(),
+        delta_start: lex.extras.get_delta_start(),
+    });
 
+    let mut inner = lex.clone().morph::<ExpressionContext>();
     while let Some(token) = inner.next() {
         match token {
             Ok(kind) => {
-                if kind == ExpressionContext::End {
-                    break;
-                }
-                if kind == ExpressionContext::NewLine {
-                    inner.extras.current_line += 1;
-                    inner.extras.previous_token_end_column = 0;
-                    inner.extras.current_column = 0;
-                    delta_start = 0;
-                    continue;
-                }
-                if kind == ExpressionContext::Whitespace {
-                    delta_start += inner.span().len();
-                    continue;
+                match kind {
+                    ExpressionContext::End => break,
+                    ExpressionContext::NewLine => {
+                        inner.extras.new_line();
+                        continue;
+                    },
+                    ExpressionContext::Whitespace => {
+                        inner.extras.current_column += inner.span().len() as u32;
+                        continue;
+                    },
+                    _ => {},
                 }
 
                 tokens.push(Token {
                     kind,
                     span: inner.span(),
                     delta_line: inner.extras.get_delta_line(),
-                    delta_start: delta_start as u32 - inner.extras.previous_token_end_column,
-                    length: inner.span().len() as u32,
+                    delta_start: inner.extras.get_delta_start(),
                 });
-                inner.extras.previous_token_end_column = delta_start as u32;
-                delta_start += inner.span().len();
-                inner.extras.current_column = delta_start as u32;
+                inner.extras.current_column += inner.span().len() as u32;
             }
             Err(_) => return None,
         }

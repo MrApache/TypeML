@@ -60,41 +60,40 @@ pub(crate) fn directive_context_callback(
         kind: DirectiveContext::Start,
         span: lex.span(),
         delta_line: lex.extras.get_delta_line(),
-        delta_start: 0,
-        length: lex.span().len() as u32,
+        delta_start: lex.extras.get_delta_start(),
     });
 
+    //Skip '#'
+    lex.extras.current_column += 1;
+
     let mut inner = lex.clone().morph::<DirectiveContext>();
-    let mut delta_start = 1;
-
     while let Some(token) = inner.next() {
-        match token {
-            Ok(kind) => {
-                if kind == DirectiveContext::End {
-                    inner.extras.current_line += 1;
-                    inner.extras.previous_token_end_column = 0;
-                    inner.extras.current_column = 0;
-                    break;
-                }
-                if kind == DirectiveContext::Whitespace {
-                    delta_start += inner.span().len();
-                    continue;
-                }
+        let kind = match token {
+            Ok(kind) => kind,
+            Err(_) => return None,
+        };
 
+        match kind {
+            DirectiveContext::End => {
+                inner.extras.new_line();
+                break;
+            }
+            DirectiveContext::Whitespace => {
+                inner.extras.current_column += inner.span().len() as u32;
+                continue;
+            }
+            _ => {
                 tokens.push(Token {
                     kind,
                     span: inner.span(),
                     delta_line: inner.extras.get_delta_line(),
-                    delta_start: delta_start as u32 - inner.extras.previous_token_end_column,
-                    length: inner.span().len() as u32,
+                    delta_start: inner.extras.get_delta_start(),
                 });
-                inner.extras.previous_token_end_column = delta_start as u32;
-                delta_start += inner.span().len();
-                inner.extras.current_column = delta_start as u32;
+                inner.extras.current_column += inner.span().len() as u32;
             }
-            Err(_) => return None,
         }
     }
+
 
     *lex = inner.morph();
     Some(tokens)

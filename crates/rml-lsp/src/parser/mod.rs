@@ -34,9 +34,9 @@ impl<'a> RmlParser<'a> {
     pub fn read_directives(&mut self) -> Result<Vec<Directive>, ()> {
         let mut directives = vec![];
 
-        while let Ok(token) = self.lexer.next_token() {
-            if let DefaultContext::Directive(tokens) = token.kind() {
-                directives.push(self.parse_directive(tokens)?);
+        while let Ok(token_kind) = self.lexer.next_token() {
+            if let DefaultContext::Directive(tokens) = token_kind {
+                directives.push(self.parse_directive(&tokens)?);
             }
         }
         Ok(directives)
@@ -120,7 +120,9 @@ mod tests {
     #[test]
     fn test() {
         const CONTENT: &str =
-r#"#import "/var/opt"
+r#"
+
+#import "/var/opt"
 #expressions "expression.rmlx" as expr
 "#;
 

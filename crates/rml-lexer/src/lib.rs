@@ -15,7 +15,7 @@ pub struct Position {
     previous_token_line: u32,
     current_line: u32,
 
-    previous_token_end_column: u32,
+    previous_token_start_column: u32,
     current_column: u32,
 }
 
@@ -27,11 +27,15 @@ impl Position {
     }
 
     const fn get_delta_start(&mut self) -> u32 {
-        self.current_column - self.previous_token_end_column
+        let delta = self.current_column - self.previous_token_start_column;
+        self.previous_token_start_column = self.current_column;
+        delta
     }
 
-    const fn set_end_column(&mut self, value: u32) {
-        self.previous_token_end_column = value;
+    const fn new_line(&mut self) {
+        self.current_column = 0;
+        self.current_line += 1;
+        self.previous_token_start_column = 0;
     }
 }
 
@@ -41,7 +45,6 @@ pub struct Token<T> {
     span: Span,
     delta_line: u32, 
     delta_start: u32,
-    length: u32,
 }
 
 impl<T> Token<T> {
@@ -61,8 +64,8 @@ impl<T> Token<T> {
         self.delta_start
     }
 
-    pub const fn length(&self) -> u32 {
-        self.length
+    pub fn length(&self) -> u32 {
+        self.span().len() as u32
     }
 }
 
@@ -84,8 +87,8 @@ pub enum DefaultContext {
     #[token("</", tag_context_callback, priority = 2)]
     TagCloseStart(Vec<Token<TagContext>>),
 
-    #[regex(r"[^#;<]+")]
-    Text,
+    #[regex(r"[^;#<]", text_context_callback)]
+    Text(Token<Text>),
 }
 
 pub struct RmlTokenStream<'a> {
@@ -99,49 +102,16 @@ impl<'a> RmlTokenStream<'a> {
         }
     }
 
-    pub fn next_token(&mut self) -> Result<Token<DefaultContext>, ()> {
+    pub fn next_token(&mut self) -> Result<DefaultContext, ()> {
         if let Some(token_kind) = self.inner.next() {
-            let token_kind = token_kind?;
-
-            if let DefaultContext::Text = token_kind {
-                let delta_line = self.inner.extras.get_delta_line();
-                let lines = self.inner.slice().matches('\n').count();
-                self.inner.extras.current_line += lines as u32;
-
-                Ok(Token {
-                    kind: token_kind,
-                    span: self.inner.span(),
-                    delta_line,
-                    delta_start: 0,
-                    length: self.inner.span().len() as u32,
-                })
-            }
-            else if let DefaultContext::Directive(tokens) = token_kind {
-                Ok(Token {
-                    kind: DefaultContext::Directive(tokens),
-                    span: self.inner.span(),
-                    delta_line: 0,
-                    delta_start: 0,
-                    length: self.inner.span().len() as u32,
-                })
-            }
-            else {
-                Ok(Token {
-                    kind: DefaultContext::CommentLine,
-                    span: self.inner.span(),
-                    delta_line: 0,
-                    delta_start: 0,
-                    length: self.inner.span().len() as u32,
-                })
-            }
-
+            token_kind
         }
         else {
             Err(())
         }
     }
 
-    pub fn to_vec(mut self) -> Vec<Token<DefaultContext>> {
+    pub fn to_vec(mut self) -> Vec<DefaultContext> {
         let mut vec = vec![];
 
         while let Ok(token) = self.next_token() {
@@ -180,7 +150,7 @@ mod tests {
 
         while let Some(token) = lexer.next() {
             let slice = lexer.slice().trim();
-            if let Ok(token) = &token && let DefaultContext::Text = token && slice.is_empty() {
+            if let Ok(token) = &token && let DefaultContext::Text(_token) = token && slice.is_empty() {
                 continue;
             }
             println!("{token:?} => {slice:?}");

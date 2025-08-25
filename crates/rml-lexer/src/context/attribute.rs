@@ -39,39 +39,32 @@ pub enum AttributeContext {
 pub(crate) fn attribute_context_callback(
     lex: &mut Lexer<TagContext>,
 ) -> Option<Vec<Token<AttributeContext>>> {
-    let mut inner = lex.clone().morph::<AttributeContext>();
     let mut tokens = Vec::new();
-    let mut delta_start = 1;
 
+    let mut inner = lex.clone().morph::<AttributeContext>();
     while let Some(token) = inner.next() {
         match token {
             Ok(kind) => {
-                if kind == AttributeContext::Quote {
-                    break;
-                }
-
-                if kind == AttributeContext::NewLine {
-                    inner.extras.current_line += 1;
-                    inner.extras.previous_token_end_column = 0;
-                    inner.extras.current_column = 0;
-                    delta_start = 0;
-                    continue;
-                }
-                if kind == AttributeContext::Whitespace {
-                    delta_start += inner.span().len();
-                    continue;
+                match kind {
+                    AttributeContext::Quote => break,
+                    AttributeContext::NewLine => {
+                        inner.extras.new_line();
+                        continue;
+                    },
+                    AttributeContext::Whitespace => {
+                        inner.extras.current_column += inner.span().len() as u32;
+                        continue;
+                    },
+                    _ => {},
                 }
 
                 tokens.push(Token {
                     kind,
                     span: inner.span(),
                     delta_line: inner.extras.get_delta_line(),
-                    delta_start: delta_start as u32 - inner.extras.previous_token_end_column,
-                    length: inner.span().len() as u32,
+                    delta_start: inner.extras.get_delta_start(),
                 });
-                inner.extras.previous_token_end_column = delta_start as u32;
-                delta_start += inner.span().len();
-                inner.extras.current_column = delta_start as u32;
+                inner.extras.current_column += inner.span().len() as u32;
             }
             Err(_) => return None,
         }
