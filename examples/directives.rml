@@ -14,13 +14,12 @@
 
 
 /*
-    Data
+    Message
 */
-
-
 
 <Layout>
     <Container>
         <Node width="100px"/>
+        <Node width="{{ x: 10, y: 10 }}"/>
     </Container>
 </Layout>

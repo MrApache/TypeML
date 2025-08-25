@@ -1,7 +1,7 @@
 mod parser;
 mod schema;
 
-use rml_lexer::context::TagContext;
+use rml_lexer::context::{AttributeContext, TagContext};
 use rml_lexer::{DefaultContext, RmlTokenStream, TokenType};
 use std::collections::HashMap;
 use std::iter;
@@ -57,6 +57,7 @@ impl LanguageServer for Backend {
                                     SemanticTokenType::OPERATOR,
                                     SemanticTokenType::NUMBER,
                                     SemanticTokenType::COMMENT,
+                                    SemanticTokenType::MACRO,
                                 ],
                                 token_modifiers: vec![],
                             },
@@ -179,13 +180,26 @@ impl LanguageServer for Backend {
                 DefaultContext::Tag(inner_tokens) => {
                     inner_tokens.iter().flat_map(|t| {
                         if let TagContext::Attribute(inner_tokens) = t.kind() {
-                            inner_tokens.iter().map(|t| {
-                                SemanticToken {
-                                    delta_line: t.delta_line(),
-                                    delta_start: t.delta_start(),
-                                    length: t.length(),
-                                    token_type: t.kind().get_token_type(),
-                                    token_modifiers_bitset: 0,
+                            inner_tokens.iter().flat_map(|t| {
+                                if let AttributeContext::Struct(inner_tokens) = t.kind() {
+                                    inner_tokens.iter().map(|t| {
+                                        SemanticToken {
+                                            delta_line: t.delta_line(),
+                                            delta_start: t.delta_start(),
+                                            length: t.length(),
+                                            token_type: t.kind().get_token_type(),
+                                            token_modifiers_bitset: 0,
+                                        }
+                                    }).collect()
+                                }
+                                else {
+                                    vec![SemanticToken {
+                                        delta_line: t.delta_line(),
+                                        delta_start: t.delta_start(),
+                                        length: t.length(),
+                                        token_type: t.kind().get_token_type(),
+                                        token_modifiers_bitset: 0,
+                                    }]
                                 }
                             }).collect()
                         }

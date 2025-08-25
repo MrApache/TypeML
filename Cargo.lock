@@ -588,6 +588,7 @@ dependencies = [
 name = "rml-lsp"
 version = "0.1.0"
 dependencies = [
+ "logos",
  "rml-lexer",
  "ron",
  "serde",

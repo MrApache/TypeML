@@ -38,7 +38,6 @@ pub(crate) fn text_context_callback(
         lex.extras.new_line();
     }
 
-
     let mut inner = lex.clone().morph::<Text>();
     for ch in inner.remainder().chars() {
         match ch {

@@ -10,3 +10,4 @@ ron.workspace = true
 tokio.workspace = true
 tower-lsp.workspace = true
 serde.workspace = true
+logos.workspace = true

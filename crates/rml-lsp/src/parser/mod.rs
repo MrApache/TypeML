@@ -119,9 +119,7 @@ mod tests {
     #[test]
     fn test() {
         const CONTENT: &str =
-r#"/* Hello, world!
-Second line
-*/"#;
+r#"<Node attribute="{{ x:10, y:20 }}"/>"#;
 
         let _tokens = RmlTokenStream::new(CONTENT).to_vec();
         let mut parser = RmlParser::new(CONTENT, "");
