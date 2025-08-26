@@ -58,6 +58,7 @@ impl LanguageServer for Backend {
                                     SemanticTokenType::NUMBER,
                                     SemanticTokenType::COMMENT,
                                     SemanticTokenType::MACRO,
+                                    SemanticTokenType::FUNCTION,
                                 ],
                                 token_modifiers: vec![],
                             },
@@ -182,6 +183,17 @@ impl LanguageServer for Backend {
                         if let TagContext::Attribute(inner_tokens) = t.kind() {
                             inner_tokens.iter().flat_map(|t| {
                                 if let AttributeContext::Struct(inner_tokens) = t.kind() {
+                                    inner_tokens.iter().map(|t| {
+                                        SemanticToken {
+                                            delta_line: t.delta_line(),
+                                            delta_start: t.delta_start(),
+                                            length: t.length(),
+                                            token_type: t.kind().get_token_type(),
+                                            token_modifiers_bitset: 0,
+                                        }
+                                    }).collect()
+                                }
+                                else if let AttributeContext::Expression(inner_tokens) = t.kind() {
                                     inner_tokens.iter().map(|t| {
                                         SemanticToken {
                                             delta_line: t.delta_line(),

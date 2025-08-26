@@ -4,10 +4,9 @@
 //Hello, world!
 
 /*
-    Hello, world 
+    First line
     Second line
-    Hello
-    twtw
+    Third line
 */
 
 /* Hello */
@@ -21,5 +20,6 @@
     <Container>
         <Node width="100px"/>
         <Node width="{{ x: 10, y: 10 }}"/>
+        <Node width="{expr:Base}"/>
     </Container>
 </Layout>
