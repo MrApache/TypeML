@@ -1,0 +1,60 @@
+group Root {
+    groups: [Container, Component],
+    min: 1,
+    max: 1
+}
+
+group Container {
+    groups: [Component, Template]
+}
+
+group Template {
+    groups: [Container]
+}
+
+group Component {
+    extend: true,
+    min: 0,
+    max: 1,
+}
+
+#[Group(Root)]
+element Layout;
+
+#[Group(Component)]
+element Component;
+
+#[Group(Template)]
+element ItemTemplate;
+
+expression Resource {
+    groups: [Component],
+    required: {
+        Target: String,
+        Path:   String,
+    }
+}
+
+expression Component {
+    groups: [Component],
+    required: {
+        Target: String,
+        Path:   String,
+    },
+    additional: {
+        With:    Array<String>,
+        Without: Array<String>,
+    }
+}
+
+expression Item {
+    groups: [Component],
+    available_in: [Template],
+    required: {
+        Path: String,
+    },
+    additional: {
+        Converter: String,
+        Fallback:  String,
+    }
+}

@@ -58,7 +58,7 @@ pub(crate) fn comment_context_callback(
     let mut chars = 0;
 
     if is_line {
-        while let Some(ch) = iter.next() {
+        for ch in iter.by_ref() {
             bytes += ch.encode_utf8(&mut [0; 2]).len();
             if ch == '\n' {
                 tokens.push(Token {

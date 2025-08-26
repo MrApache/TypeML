@@ -4,7 +4,6 @@ mod schema;
 use rml_lexer::context::{AttributeContext, TagContext};
 use rml_lexer::{DefaultContext, RmlTokenStream, TokenType};
 use std::collections::HashMap;
-use std::iter;
 use std::sync::RwLock;
 use tower_lsp::jsonrpc::Result;
 use tower_lsp::lsp_types::*;

@@ -1,0 +1,209 @@
+#use <uri:base.rmlx>
+
+#[Path(bevy::prelude::Display)]
+enum Display {
+    Flex,
+    Grid,
+    Block,
+    None,
+}
+
+#[Path(bevy::prelude::BoxSizing)]
+enum BoxSizing {
+    BorderBox,
+    ContentBox
+}
+
+
+#[Path(bevy::prelude::PositionType)]
+enum PositionType {
+    Relative,
+    Absolute
+}
+
+#[Path(bevy::prelude::OverflowAxis)]
+enum OverflowAxis {
+    Visible,
+    Clip,
+    Hidden,
+    Scroll,
+}
+
+#[Path(bevy::prelude::Overflow)]
+struct Overflow {
+    x: OverflowAxis,
+    y: OverflowAxis,
+}
+
+#[Path(bevy::prelude::OverflowClipBox)]
+enum OverflowClipBox {
+    ContentBox,
+    PaddingBox,
+    BorderBox,
+}
+
+#[Path(bevy::prelude::OverflowClipMargin)]
+struct OverflowClipMargin {
+    visual_box: OverflowClipBox,
+    margin: f32,
+}
+
+#[Path(bevy::prelude::Val)]
+enum Val {
+    Auto,
+
+    #[pattern = "([0-9]+(?:\.[0-9]+)?)px" ]
+    Px(f32),
+
+    #[pattern = "([0-9]+(?:\.[0-9]+)?)%" ]
+    Percent(f32),
+
+    #[pattern = "([0-9]+(?:\.[0-9]+)?)vw" ]
+    Vw(f32),
+
+    #[pattern = "([0-9]+(?:\.[0-9]+)?)vh" ]
+    Vh(f32),
+
+    #[pattern = "([0-9]+(?:\.[0-9]+)?)vmin" ]
+    VMin(f32),
+
+    #[pattern = "([0-9]+(?:\.[0-9]+)?)vmax" ]
+    VMax(f32),
+}
+
+
+#[Path(bevy::prelude::AlignItems)]
+enum AlignItems {
+    Default,
+    Start,
+    End,
+    FlexStart,
+    FlexEnd,
+    Center,
+    Baseline,
+    Stretch,
+}
+
+#[Path(bevy::prelude::JustifyItems)]
+enum JustifyItems {
+    Default,
+    Start,
+    End,
+    Center,
+    Baseline,
+    Stretch,
+}
+
+#[Path(bevy::prelude::AlignSelf)]
+enum AlignSelf {
+    Auto,
+    Start,
+    End,
+    FlexStart,
+    FlexEnd,
+    Center,
+    Baseline,
+    Stretch,
+}
+
+#[Path(bevy::prelude::JustifySelf)]
+enum JustifySelf {
+    Auto,
+    Start,
+    End,
+    Center,
+    Baseline,
+    Stretch,
+}
+
+#[Path(bevy::prelude::AlignContent)]
+enum AlignContent {
+    Default,
+    Start,
+    End,
+    FlexStart,
+    FlexEnd,
+    Center,
+    Stretch,
+    SpaceBetween,
+    SpaceEvenly,
+    SpaceAround,
+}
+
+#[Path(bevy::prelude::JustifyContent)]
+enum JustifyContent {
+    Default,
+    Start,
+    End,
+    FlexStart,
+    FlexEnd,
+    Center,
+    Stretch,
+    SpaceBetween,
+    SpaceEvenly,
+    SpaceAround,
+}
+
+#[Path(bevy::prelude::UiRect)]
+struct UiRect {
+    left: Val,
+    right: Val,
+    top: Val,
+    bottom: Val,
+}
+
+#[Path(bevy::prelude::FlexDirection)]
+enum FlexDirection {
+    Row,
+    Column,
+    RowReverse,
+    ColumnReverse,
+}
+
+#[Path(bevy::prelude::FlexWrap)]
+enum FlexWrap {
+    NoWrap,
+    Wrap,
+    WrapReverse,
+}
+
+#[Path(bevy::prelude::Node)]
+#[Group(base:Component)]
+element Node {
+    display: Display
+    box_sizing: BoxSizing,
+    position_type: PositionType,
+    overflow: Overflow,
+    overflow_clip_margin: OverflowClipMargin,
+    left:   Val,
+    right:  Val,
+    top:    Val,
+    bottom: Val,
+    width:  Val,
+    height: Val,
+    min_width:  Val,
+    min_height: Val,
+    max_width:  Val,
+    max_height: Val,
+    aspect_ratio: Option<f32>,
+    align_items: AlignItems,
+    justify_items: JustifyItems,
+    align_self: AlignSelf,
+    justify_self: JustifySelf,
+    align_content: AlignContent,
+    justify_content: JustifyContent,
+    margin: UiRect,
+    padding: UiRect,
+    border: UiRect,
+    flex_direction: FlexDirection,
+    flex_wrap: FlexWrap,
+    flex_grow: f32,
+    flex_shrink: f32,
+    flex_basis: Val,
+    row_gap: Val,
+    column_gap: Val,
+}
+
+#[Path(bevy::prelude::BackgroundColor)]
+#[Group(base:Component)]
+element BackgroundColor(String);
