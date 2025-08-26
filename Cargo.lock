@@ -364,6 +364,13 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "bbd2bcb4c963f2ddae06a2efc7e9f3591312473c50c6685e1f298068316e66fe"
 
 [[package]]
+name = "lexer-utils"
+version = "0.1.0"
+dependencies = [
+ "logos",
+]
+
+[[package]]
 name = "libc"
 version = "0.2.175"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -580,6 +587,7 @@ checksum = "2b15c43186be67a4fd63bee50d0303afffcef381492ebe2c5d87f324e1b8815c"
 name = "rml-lexer"
 version = "0.1.0"
 dependencies = [
+ "lexer-utils",
  "logos",
  "tower-lsp",
 ]
@@ -588,8 +596,10 @@ dependencies = [
 name = "rml-lsp"
 version = "0.1.0"
 dependencies = [
+ "lexer-utils",
  "logos",
  "rml-lexer",
+ "rmlx-lexer",
  "ron",
  "serde",
  "tokio",
@@ -600,6 +610,7 @@ dependencies = [
 name = "rmlx-lexer"
 version = "0.1.0"
 dependencies = [
+ "lexer-utils",
  "logos",
  "tower-lsp",
 ]

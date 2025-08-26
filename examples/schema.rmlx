@@ -1,4 +1,3 @@
-#use <uri:base.rmlx>
 
 #[Path(bevy::prelude::Display)]
 enum Display {
@@ -23,6 +22,7 @@ enum PositionType {
 
 #[Path(bevy::prelude::OverflowAxis)]
 enum OverflowAxis {
+    #[Pattern("ada")]
     Visible,
     Clip,
     Hidden,
@@ -52,22 +52,22 @@ struct OverflowClipMargin {
 enum Val {
     Auto,
 
-    #[pattern = "([0-9]+(?:\.[0-9]+)?)px" ]
+    #[Pattern("([0-9]+(?:\.[0-9]+)?)px")]
     Px(f32),
 
-    #[pattern = "([0-9]+(?:\.[0-9]+)?)%" ]
+    #[Pattern("([0-9]+(?:\.[0-9]+)?)%")]
     Percent(f32),
 
-    #[pattern = "([0-9]+(?:\.[0-9]+)?)vw" ]
+    #[Pattern("[0-9]+(?:\.[0-9]+)?)vw")]
     Vw(f32),
 
-    #[pattern = "([0-9]+(?:\.[0-9]+)?)vh" ]
+    #[Pattern("([0-9]+(?:\.[0-9]+)?)vh")]
     Vh(f32),
 
-    #[pattern = "([0-9]+(?:\.[0-9]+)?)vmin" ]
+    #[Pattern("([0-9]+(?:\.[0-9]+)?)vmin")]
     VMin(f32),
 
-    #[pattern = "([0-9]+(?:\.[0-9]+)?)vmax" ]
+    #[Pattern("([0-9]+(?:\.[0-9]+)?)vmax")]
     VMax(f32),
 }
 
@@ -207,3 +207,6 @@ element Node {
 #[Path(bevy::prelude::BackgroundColor)]
 #[Group(base:Component)]
 element BackgroundColor(String);
+
+
+#use <uri:base.rmlx>

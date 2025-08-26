@@ -5,6 +5,8 @@ edition = "2024"
 
 [dependencies]
 rml-lexer.workspace = true
+rmlx-lexer.workspace = true
+lexer-utils.workspace = true
 
 ron.workspace = true
 tokio.workspace = true

@@ -17,6 +17,12 @@ element Component;
 #[Group(Template)]
 element ItemTemplate;
 
+#[Group(Template)]
+element Test {
+    target: String,
+    path:   String,
+}
+
 expression Resource {
     groups: [Component],
     required: {

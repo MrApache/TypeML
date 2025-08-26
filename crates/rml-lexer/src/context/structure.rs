@@ -1,6 +1,7 @@
 use logos::{Lexer, Logos};
+use lexer_utils::*;
 
-use crate::{context::attribute::AttributeContext, Position, Token, TokenType};
+use crate::{context::attribute::AttributeContext};
 
 #[derive(Logos, Debug, PartialEq, Eq, Clone)]
 #[logos(extras = Position)]

@@ -1,6 +1,6 @@
 use logos::{Lexer, Logos};
-
-use crate::{DefaultContext, Position, Token, TokenType};
+use lexer_utils::*;
+use crate::MarkupTokens;
 
 #[derive(Logos, Debug, PartialEq, Eq, Clone)]
 #[logos(extras = Position)]
@@ -21,7 +21,7 @@ impl TokenType for CommentContext {
 }
 
 pub(crate) fn comment_context_callback(
-    lex: &mut Lexer<DefaultContext>,
+    lex: &mut Lexer<MarkupTokens>,
 ) -> Option<Vec<Token<CommentContext>>> {
     let mut tokens = Vec::new();
     let mut inner = lex.clone().morph::<CommentContext>();

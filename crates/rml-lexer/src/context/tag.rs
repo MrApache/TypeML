@@ -1,8 +1,9 @@
 use logos::{Lexer, Logos};
+use lexer_utils::*;
 
 use crate::{
     context::attribute::{attribute_context_callback, AttributeContext},
-    DefaultContext, Position, Token, TokenType,
+    MarkupTokens,
 };
 
 #[derive(Logos, Debug, PartialEq, Eq, Clone)]
@@ -61,7 +62,7 @@ impl TokenType for TagContext {
 }
 
 pub(crate) fn tag_context_callback(
-    lex: &mut Lexer<DefaultContext>,
+    lex: &mut Lexer<MarkupTokens>,
 ) -> Option<Vec<Token<TagContext>>> {
     let mut tokens = Vec::new();
     tokens.push(Token {

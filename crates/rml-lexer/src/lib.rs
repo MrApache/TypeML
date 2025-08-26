@@ -1,77 +1,15 @@
 mod errors;
 pub mod context;
+use lexer_utils::*;
 pub use logos;
 
-use logos::{Lexer, Logos, Span};
+use logos::{Lexer, Logos};
 
 use crate::context::*;
 
-pub trait TokenType {
-    fn get_token_type(&self) -> u32;
-}
-
-#[derive(Default, Clone)]
-pub struct Position {
-    previous_token_line: u32,
-    current_line: u32,
-
-    previous_token_start_column: u32,
-    current_column: u32,
-}
-
-impl Position {
-    const fn get_delta_line(&mut self) -> u32 {
-        let delta = self.current_line - self.previous_token_line;
-        self.previous_token_line = self.current_line;
-        delta
-    }
-
-    const fn get_delta_start(&mut self) -> u32 {
-        let delta = self.current_column - self.previous_token_start_column;
-        self.previous_token_start_column = self.current_column;
-        delta
-    }
-
-    const fn new_line(&mut self) {
-        self.current_column = 0;
-        self.current_line += 1;
-        self.previous_token_start_column = 0;
-    }
-}
-
-#[derive(Debug, PartialEq, Eq, Clone)]
-pub struct Token<T> {
-    kind: T,
-    span: Span,
-    delta_line: u32, 
-    delta_start: u32,
-}
-
-impl<T> Token<T> {
-    pub const fn kind(&self) -> &T {
-        &self.kind
-    }
-
-    pub fn span(&self) -> Span {
-        self.span.clone()
-    }
-
-    pub const fn delta_line(&self) -> u32 {
-        self.delta_line
-    }
-
-    pub const fn delta_start(&self) -> u32 {
-        self.delta_start
-    }
-
-    pub fn length(&self) -> u32 {
-        self.span().len() as u32
-    }
-}
-
 #[derive(Logos, Debug, PartialEq, Eq, Clone)]
 #[logos(extras = Position)]
-pub enum DefaultContext {
+pub enum MarkupTokens {
     #[token("/", comment_context_callback)]
     Comment(Vec<Token<CommentContext>>),
 
@@ -86,17 +24,17 @@ pub enum DefaultContext {
 }
 
 pub struct RmlTokenStream<'a> {
-    inner: Lexer<'a, DefaultContext>,
+    inner: Lexer<'a, MarkupTokens>,
 }
 
 impl<'a> RmlTokenStream<'a> {
     pub fn new(content: &'a str) -> Self {
         Self {
-            inner: DefaultContext::lexer(content),
+            inner: MarkupTokens::lexer(content),
         }
     }
 
-    pub fn next_token(&mut self) -> Result<DefaultContext, ()> {
+    pub fn next_token(&mut self) -> Result<MarkupTokens, ()> {
         if let Some(token_kind) = self.inner.next() {
             token_kind
         }
@@ -105,7 +43,7 @@ impl<'a> RmlTokenStream<'a> {
         }
     }
 
-    pub fn to_vec(mut self) -> Vec<DefaultContext> {
+    pub fn to_vec(mut self) -> Vec<MarkupTokens> {
         let mut vec = vec![];
 
         while let Ok(token) = self.next_token() {
@@ -119,7 +57,7 @@ impl<'a> RmlTokenStream<'a> {
 #[cfg(test)]
 mod tests {
     use logos::Logos;
-    use crate::DefaultContext;
+    use crate::MarkupTokens;
 
     #[test]
     fn test() {
@@ -140,11 +78,11 @@ mod tests {
     </Container>
 </Layout>
 "#;
-        let mut lexer = DefaultContext::lexer(CONTENT);
+        let mut lexer = MarkupTokens::lexer(CONTENT);
 
         while let Some(token) = lexer.next() {
             let slice = lexer.slice().trim();
-            if let Ok(token) = &token && let DefaultContext::Text(_token) = token && slice.is_empty() {
+            if let Ok(token) = &token && let MarkupTokens::Text(_token) = token && slice.is_empty() {
                 continue;
             }
             println!("{token:?} => {slice:?}");

@@ -1,10 +1,13 @@
+use lexer_utils::{Token, TokenType};
 mod parser;
 mod schema;
 
 use rml_lexer::context::{AttributeContext, TagContext};
-use rml_lexer::{DefaultContext, RmlTokenStream, TokenType};
+use rml_lexer::{MarkupTokens, RmlTokenStream};
+use rmlx_lexer::{RmlxTokenStream, SchemaTokens};
 use std::collections::HashMap;
-use std::sync::RwLock;
+use std::path::Path;
+use std::sync::{Arc, RwLock};
 use tower_lsp::jsonrpc::Result;
 use tower_lsp::lsp_types::*;
 use tower_lsp::{Client, LanguageServer, LspService, Server};
@@ -12,30 +15,53 @@ use tower_lsp::{Client, LanguageServer, LspService, Server};
 #[derive(Debug)]
 struct Backend {
     client: Client,
-    files: RwLock<HashMap<Url, FileData>>,
+
+    schemas: RwLock<HashMap<Url, SchemaDecalration>>, //RMLX files
+    workspaces: RwLock<HashMap<Url, Workspace>>,      //RML  files
 }
 
 #[derive(Debug)]
-struct FileData {
+struct Workspace {
+    references: Vec<Arc<SchemaDecalration>>,
     content: String,
-    tokens: Vec<DefaultContext>,
+    tokens: Vec<MarkupTokens>,
+}
+
+#[derive(Debug)]
+struct SchemaDecalration {
+    content: String,
+    tokens: Vec<SchemaTokens>,
 }
 
 #[tower_lsp::async_trait]
 impl LanguageServer for Backend {
-    async fn initialize(&self, params: InitializeParams) -> Result<InitializeResult> {
-        let multiline = params
-            .capabilities
-            .text_document
-            .as_ref()
-            .and_then(|td| td.semantic_tokens.as_ref())
-            .and_then(|st| st.multiline_token_support)
-            .unwrap_or(false);
-
-        self.client.log_message(MessageType::INFO, format!("multiline support: {multiline}")).await;
-
+    async fn initialize(&self, _: InitializeParams) -> Result<InitializeResult> {
         Ok(InitializeResult {
             capabilities: ServerCapabilities {
+                declaration_provider: Some(DeclarationCapability::RegistrationOptions(
+                    DeclarationRegistrationOptions {
+                        text_document_registration_options: TextDocumentRegistrationOptions {
+                            document_selector: Some(vec![
+                                DocumentFilter {
+                                    language: Some("rust-markup-language".to_string()),
+                                    scheme: None,
+                                    pattern: Some("*.{rml}".to_string()),
+                                },
+                                DocumentFilter {
+                                    language: Some("rust-markup-language-expressions".to_string()),
+                                    scheme: None,
+                                    pattern: Some("*.{rmlx}".to_string()),
+                                },
+                            ]),
+                        },
+                        declaration_options: DeclarationOptions {
+                            work_done_progress_options: WorkDoneProgressOptions {
+                                work_done_progress: Some(false),
+                            },
+                        },
+                        static_registration_options: StaticRegistrationOptions { id: None },
+                    },
+                )),
                 text_document_sync: Some(TextDocumentSyncCapability::Kind(
                     TextDocumentSyncKind::FULL,
                 )),
@@ -113,36 +139,71 @@ impl LanguageServer for Backend {
 
     async fn did_open(&self, params: DidOpenTextDocumentParams) {
         let uri = params.text_document.uri;
-        self.client
-            .log_message(MessageType::INFO, format!("Opened: {uri}"))
-            .await;
-        let stream = RmlTokenStream::new(&params.text_document.text);
-        let tokens = stream.to_vec();
+        let extension = Path::new(uri.path())
+            .extension()
+            .and_then(|e| e.to_str())
+            .unwrap();
 
-        //let mut parser = RmlParser::new(&params.text_document.text, uri);
-        //let directives = parser.read_directives().unwrap();
-
-        let mut files = self.files.write().unwrap();
-        files.insert(
-            uri,
-            FileData {
-                content: params.text_document.text,
-                tokens,
-            },
-        );
+        match extension {
+            "rml" => {
+                let stream = RmlTokenStream::new(&params.text_document.text);
+                let tokens = stream.to_vec();
+                let mut workspaces = self.workspaces.write().unwrap();
+                workspaces.insert(
+                    uri,
+                    Workspace {
+                        references: vec![],
+                        content: params.text_document.text,
+                        tokens,
+                    },
+                );
+            }
+            "rmlx" => {
+                let stream = RmlxTokenStream::new(&params.text_document.text);
+                let tokens = stream.to_vec();
+                let mut schemas = self.schemas.write().unwrap();
+                schemas.insert(
+                    uri,
+                    SchemaDecalration {
+                        content: params.text_document.text,
+                        tokens,
+                    },
+                );
+            }
+            _ => unreachable!("Unsupported file type '{extension}'"),
+        }
     }
 
     async fn did_close(&self, params: DidCloseTextDocumentParams) {
-        let mut write = self.files.write().unwrap();
-        write.remove(&params.text_document.uri).unwrap();
+        let _ = params;
+        //let mut write = self.workspaces.write().unwrap();
+        //write.remove(&params.text_document.uri).unwrap();
     }
 
     async fn did_change(&self, params: DidChangeTextDocumentParams) {
-        let mut write = self.files.write().unwrap();
-        let file = write.get_mut(&params.text_document.uri).unwrap();
-        let text = params.content_changes.last().unwrap().text.clone(); //TODO fix
-        file.tokens = RmlTokenStream::new(&text).to_vec();
-        file.content = text;
+        let uri = params.text_document.uri;
+        let extension = Path::new(uri.path())
+            .extension()
+            .and_then(|e| e.to_str())
+            .unwrap();
+
+        match extension {
+            "rml" => {
+                let mut write = self.workspaces.write().unwrap();
+                let file = write.get_mut(&uri).unwrap();
+                let text = params.content_changes.last().unwrap().text.clone(); //TODO fix
+                file.tokens = RmlTokenStream::new(&text).to_vec();
+                file.content = text;
+            }
+            "rmlx" => {
+                let mut write = self.schemas.write().unwrap();
+                let schema = write.get_mut(&uri).unwrap();
+                let text = params.content_changes.last().unwrap().text.clone(); //TODO fix
+                schema.tokens = RmlxTokenStream::new(&text).to_vec();
+                schema.content = text;
+            }
+            _ => unreachable!(),
+        }
     }
 
     async fn semantic_tokens_full(
@@ -152,97 +213,127 @@ impl LanguageServer for Backend {
         self.client
             .log_message(MessageType::INFO, "Send semantic tokens")
             .await;
-        let read = self.files.read().unwrap();
-        let file = read.get(&params.text_document.uri).unwrap();
-        let tokens: Vec<SemanticToken> = file
-            .tokens
-            .iter()
-            .flat_map(|token| match token {
-                DefaultContext::Directive(inner_tokens) => inner_tokens
-                    .iter()
-                    .map(|t| SemanticToken {
-                        delta_line: t.delta_line(),
-                        delta_start: t.delta_start(),
-                        length: t.length(),
-                        token_type: t.kind().get_token_type(),
-                        token_modifiers_bitset: 0,
-                    })
-                    .collect(),
-                DefaultContext::Text(token) => {
-                    vec![SemanticToken {
-                        delta_line: token.delta_line(),
-                        delta_start: token.delta_start(),
-                        length: token.length(),
-                        token_type: u32::MAX,
-                        token_modifiers_bitset: 0,
-                    }]
-                },
-                DefaultContext::Tag(inner_tokens) => {
-                    inner_tokens.iter().flat_map(|t| {
-                        if let TagContext::Attribute(inner_tokens) = t.kind() {
-                            inner_tokens.iter().flat_map(|t| {
-                                if let AttributeContext::Struct(inner_tokens) = t.kind() {
-                                    inner_tokens.iter().map(|t| {
-                                        SemanticToken {
-                                            delta_line: t.delta_line(),
-                                            delta_start: t.delta_start(),
-                                            length: t.length(),
-                                            token_type: t.kind().get_token_type(),
-                                            token_modifiers_bitset: 0,
-                                        }
-                                    }).collect()
-                                }
-                                else if let AttributeContext::Expression(inner_tokens) = t.kind() {
-                                    inner_tokens.iter().map(|t| {
-                                        SemanticToken {
-                                            delta_line: t.delta_line(),
-                                            delta_start: t.delta_start(),
-                                            length: t.length(),
-                                            token_type: t.kind().get_token_type(),
-                                            token_modifiers_bitset: 0,
-                                        }
-                                    }).collect()
-                                }
-                                else {
-                                    vec![SemanticToken {
-                                        delta_line: t.delta_line(),
-                                        delta_start: t.delta_start(),
-                                        length: t.length(),
-                                        token_type: t.kind().get_token_type(),
-                                        token_modifiers_bitset: 0,
-                                    }]
-                                }
-                            }).collect()
-                        }
-                        else {
-                            vec![SemanticToken {
-                                delta_line: t.delta_line(),
-                                delta_start: t.delta_start(),
-                                length: t.length(),
-                                token_type: t.kind().get_token_type(),
-                                token_modifiers_bitset: 0,
-                            }]
-                        }
-                    }).collect()
-                },
-                DefaultContext::Comment(inner_tokens) => {
-                    inner_tokens.iter().map(|t| {
-                        SemanticToken {
-                            delta_line: t.delta_line(),
-                            delta_start: t.delta_start(),
-                            length: t.length(),
-                            token_type: t.kind().get_token_type(),
-                            token_modifiers_bitset: 0,
-                        }
-                    }).collect()
-                }
-            })
-            .collect();
+
+        let extension = Path::new(params.text_document.uri.path())
+            .extension()
+            .and_then(|e| e.to_str())
+            .unwrap();
+
+        let tokens = match extension {
+            "rml" => self.markup_semantic_tokens(params.text_document.uri),
+            "rmlx" => self.schema_semantic_tokens(params.text_document.uri),
+            _ => unreachable!(),
+        };
 
         Ok(Some(SemanticTokensResult::Tokens(SemanticTokens {
             result_id: None,
             data: tokens,
         })))
+    }
+}
+
+impl Backend {
+    fn schema_semantic_tokens(&self, uri: Url) -> Vec<SemanticToken> {
+        let read = self.schemas.read().unwrap();
+        let file = read.get(&uri).unwrap();
+        file.tokens
+            .iter()
+            .flat_map(|token| match token {
+                SchemaTokens::Group(tokens) => Self::to_semantic_tokens(tokens),
+                SchemaTokens::Struct(tokens) => Self::to_semantic_tokens(tokens),
+                SchemaTokens::Element(tokens) => Self::to_semantic_tokens(tokens),
+                SchemaTokens::Expression(tokens) => Self::to_semantic_tokens(tokens),
+                SchemaTokens::Attribute(tokens) => tokens
+                    .iter()
+                    .flat_map(|token| {
+                        if let rmlx_lexer::AttributeContext::Content(tokens) = token.kind() {
+                            Self::to_semantic_tokens(tokens)
+                        } else {
+                            Self::to_semantic_token(token)
+                        }
+                    })
+                    .collect(),
+                SchemaTokens::Enum(tokens) => tokens
+                    .iter()
+                    .flat_map(|token| {
+                        if let rmlx_lexer::EnumContext::Attribute(tokens) = token.kind() {
+                            tokens
+                                .iter()
+                                .flat_map(|token| {
+                                    if let rmlx_lexer::AttributeContext::Content(tokens) =
+                                        token.kind()
+                                    {
+                                        Self::to_semantic_tokens(tokens)
+                                    } else {
+                                        Self::to_semantic_token(token)
+                                    }
+                                })
+                                .collect()
+                        } else {
+                            Self::to_semantic_token(token)
+                        }
+                    })
+                    .collect(),
+                _ => vec![],
+            })
+            .collect()
+    }
+
+    fn markup_semantic_tokens(&self, uri: Url) -> Vec<SemanticToken> {
+        let read = self.workspaces.read().unwrap();
+        let file = read.get(&uri).unwrap();
+        file.tokens
+            .iter()
+            .flat_map(|token| match token {
+                MarkupTokens::Directive(inner_tokens) => Self::to_semantic_tokens(inner_tokens),
+                MarkupTokens::Text(token) => Self::to_semantic_token(token),
+                MarkupTokens::Tag(inner_tokens) => inner_tokens
+                    .iter()
+                    .flat_map(|t| {
+                        if let TagContext::Attribute(inner_tokens) = t.kind() {
+                            inner_tokens
+                                .iter()
+                                .flat_map(|t| match t.kind() {
+                                    AttributeContext::Struct(inner_tokens) => {
+                                        Self::to_semantic_tokens(inner_tokens)
+                                    }
+                                    AttributeContext::Expression(inner_tokens) => {
+                                        Self::to_semantic_tokens(inner_tokens)
+                                    }
+                                    _ => Self::to_semantic_token(t),
+                                })
+                                .collect()
+                        } else {
+                            Self::to_semantic_token(t)
+                        }
+                    })
+                    .collect(),
+                MarkupTokens::Comment(inner_tokens) => Self::to_semantic_tokens(inner_tokens),
+            })
+            .collect()
+    }
+
+    fn to_semantic_tokens<T: TokenType>(tokens: &[Token<T>]) -> Vec<SemanticToken> {
+        tokens
+            .iter()
+            .map(|t| SemanticToken {
+                delta_line: t.delta_line(),
+                delta_start: t.delta_start(),
+                length: t.length(),
+                token_type: t.kind().get_token_type(),
+                token_modifiers_bitset: 0,
+            })
+            .collect()
+    }
+
+    fn to_semantic_token<T: TokenType>(token: &Token<T>) -> Vec<SemanticToken> {
+        vec![SemanticToken {
+            delta_line: token.delta_line(),
+            delta_start: token.delta_start(),
+            length: token.length(),
+            token_type: token.kind().get_token_type(),
+            token_modifiers_bitset: 0,
+        }]
     }
 }
 
@@ -253,7 +344,8 @@ async fn main() {
 
     let (service, socket) = LspService::new(|client| Backend {
         client,
-        files: Default::default(),
+        schemas: Default::default(),
+        workspaces: Default::default(),
     });
     Server::new(stdin, stdout, socket).serve(service).await;
 }

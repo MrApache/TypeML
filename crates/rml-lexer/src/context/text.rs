@@ -1,6 +1,6 @@
 use logos::{Lexer, Logos};
-
-use crate::{DefaultContext, Position, Token};
+use lexer_utils::*;
+use crate::MarkupTokens;
 
 #[derive(Logos, Debug, PartialEq, Eq, Clone)]
 #[logos(extras = Position)]
@@ -21,8 +21,14 @@ pub enum Text {
     End3,
 }
 
+impl TokenType for Text {
+    fn get_token_type(&self) -> u32 {
+        u32::MAX
+    }
+}
+
 pub(crate) fn text_context_callback(
-    lex: &mut Lexer<DefaultContext>,
+    lex: &mut Lexer<MarkupTokens>,
 ) -> Option<Token<Text>> {
 
     //Skip first character

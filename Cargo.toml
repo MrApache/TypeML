@@ -4,6 +4,8 @@ resolver = "3"
 
 [workspace.dependencies]
 rml-lexer = { path = "crates/rml-lexer" }
+rmlx-lexer = { path = "crates/rmlx-lexer" }
+lexer-utils = { path = "crates/lexer-utils" }
 
 ron = "0.10.1"
 tokio = { version = "1.47.1", features = ["full"]}

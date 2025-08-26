@@ -1,9 +1,10 @@
 mod error;
 
+use lexer_utils::Token;
 use rml_lexer::{
     context::DirectiveContext,
     logos::{Source, Span},
-    DefaultContext, RmlTokenStream, Token
+    MarkupTokens, RmlTokenStream
 };
 
 #[derive(Debug, PartialEq, Eq, Clone)]
@@ -35,7 +36,7 @@ impl<'a> RmlParser<'a> {
         let mut directives = vec![];
 
         while let Ok(token_kind) = self.lexer.next_token() {
-            if let DefaultContext::Directive(tokens) = token_kind {
+            if let MarkupTokens::Directive(tokens) = token_kind {
                 directives.push(self.parse_directive(&tokens)?);
             }
         }

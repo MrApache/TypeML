@@ -1,11 +1,11 @@
 use logos::{Lexer, Logos};
+use lexer_utils::*;
 
 use crate::{
     context::{
         expression::ExpressionContext, expression_context_callback, struct_context_callback,
         structure::StructContext, tag::TagContext,
     },
-    Position, Token, TokenType,
 };
 
 #[derive(Logos, Debug, PartialEq, Eq, Clone)]
