@@ -1,22 +1,12 @@
-group Root {
-    groups: [Container, Component],
-    min: 1,
-    max: 1
-}
+#[Min(1), Max(1)]
+group Root[Container, Component];
 
-group Container {
-    groups: [Component, Template]
-}
+group Container[Component, Template];
 
-group Template {
-    groups: [Container]
-}
+group Template[Container];
 
-group Component {
-    extend: true,
-    min: 0,
-    max: 1,
-}
+#[Extend, Min(0), Max(1)]
+group Component;
 
 #[Group(Root)]
 element Layout;
