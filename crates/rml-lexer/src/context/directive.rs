@@ -42,8 +42,8 @@ impl TokenType for DirectiveContext {
             DirectiveContext::Whitespace => 0,
             DirectiveContext::End => 0,
 
-            DirectiveContext::Expression => 1,
-            DirectiveContext::Import => 1,
+            DirectiveContext::Expression => 0,
+            DirectiveContext::Import => 0,
 
             DirectiveContext::Alias => 1,
 
