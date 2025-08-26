@@ -1,3 +1,5 @@
+use <"uri:base.rmlx">
+
 #[Min(1), Max(1)]
 group Root[Container, Component];
 

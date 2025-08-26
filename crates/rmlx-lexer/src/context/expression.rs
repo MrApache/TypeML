@@ -1,10 +1,11 @@
 use lexer_utils::*;
 use logos::{Lexer, Logos};
-use crate::SchemaTokens;
+use crate::{Error, SchemaTokens};
 
 #[derive(Logos, Debug, PartialEq, Eq, Clone)]
 #[logos(extras = Position)]
-pub enum ExpressionContext {
+#[logos(error(Error, Error::from_lexer))]
+pub enum ExpressionTokens {
     Keyword,
 
     #[regex("[a-zA-Z_][a-zA-Z0-9_]*")]
@@ -41,92 +42,58 @@ pub enum ExpressionContext {
     Whitespace,
 }
 
-impl TokenType for ExpressionContext {
+impl TokenType for ExpressionTokens {
     fn get_token_type(&self) -> u32 {
         match self {
-            ExpressionContext::Keyword => KEYWORD,
-            ExpressionContext::Identifier => TYPE,
-            ExpressionContext::LeftSquareBracket => KEYWORD,
-            ExpressionContext::RightSquareBracket => KEYWORD,
-            ExpressionContext::LeftCurlyBracket => u32::MAX,
-            ExpressionContext::RightCurlyBracket => u32::MAX,
-            ExpressionContext::LeftAngleBracket => OPERATOR,
-            ExpressionContext::RightAngleBracket => OPERATOR,
-            ExpressionContext::NewLine => u32::MAX,
-            ExpressionContext::Colon => u32::MAX,
-            ExpressionContext::Comma => u32::MAX,
-            ExpressionContext::Whitespace => u32::MAX,
+            ExpressionTokens::Keyword => KEYWORD,
+            ExpressionTokens::Identifier => TYPE,
+            ExpressionTokens::LeftSquareBracket => KEYWORD,
+            ExpressionTokens::RightSquareBracket => KEYWORD,
+            ExpressionTokens::LeftCurlyBracket => u32::MAX,
+            ExpressionTokens::RightCurlyBracket => u32::MAX,
+            ExpressionTokens::LeftAngleBracket => OPERATOR,
+            ExpressionTokens::RightAngleBracket => OPERATOR,
+            ExpressionTokens::NewLine => u32::MAX,
+            ExpressionTokens::Colon => u32::MAX,
+            ExpressionTokens::Comma => u32::MAX,
+            ExpressionTokens::Whitespace => u32::MAX,
         }
     }
 }
 
-pub(crate) fn expression_context_callback(
+pub(crate) fn expression_callback(
     lex: &mut Lexer<SchemaTokens>,
-) -> Option<Vec<Token<ExpressionContext>>> {
+) -> Result<Vec<Token<ExpressionTokens>>, Error> {
 
     let mut tokens = Vec::new();
-    tokens.push(Token {
-        kind: ExpressionContext::Keyword,
-        span: lex.span(),
-        delta_line: lex.extras.get_delta_line(),
-        delta_start: lex.extras.get_delta_start(),
-    });
-
-    //Skip 'expression'
-    lex.extras.current_column += 10;
-
-    let mut inner = lex.clone().morph::<ExpressionContext>();
+    Token::push_with_advance(&mut tokens, ExpressionTokens::Keyword, lex);
 
     let mut bracket_depth = 0;
-
+    let mut inner = lex.clone().morph::<ExpressionTokens>();
     while let Some(token) = inner.next() {
-        let kind = match token {
-            Ok(kind) => kind,
-            Err(_) => return None,
-        };
+        let kind = token?;
         match kind {
-            ExpressionContext::NewLine => {
-                inner.extras.new_line();
-                continue;
-            }
-            ExpressionContext::Whitespace => {
-                inner.extras.current_column += inner.span().len() as u32;
-                continue;
-            }
+            ExpressionTokens::NewLine => inner.extras.new_line(),
+            ExpressionTokens::Whitespace => inner.extras.current_column += inner.span().len() as u32,
             _ => {
-                if let ExpressionContext::LeftCurlyBracket = &kind {
+                if let ExpressionTokens::LeftCurlyBracket = &kind {
                     bracket_depth += 1;
                 }
-                else if let ExpressionContext::RightCurlyBracket = &kind {
+                else if let ExpressionTokens::RightCurlyBracket = &kind {
                     if bracket_depth == 0 {
-                        panic!();
+                        return Err(Error::MissingOpeningBrace);
                     }
                     bracket_depth -= 1;
                     if bracket_depth == 0 {
-                        tokens.push(Token {
-                            kind,
-                            span: inner.span(),
-                            delta_line: inner.extras.get_delta_line(),
-                            delta_start: inner.extras.get_delta_start(),
-                        });
-
-                        inner.extras.current_column += inner.span().len() as u32;
-                        break;
+                        push_and_break!(&mut tokens, kind, &mut inner);
                     }
                 }
-                tokens.push(Token {
-                    kind,
-                    span: inner.span(),
-                    delta_line: inner.extras.get_delta_line(),
-                    delta_start: inner.extras.get_delta_start(),
-                });
-
-                inner.extras.current_column += inner.span().len() as u32;
+                Token::push_with_advance(&mut tokens, kind, &mut inner)
             }
         }
     }
 
     *lex = inner.morph();
-    Some(tokens)
+    Ok(tokens)
 }
 

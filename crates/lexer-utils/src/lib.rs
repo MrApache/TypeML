@@ -1,4 +1,4 @@
-use logos::Span;
+use logos::{Lexer, Logos, Span};
 
 pub const KEYWORD: u32 = 0;
 pub const PARAMETER: u32 = 1;
@@ -9,6 +9,14 @@ pub const NUMBER: u32 = 5;
 pub const COMMENT: u32 = 6;
 pub const MACRO: u32 = 7;
 pub const FUNCTION: u32 = 8;
+
+#[macro_export]
+macro_rules! push_and_break {
+    ($tokens:expr, $kind:expr, $lex:expr) => {{
+        Token::push_with_advance($tokens, $kind, $lex);
+        break;
+    }};
+}
 
 pub trait TokenType {
     fn get_token_type(&self) -> u32;
@@ -52,6 +60,18 @@ pub struct Token<T> {
 }
 
 impl<T> Token<T> {
+    pub fn new<'source, Token>(kind: T, lexer: &mut Lexer<'source, Token>) -> Self 
+    where
+        Token: Logos<'source, Extras = Position>,
+    {
+        Self {
+            kind,
+            span: lexer.span(),
+            delta_line: lexer.extras.get_delta_line(),
+            delta_start: lexer.extras.get_delta_start(),
+        }
+    }
+
     pub const fn kind(&self) -> &T {
         &self.kind
     }
@@ -70,5 +90,14 @@ impl<T> Token<T> {
 
     pub fn length(&self) -> u32 {
         self.span().len() as u32
+    }
+
+    pub fn push_with_advance<'s, Tok: Logos<'s, Extras = Position>>(
+        tokens: &mut Vec<Self>,
+        kind: impl Into<T>,
+        lex: &mut Lexer<'s, Tok>,
+    ) {
+        tokens.push(Token::new(kind.into(), lex));
+        lex.extras.current_column += lex.span().len() as u32;
     }
 }

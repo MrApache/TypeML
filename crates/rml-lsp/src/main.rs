@@ -161,12 +161,15 @@ impl LanguageServer for Backend {
             "rmlx" => {
                 let stream = RmlxTokenStream::new(&params.text_document.text);
                 let tokens = stream.to_vec();
+                if tokens.is_err() {
+                    panic!("Error: {:#?}", tokens.err());
+                }
                 let mut schemas = self.schemas.write().unwrap();
                 schemas.insert(
                     uri,
                     SchemaDecalration {
                         content: params.text_document.text,
-                        tokens,
+                        tokens: tokens.unwrap(),
                     },
                 );
             }
@@ -199,7 +202,7 @@ impl LanguageServer for Backend {
                 let mut write = self.schemas.write().unwrap();
                 let schema = write.get_mut(&uri).unwrap();
                 let text = params.content_changes.last().unwrap().text.clone(); //TODO fix
-                schema.tokens = RmlxTokenStream::new(&text).to_vec();
+                schema.tokens = RmlxTokenStream::new(&text).to_vec().unwrap();
                 schema.content = text;
             }
             _ => unreachable!(),
@@ -209,7 +212,7 @@ impl LanguageServer for Backend {
     async fn semantic_tokens_full(
         &self,
         params: SemanticTokensParams,
-    ) -> tower_lsp::jsonrpc::Result<Option<SemanticTokensResult>> {
+    ) -> Result<Option<SemanticTokensResult>> {
         self.client
             .log_message(MessageType::INFO, "Send semantic tokens")
             .await;
@@ -243,10 +246,11 @@ impl Backend {
                 SchemaTokens::Struct(tokens) => Self::to_semantic_tokens(tokens),
                 SchemaTokens::Element(tokens) => Self::to_semantic_tokens(tokens),
                 SchemaTokens::Expression(tokens) => Self::to_semantic_tokens(tokens),
+                SchemaTokens::Use(tokens) => Self::to_semantic_tokens(tokens),
                 SchemaTokens::Attribute(tokens) => tokens
                     .iter()
                     .flat_map(|token| {
-                        if let rmlx_lexer::AttributeContext::Content(tokens) = token.kind() {
+                        if let rmlx_lexer::AttributeTokens::Content(tokens) = token.kind() {
                             Self::to_semantic_tokens(tokens)
                         } else {
                             Self::to_semantic_token(token)
@@ -256,11 +260,11 @@ impl Backend {
                 SchemaTokens::Enum(tokens) => tokens
                     .iter()
                     .flat_map(|token| {
-                        if let rmlx_lexer::EnumContext::Attribute(tokens) = token.kind() {
+                        if let rmlx_lexer::EnumTokens::Attribute(tokens) = token.kind() {
                             tokens
                                 .iter()
                                 .flat_map(|token| {
-                                    if let rmlx_lexer::AttributeContext::Content(tokens) =
+                                    if let rmlx_lexer::AttributeTokens::Content(tokens) =
                                         token.kind()
                                     {
                                         Self::to_semantic_tokens(tokens)

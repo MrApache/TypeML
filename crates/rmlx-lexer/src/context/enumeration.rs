@@ -1,10 +1,11 @@
 use lexer_utils::*;
 use logos::{Lexer, Logos};
-use crate::{attribute_context_callback_enum, AttributeContext, SchemaTokens};
+use crate::{attribute_callback, AttributeTokens, Error, SchemaTokens};
 
 #[derive(Logos, Debug, PartialEq, Eq, Clone)]
 #[logos(extras = Position)]
-pub enum EnumContext {
+#[logos(error(Error, Error::from_lexer))]
+pub enum EnumTokens {
     Keyword,
 
     #[regex("[a-zA-Z_][a-zA-Z0-9_]*")]
@@ -31,94 +32,60 @@ pub enum EnumContext {
     #[regex(r"[ \t\r]+")]
     Whitespace,
 
-    #[token("#", attribute_context_callback_enum)]
-    Attribute(Vec<Token<AttributeContext>>),
+    #[token("#", attribute_callback)]
+    Attribute(Vec<Token<AttributeTokens>>),
 }
 
-impl TokenType for EnumContext {
+impl TokenType for EnumTokens {
     fn get_token_type(&self) -> u32 {
         match self {
-            EnumContext::Keyword => KEYWORD,
-            EnumContext::Identifier => TYPE,
-            EnumContext::LeftCurlyBracket => u32::MAX,
-            EnumContext::RightCurlyBracket => u32::MAX,
-            EnumContext::LeftParenthesis => u32::MAX,
-            EnumContext::RightParenthesis => u32::MAX,
-            EnumContext::NewLine => u32::MAX,
-            EnumContext::Comma => u32::MAX,
-            EnumContext::Whitespace => u32::MAX,
-            EnumContext::Attribute(_) => unreachable!()
+            EnumTokens::Keyword => KEYWORD,
+            EnumTokens::Identifier => TYPE,
+            EnumTokens::LeftCurlyBracket => u32::MAX,
+            EnumTokens::RightCurlyBracket => u32::MAX,
+            EnumTokens::LeftParenthesis => u32::MAX,
+            EnumTokens::RightParenthesis => u32::MAX,
+            EnumTokens::NewLine => u32::MAX,
+            EnumTokens::Comma => u32::MAX,
+            EnumTokens::Whitespace => u32::MAX,
+            EnumTokens::Attribute(_) => unreachable!()
         }
     }
 }
 
-pub(crate) fn enum_context_callback(
+pub(crate) fn enum_callback(
     lex: &mut Lexer<SchemaTokens>,
-) -> Option<Vec<Token<EnumContext>>> {
+) -> Result<Vec<Token<EnumTokens>>, Error> {
 
     let mut tokens = Vec::new();
-    tokens.push(Token {
-        kind: EnumContext::Keyword,
-        span: lex.span(),
-        delta_line: lex.extras.get_delta_line(),
-        delta_start: lex.extras.get_delta_start(),
-    });
-
-    //Skip 'enum'
-    lex.extras.current_column += 4;
-
-    let mut inner = lex.clone().morph::<EnumContext>();
+    Token::push_with_advance(&mut tokens, EnumTokens::Keyword, lex);
 
     let mut bracket_depth = 0;
-
+    let mut inner = lex.clone().morph::<EnumTokens>();
     while let Some(token) = inner.next() {
-        let kind = match token {
-            Ok(kind) => kind,
-            Err(_) => return None,
-        };
+        let kind = token?;
         match kind {
-            EnumContext::NewLine => {
-                inner.extras.new_line();
-                continue;
-            }
-            EnumContext::Whitespace => {
-                inner.extras.current_column += inner.span().len() as u32;
-                continue;
-            }
+            EnumTokens::NewLine => inner.extras.new_line(),
+            EnumTokens::Whitespace => inner.extras.current_column += inner.span().len() as u32,
             _ => {
-                if let EnumContext::LeftCurlyBracket = &kind {
+                if let EnumTokens::LeftCurlyBracket = &kind {
                     bracket_depth += 1;
                 }
-                else if let EnumContext::RightCurlyBracket = &kind {
+                else if let EnumTokens::RightCurlyBracket = &kind {
                     if bracket_depth == 0 {
-                        panic!();
+                        return Err(Error::MissingOpeningBrace);
                     }
                     bracket_depth -= 1;
                     if bracket_depth == 0 {
-                        tokens.push(Token {
-                            kind,
-                            span: inner.span(),
-                            delta_line: inner.extras.get_delta_line(),
-                            delta_start: inner.extras.get_delta_start(),
-                        });
-
-                        inner.extras.current_column += inner.span().len() as u32;
-                        break;
+                        push_and_break!(&mut tokens, kind, &mut inner);
                     }
                 }
-                tokens.push(Token {
-                    kind,
-                    span: inner.span(),
-                    delta_line: inner.extras.get_delta_line(),
-                    delta_start: inner.extras.get_delta_start(),
-                });
-
-                inner.extras.current_column += inner.span().len() as u32;
+                Token::push_with_advance(&mut tokens, kind, &mut inner)
             }
         }
     }
 
     *lex = inner.morph();
-    Some(tokens)
+    Ok(tokens)
 }
 

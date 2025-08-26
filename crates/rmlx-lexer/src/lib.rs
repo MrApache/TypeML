@@ -9,24 +9,28 @@ use crate::context::*;
 
 #[derive(Logos, Debug, PartialEq, Eq, Clone)]
 #[logos(extras = Position)]
+#[logos(error(Error, Error::from_lexer))]
 pub enum SchemaTokens {
-    #[token("group", group_context_callback)]
-    Group(Vec<Token<GroupContext>>),
+    #[token("group", group_callback)]
+    Group(Vec<Token<GroupTokens>>),
 
-    #[token("element", element_context_callback)]
-    Element(Vec<Token<ElementContext>>),
+    #[token("element", element_callback)]
+    Element(Vec<Token<ElementTokens>>),
 
-    #[token("#", attribute_context_callback)]
-    Attribute(Vec<Token<AttributeContext>>),
+    #[token("#", attribute_callback)]
+    Attribute(Vec<Token<AttributeTokens>>),
 
-    #[token("expression", expression_context_callback)]
-    Expression(Vec<Token<ExpressionContext>>),
+    #[token("expression", expression_callback)]
+    Expression(Vec<Token<ExpressionTokens>>),
 
-    #[token("enum", enum_context_callback)]
-    Enum(Vec<Token<EnumContext>>),
+    #[token("enum", enum_callback)]
+    Enum(Vec<Token<EnumTokens>>),
 
-    #[token("struct", struct_context_callback)]
-    Struct(Vec<Token<StructContext>>),
+    #[token("struct", struct_callback)]
+    Struct(Vec<Token<StructTokens>>),
+
+    #[token("use", use_callback)]
+    Use(Vec<Token<UseTokens>>),
 
     #[token("\n")]
     NewLine,
@@ -46,28 +50,28 @@ impl<'a> RmlxTokenStream<'a> {
         }
     }
 
-    pub fn next_token(&mut self) -> Result<SchemaTokens, ()> {
+    pub fn next_token(&mut self) -> Option<Result<SchemaTokens, Error>> {
         if let Some(token_kind) = self.inner.next() {
             match &token_kind {
                 Ok(SchemaTokens::NewLine) => self.inner.extras.new_line(),
                 Ok(SchemaTokens::Whitespace) => self.inner.extras.current_column += 1,
                 _ => {}
             }
-            token_kind
+            Some(token_kind)
         }
         else {
-            Err(())
+            None
         }
     }
 
-    pub fn to_vec(mut self) -> Vec<SchemaTokens> {
+    pub fn to_vec(mut self) -> Result<Vec<SchemaTokens>, Error> {
         let mut vec = vec![];
 
-        while let Ok(token) = self.next_token() {
-            vec.push(token);
+        while let Some(token) = self.next_token() {
+            vec.push(token?);
         }
 
-        vec
+        Ok(vec)
     }
 }
 

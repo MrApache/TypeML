@@ -1,3 +1,4 @@
+use <url:base.rmlx>
 
 #[Path(bevy::prelude::Display)]
 enum Display {
@@ -12,7 +13,6 @@ enum BoxSizing {
     BorderBox,
     ContentBox
 }
-
 
 #[Path(bevy::prelude::PositionType)]
 enum PositionType {
@@ -206,7 +206,6 @@ element Node {
 
 #[Path(bevy::prelude::BackgroundColor)]
 #[Group(base:Component)]
-element BackgroundColor(String);
-
-
-#use <uri:base.rmlx>
+element BackgroundColor {
+    self: String,
+}

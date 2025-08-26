@@ -1,12 +1,13 @@
 use lexer_utils::*;
 use logos::{Lexer, Logos};
 
-use crate::SchemaTokens;
+use crate::{Error, SchemaTokens};
 
 
 #[derive(Logos, Debug, PartialEq, Eq, Clone)]
 #[logos(extras = Position)]
-pub enum ElementContext {
+#[logos(error(Error, Error::from_lexer))]
+pub enum ElementTokens {
     Keyword,
 
     #[regex("[a-zA-Z_][a-zA-Z0-9_]*")]
@@ -46,103 +47,59 @@ pub enum ElementContext {
     Whitespace,
 }
 
-impl TokenType for ElementContext {
+impl TokenType for ElementTokens {
     fn get_token_type(&self) -> u32 {
         match self {
-            ElementContext::Keyword => KEYWORD,
-            ElementContext::Identifier => TYPE,
-            ElementContext::LeftSquareBracket => KEYWORD,
-            ElementContext::RightSquareBracket => KEYWORD,
-            ElementContext::LeftCurlyBracket => u32::MAX,
-            ElementContext::RightCurlyBracket => u32::MAX,
-            ElementContext::LeftAngleBracket => OPERATOR,
-            ElementContext::RightAngleBracket => OPERATOR,
-            ElementContext::NewLine => u32::MAX,
-            ElementContext::Colon => u32::MAX,
-            ElementContext::Semicolon => u32::MAX,
-            ElementContext::Comma => u32::MAX,
-            ElementContext::Whitespace => u32::MAX,
+            ElementTokens::Keyword => KEYWORD,
+            ElementTokens::Identifier => TYPE,
+            ElementTokens::LeftSquareBracket => KEYWORD,
+            ElementTokens::RightSquareBracket => KEYWORD,
+            ElementTokens::LeftCurlyBracket => u32::MAX,
+            ElementTokens::RightCurlyBracket => u32::MAX,
+            ElementTokens::LeftAngleBracket => OPERATOR,
+            ElementTokens::RightAngleBracket => OPERATOR,
+            ElementTokens::NewLine => u32::MAX,
+            ElementTokens::Colon => u32::MAX,
+            ElementTokens::Semicolon => u32::MAX,
+            ElementTokens::Comma => u32::MAX,
+            ElementTokens::Whitespace => u32::MAX,
         }
-    }
+   }
 }
 
-pub(crate) fn element_context_callback(
+pub(crate) fn element_callback(
     lex: &mut Lexer<SchemaTokens>,
-) -> Option<Vec<Token<ElementContext>>> {
+) -> Result<Vec<Token<ElementTokens>>, Error> {
 
     let mut tokens = Vec::new();
-    tokens.push(Token {
-        kind: ElementContext::Keyword,
-        span: lex.span(),
-        delta_line: lex.extras.get_delta_line(),
-        delta_start: lex.extras.get_delta_start(),
-    });
-
-    //Skip 'element'
-    lex.extras.current_column += 7;
-
-    let mut inner = lex.clone().morph::<ElementContext>();
+    Token::push_with_advance(&mut tokens, ElementTokens::Keyword, lex);
 
     let mut bracket_depth = 0;
-
+    let mut inner = lex.clone().morph::<ElementTokens>();
     while let Some(token) = inner.next() {
-        let kind = match token {
-            Ok(kind) => kind,
-            Err(_) => return None,
-        };
+        let kind = token?;
         match kind {
-            ElementContext::NewLine => {
-                inner.extras.new_line();
-                continue;
-            }
-            ElementContext::Semicolon => {
-                tokens.push(Token {
-                    kind,
-                    span: inner.span(),
-                    delta_line: inner.extras.get_delta_line(),
-                    delta_start: inner.extras.get_delta_start(),
-                });
-
-                inner.extras.current_column += inner.span().len() as u32;
-                break;
-            },
-            ElementContext::Whitespace => {
-                inner.extras.current_column += inner.span().len() as u32;
-                continue;
-            }
+            ElementTokens::NewLine => inner.extras.new_line(),
+            ElementTokens::Semicolon => push_and_break!(&mut tokens, kind, &mut inner),
+            ElementTokens::Whitespace => inner.extras.current_column += inner.span().len() as u32,
             _ => {
-                if let ElementContext::LeftCurlyBracket = &kind {
+                if let ElementTokens::LeftCurlyBracket = &kind {
                     bracket_depth += 1;
                 }
-                else if let ElementContext::RightCurlyBracket = &kind {
+                else if let ElementTokens::RightCurlyBracket = &kind {
                     if bracket_depth == 0 {
-                        panic!();
+                        return Err(Error::MissingOpeningBrace);
                     }
                     bracket_depth -= 1;
                     if bracket_depth == 0 {
-                        tokens.push(Token {
-                            kind,
-                            span: inner.span(),
-                            delta_line: inner.extras.get_delta_line(),
-                            delta_start: inner.extras.get_delta_start(),
-                        });
-
-                        inner.extras.current_column += inner.span().len() as u32;
-                        break;
+                        push_and_break!(&mut tokens, kind, &mut inner);
                     }
                 }
-                tokens.push(Token {
-                    kind,
-                    span: inner.span(),
-                    delta_line: inner.extras.get_delta_line(),
-                    delta_start: inner.extras.get_delta_start(),
-                });
-
-                inner.extras.current_column += inner.span().len() as u32;
+                Token::push_with_advance(&mut tokens, kind, &mut inner)
             }
         }
     }
 
     *lex = inner.morph();
-    Some(tokens)
+    Ok(tokens)
 }

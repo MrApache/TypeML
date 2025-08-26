@@ -1,11 +1,12 @@
-use lexer_utils::{Position, Token, TokenType, KEYWORD, TYPE};
+use lexer_utils::{push_and_break, Position, Token, TokenType, KEYWORD, TYPE};
 use logos::{Lexer, Logos};
 
-use crate::SchemaTokens;
+use crate::{Error, SchemaTokens};
 
 #[derive(Logos, Debug, PartialEq, Eq, Clone)]
 #[logos(extras = Position)]
-pub enum GroupContext {
+#[logos(error(Error, Error::from_lexer))]
+pub enum GroupTokens {
     Keyword,
 
     #[regex("[a-zA-Z_][a-zA-Z0-9_]*")]
@@ -30,76 +31,39 @@ pub enum GroupContext {
     Whitespace,
 }
 
-impl TokenType for GroupContext {
+impl TokenType for GroupTokens {
     fn get_token_type(&self) -> u32 {
         match self {
-            GroupContext::Keyword => KEYWORD,
-            GroupContext::Identifier => TYPE,
-            GroupContext::ArrayOpen => KEYWORD,
-            GroupContext::ArrayClose => KEYWORD,
-            GroupContext::NewLine => u32::MAX,
-            GroupContext::Semicolon => u32::MAX,
-            GroupContext::Comma => u32::MAX,
-            GroupContext::Whitespace => u32::MAX,
+            GroupTokens::Keyword => KEYWORD,
+            GroupTokens::Identifier => TYPE,
+            GroupTokens::ArrayOpen => KEYWORD,
+            GroupTokens::ArrayClose => KEYWORD,
+            GroupTokens::NewLine => u32::MAX,
+            GroupTokens::Semicolon => u32::MAX,
+            GroupTokens::Comma => u32::MAX,
+            GroupTokens::Whitespace => u32::MAX,
         }
     }
 }
 
-pub(crate) fn group_context_callback(
+pub(crate) fn group_callback(
     lex: &mut Lexer<SchemaTokens>,
-) -> Option<Vec<Token<GroupContext>>> {
+) -> Result<Vec<Token<GroupTokens>>, Error> {
 
     let mut tokens = Vec::new();
-    tokens.push(Token {
-        kind: GroupContext::Keyword,
-        span: lex.span(),
-        delta_line: lex.extras.get_delta_line(),
-        delta_start: lex.extras.get_delta_start(),
-    });
+    Token::push_with_advance(&mut tokens, GroupTokens::Keyword, lex);
 
-    //Skip 'group'
-    lex.extras.current_column += 5;
-
-    let mut inner = lex.clone().morph::<GroupContext>();
-
+    let mut inner = lex.clone().morph::<GroupTokens>();
     while let Some(token) = inner.next() {
-        let kind = match token {
-            Ok(kind) => kind,
-            Err(_) => return None,
-        };
+        let kind = token?;
         match kind {
-            GroupContext::Semicolon => {
-                tokens.push(Token {
-                    kind,
-                    span: inner.span(),
-                    delta_line: inner.extras.get_delta_line(),
-                    delta_start: inner.extras.get_delta_start(),
-                });
-
-                inner.extras.current_column += inner.span().len() as u32;
-                break;
-            }
-            GroupContext::NewLine => {
-                inner.extras.new_line();
-                continue;
-            }
-            GroupContext::Whitespace => {
-                inner.extras.current_column += inner.span().len() as u32;
-                continue;
-            }
-            _ => {
-                tokens.push(Token {
-                    kind,
-                    span: inner.span(),
-                    delta_line: inner.extras.get_delta_line(),
-                    delta_start: inner.extras.get_delta_start(),
-                });
-
-                inner.extras.current_column += inner.span().len() as u32;
-            }
+            GroupTokens::NewLine => inner.extras.new_line(),
+            GroupTokens::Semicolon => push_and_break!(&mut tokens, kind, &mut inner),
+            GroupTokens::Whitespace => inner.extras.current_column += inner.span().len() as u32,
+            _ => Token::push_with_advance(&mut tokens, kind, &mut inner),
         }
     }
 
     *lex = inner.morph();
-    Some(tokens)
+    Ok(tokens)
 }

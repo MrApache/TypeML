@@ -1,10 +1,11 @@
 use lexer_utils::*;
 use logos::{Lexer, Logos};
-use crate::{EnumContext, SchemaTokens};
+use crate::Error;
 
 #[derive(Logos, Debug, PartialEq, Eq, Clone)]
 #[logos(extras = Position)]
-pub enum AttributeContext {
+#[logos(error(Error, Error::from_lexer))]
+pub enum AttributeTokens {
     Hash,
 
     #[token("[")]
@@ -29,147 +30,49 @@ pub enum AttributeContext {
     Content(Vec<Token<Content>>),
 }
 
-impl TokenType for AttributeContext {
+impl TokenType for AttributeTokens {
     fn get_token_type(&self) -> u32 {
         match self {
-            AttributeContext::Hash => MACRO,
-            AttributeContext::OpenSquareBracket => MACRO,
-            AttributeContext::CloseSquareBracket => MACRO,
-            AttributeContext::Comma => u32::MAX,
-            AttributeContext::Identifier => MACRO,
-            AttributeContext::NewLine => MACRO,
-            AttributeContext::Whitespace => MACRO,
-            AttributeContext::Content(_) => unreachable!(), 
+            AttributeTokens::Hash => MACRO,
+            AttributeTokens::OpenSquareBracket => MACRO,
+            AttributeTokens::CloseSquareBracket => MACRO,
+            AttributeTokens::Comma => u32::MAX,
+            AttributeTokens::Identifier => MACRO,
+            AttributeTokens::NewLine => MACRO,
+            AttributeTokens::Whitespace => MACRO,
+            AttributeTokens::Content(_) => unreachable!(),
         }
     }
 }
 
-pub(crate) fn attribute_context_callback(
-    lex: &mut Lexer<SchemaTokens>,
-) -> Option<Vec<Token<AttributeContext>>> {
-
+pub(crate) fn attribute_callback<'source, T>(
+    lex: &mut Lexer<'source, T>,
+) -> Result<Vec<Token<AttributeTokens>>, Error>
+where
+    T: Logos<'source, Extras = Position, Source = str>,
+    T: Clone,
+{
     let mut tokens = Vec::new();
-    tokens.push(Token {
-        kind: AttributeContext::Hash,
-        span: lex.span(),
-        delta_line: lex.extras.get_delta_line(),
-        delta_start: lex.extras.get_delta_start(),
-    });
+    Token::push_with_advance(&mut tokens, AttributeTokens::Hash, lex);
 
-    //Skip '#'
-    lex.extras.current_column += 1;
-
-    let mut inner = lex.clone().morph::<AttributeContext>();
-
+    let mut inner = lex.clone().morph::<AttributeTokens>();
     while let Some(token) = inner.next() {
-        let kind = match token {
-            Ok(kind) => kind,
-            Err(_) => return None,
-        };
-
+        let kind = token?;
         match kind {
-            AttributeContext::CloseSquareBracket => {
-                tokens.push(Token {
-                    kind,
-                    span: inner.span(),
-                    delta_line: inner.extras.get_delta_line(),
-                    delta_start: inner.extras.get_delta_start(),
-                });
-
-                inner.extras.current_column += inner.span().len() as u32;
-                break;
-            }
-
-            AttributeContext::NewLine => {
-                inner.extras.new_line();
-                continue;
-            }
-            AttributeContext::Whitespace => {
-                inner.extras.current_column += inner.span().len() as u32;
-                continue;
-            }
-            _ => {
-                tokens.push(Token {
-                    kind,
-                    span: inner.span(),
-                    delta_line: inner.extras.get_delta_line(),
-                    delta_start: inner.extras.get_delta_start(),
-                });
-
-                inner.extras.current_column += inner.span().len() as u32;
-            }
+            AttributeTokens::NewLine => inner.extras.new_line(),
+            AttributeTokens::Whitespace => inner.extras.current_column += inner.span().len() as u32,
+            AttributeTokens::CloseSquareBracket => push_and_break!(&mut tokens, kind, &mut inner),
+            _ => Token::push_with_advance(&mut tokens, kind, &mut inner),
         }
     }
 
     *lex = inner.morph();
-    Some(tokens)
+    Ok(tokens)
 }
-
-
-pub(crate) fn attribute_context_callback_enum(
-    lex: &mut Lexer<EnumContext>
-) -> Option<Vec<Token<AttributeContext>>> {
-
-    let mut tokens = Vec::new();
-    tokens.push(Token {
-        kind: AttributeContext::Hash,
-        span: lex.span(),
-        delta_line: lex.extras.get_delta_line(),
-        delta_start: lex.extras.get_delta_start(),
-    });
-
-    //Skip '#'
-    lex.extras.current_column += 1;
-
-    let mut inner = lex.clone().morph::<AttributeContext>();
-
-    while let Some(token) = inner.next() {
-        let kind = match token {
-            Ok(kind) => kind,
-            Err(_) => return None,
-        };
-
-        match kind {
-            AttributeContext::CloseSquareBracket => {
-                tokens.push(Token {
-                    kind,
-                    span: inner.span(),
-                    delta_line: inner.extras.get_delta_line(),
-                    delta_start: inner.extras.get_delta_start(),
-                });
-
-                inner.extras.current_column += inner.span().len() as u32;
-                break;
-            }
-
-            AttributeContext::NewLine => {
-                inner.extras.new_line();
-                continue;
-            }
-            AttributeContext::Whitespace => {
-                inner.extras.current_column += inner.span().len() as u32;
-                continue;
-            }
-            _ => {
-                tokens.push(Token {
-                    kind,
-                    span: inner.span(),
-                    delta_line: inner.extras.get_delta_line(),
-                    delta_start: inner.extras.get_delta_start(),
-                });
-
-                inner.extras.current_column += inner.span().len() as u32;
-            }
-        }
-    }
-
-    *lex = inner.morph();
-    Some(tokens)
-}
-
 
 #[derive(Logos, Debug, PartialEq, Eq, Clone)]
 #[logos(extras = Position)]
+#[logos(error(Error, Error::from_lexer))]
 pub enum Content {
     OpenParenthesis,
 
@@ -191,63 +94,25 @@ impl TokenType for Content {
         match self {
             Content::Value => u32::MAX,
             Content::String => STRING,
-            _ => MACRO
+            _ => MACRO,
         }
     }
 }
 
-fn content_callback(
-    lex: &mut Lexer<AttributeContext>,
-) -> Option<Vec<Token<Content>>> {
-
+fn content_callback(lex: &mut Lexer<AttributeTokens>) -> Result<Vec<Token<Content>>, Error> {
     let mut tokens = Vec::new();
-    tokens.push(Token {
-        kind: Content::OpenParenthesis,
-        span: lex.span(),
-        delta_line: lex.extras.get_delta_line(),
-        delta_start: lex.extras.get_delta_start(),
-    });
-
-    //Skip '('
-    lex.extras.current_column += 1;
+    Token::push_with_advance(&mut tokens, Content::OpenParenthesis, lex);
 
     let mut inner = lex.clone().morph::<Content>();
-
     while let Some(token) = inner.next() {
-        let kind = match token {
-            Ok(kind) => kind,
-            Err(_) => return None,
-        };
-
+        let kind = token?;
         match kind {
-            Content::CloseParenthesis => {
-                tokens.push(Token {
-                    kind,
-                    span: inner.span(),
-                    delta_line: inner.extras.get_delta_line(),
-                    delta_start: inner.extras.get_delta_start(),
-                });
-
-                inner.extras.current_column += inner.span().len() as u32;
-                break;
-            },
-            Content::NewLine => {
-                inner.extras.new_line();
-                continue;
-            },
-            _ => {
-                tokens.push(Token {
-                    kind,
-                    span: inner.span(),
-                    delta_line: inner.extras.get_delta_line(),
-                    delta_start: inner.extras.get_delta_start(),
-                });
-
-                inner.extras.current_column += inner.span().len() as u32;
-            }
+            Content::NewLine => inner.extras.new_line(),
+            Content::CloseParenthesis => push_and_break!(&mut tokens, kind, &mut inner),
+            _ => Token::push_with_advance(&mut tokens, kind, &mut inner),
         }
     }
 
     *lex = inner.morph();
-    Some(tokens)
+    Ok(tokens)
 }
