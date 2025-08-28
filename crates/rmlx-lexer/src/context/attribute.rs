@@ -30,21 +30,6 @@ pub enum AttributeToken {
     Content(Vec<Token<ContentToken>>),
 }
 
-impl TokenType for AttributeToken {
-    fn get_token_type(&self) -> u32 {
-        match self {
-            AttributeToken::Hash => MACRO_TOKEN,
-            AttributeToken::LeftSquareBracket => MACRO_TOKEN,
-            AttributeToken::RightSquareBracket => MACRO_TOKEN,
-            AttributeToken::Comma => u32::MAX,
-            AttributeToken::Identifier => MACRO_TOKEN,
-            AttributeToken::NewLine => MACRO_TOKEN,
-            AttributeToken::Whitespace => MACRO_TOKEN,
-            AttributeToken::Content(_) => unreachable!(),
-        }
-    }
-}
-
 pub(crate) fn attribute_callback<'source, T>(
     lex: &mut Lexer<'source, T>,
 ) -> Result<Vec<Token<AttributeToken>>, Error>
@@ -87,16 +72,6 @@ pub enum ContentToken {
 
     #[token("\n")]
     NewLine,
-}
-
-impl TokenType for ContentToken {
-    fn get_token_type(&self) -> u32 {
-        match self {
-            ContentToken::Value => u32::MAX,
-            ContentToken::String => STRING_TOKEN,
-            _ => MACRO_TOKEN,
-        }
-    }
 }
 
 fn content_callback(lex: &mut Lexer<AttributeToken>) -> Result<Vec<Token<ContentToken>>, Error> {

@@ -1,6 +1,8 @@
+use std::fmt::Display;
+
 use lexer_utils::*;
 use logos::{Lexer, Logos};
-use crate::{Error, SchemaTokens};
+use crate::{Error, NamedStatement, SchemaStatement, TokenDefinition};
 
 #[derive(Logos, Debug, PartialEq, Eq, Clone)]
 #[logos(extras = Position)]
@@ -18,19 +20,31 @@ pub enum UseToken {
     Path,
 }
 
-impl TokenType for UseToken {
-    fn get_token_type(&self) -> u32 {
-        match self {
-            UseToken::Keyword => KEYWORD_TOKEN,
-            UseToken::NewLine => u32::MAX,
-            UseToken::Whitespace => u32::MAX,
-            UseToken::Path => STRING_TOKEN,
-        }
+impl Display for UseToken {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        let str = match self {
+            UseToken::Keyword => "use",
+            UseToken::Path => "path",
+            UseToken::NewLine => unreachable!(),
+            UseToken::Whitespace => unreachable!(),
+        };
+
+        write!(f, "{str}")
+    }
+}
+
+impl TokenDefinition for UseToken {
+    fn keyword() -> &'static str {
+        "use"
+    }
+
+    fn keyword_token() -> Self {
+        UseToken::Path
     }
 }
 
 pub(crate) fn use_callback(
-    lex: &mut Lexer<SchemaTokens>,
+    lex: &mut Lexer<SchemaStatement>,
 ) -> Result<Vec<Token<UseToken>>, Error> {
 
     let mut tokens = Vec::new();

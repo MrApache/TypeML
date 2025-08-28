@@ -27,10 +27,6 @@ macro_rules! new_line_and_break {
     }};
 }
 
-pub trait TokenType {
-    fn get_token_type(&self) -> u32;
-}
-
 #[derive(Default, Clone)]
 pub struct Position {
     previous_token_line: u32,

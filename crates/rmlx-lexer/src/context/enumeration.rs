@@ -1,6 +1,8 @@
+use std::fmt::Display;
+
 use lexer_utils::*;
 use logos::{Lexer, Logos};
-use crate::{attribute_callback, AttributeToken, Error, SchemaTokens};
+use crate::{attribute_callback, AttributeToken, Error, NamedStatement, SchemaStatement, TokenDefinition};
 
 #[derive(Logos, Debug, PartialEq, Eq, Clone)]
 #[logos(extras = Position)]
@@ -36,25 +38,51 @@ pub enum EnumToken {
     Attribute(Vec<Token<AttributeToken>>),
 }
 
-impl TokenType for EnumToken {
-    fn get_token_type(&self) -> u32 {
-        match self {
-            EnumToken::Keyword => KEYWORD_TOKEN,
-            EnumToken::Identifier => TYPE_TOKEN,
-            EnumToken::LeftCurlyBracket => u32::MAX,
-            EnumToken::RightCurlyBracket => u32::MAX,
-            EnumToken::LeftParenthesis => u32::MAX,
-            EnumToken::RightParenthesis => u32::MAX,
-            EnumToken::NewLine => u32::MAX,
-            EnumToken::Comma => u32::MAX,
-            EnumToken::Whitespace => u32::MAX,
-            EnumToken::Attribute(_) => unreachable!()
-        }
+impl Display for EnumToken {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        let str = match self {
+            EnumToken::Keyword => "enum",
+            EnumToken::Identifier => "identifier",
+            EnumToken::LeftCurlyBracket => "{",
+            EnumToken::RightCurlyBracket => "}",
+            EnumToken::LeftParenthesis =>  "(",
+            EnumToken::RightParenthesis => ")",
+            EnumToken::Comma => ",",
+            EnumToken::Attribute(_) => "attribute",
+            EnumToken::NewLine => unreachable!(),
+            EnumToken::Whitespace => unreachable!(),
+        };
+
+        write!(f, "{str}")
+    }
+}
+
+impl TokenDefinition for EnumToken {
+    fn keyword() -> &'static str {
+        "enum"
+    }
+
+    fn keyword_token() -> Self {
+        Self::Keyword
+    }
+
+    fn left_curly_bracket() -> Self { 
+        Self::LeftCurlyBracket
+    }
+
+    fn right_curly_bracket() -> Self { 
+        Self::RightCurlyBracket
+    }
+}
+
+impl NamedStatement for EnumToken {
+    fn identifier() -> Self {
+        Self::Identifier
     }
 }
 
 pub(crate) fn enum_callback(
-    lex: &mut Lexer<SchemaTokens>,
+    lex: &mut Lexer<SchemaStatement>,
 ) -> Result<Vec<Token<EnumToken>>, Error> {
 
     let mut tokens = Vec::new();

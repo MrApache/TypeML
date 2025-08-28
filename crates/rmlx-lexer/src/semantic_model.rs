@@ -1,44 +1,73 @@
+use crate::semantic::{Enum, Expression, Group, ParserContext, Struct};
+use crate::{semantic::parse_attributes, Error, RmlxTokenStream};
+use std::path::{Path, PathBuf};
+use tower_lsp::lsp_types::SemanticToken;
+use url::Url;
+
+#[derive(Default)]
 pub struct SchemaModel {
     groups: Vec<Group>,
+    structs: Vec<Struct>,
+    enums: Vec<Enum>,
+    expressions: Vec<Expression>,
     tokens: Vec<SemanticToken>,
 }
 
 impl SchemaModel {
     pub fn new(content: &str) -> Result<Self, Error> {
+        let mut schema = SchemaModel::default();
         let mut stream = RmlxTokenStream::new(content);
-        let mut sm_tokens = vec![];
         let mut attributes = vec![];
 
         while let Some(token) = stream.next_token() {
             let token = token?;
             match token {
-                crate::SchemaTokens::Attribute(tokens) => {
-                    match parse_attributes(tokens.iter(), content, &mut sm_tokens) {
+                crate::SchemaStatement::Attribute(tokens) => {
+                    match parse_attributes(tokens.iter(), content, &mut schema.tokens) {
                         Ok(attr) => attributes.push(attr),
-                        Err(err) => panic!("Error: {err}")
+                        Err(err) => panic!("Error: {err}"),
                     }
                 }
-                crate::SchemaTokens::Group(tokens) => {}
-                crate::SchemaTokens::Element(tokens) => todo!(),
-                crate::SchemaTokens::Expression(tokens) => todo!(),
-                crate::SchemaTokens::Enum(tokens) => todo!(),
-                crate::SchemaTokens::Struct(tokens) => todo!(),
-                crate::SchemaTokens::Use(tokens) => todo!(),
-                crate::SchemaTokens::NewLine => {}, //skip
-                crate::SchemaTokens::Whitespace => {} //skip
+                crate::SchemaStatement::Group(tokens) => {
+                    schema.groups.push(
+                        ParserContext::new(&mut schema.tokens, tokens.iter().peekable(), content)
+                            .parse()
+                            .unwrap(),
+                    );
+                }
+                crate::SchemaStatement::Expression(tokens) => {
+                    schema.expressions.push(
+                        ParserContext::new(&mut schema.tokens, tokens.iter().peekable(), content)
+                            .parse()
+                            .unwrap(),
+                    );
+                }
+                crate::SchemaStatement::Enum(tokens) => {
+                    schema.enums.push(
+                        ParserContext::new(&mut schema.tokens, tokens.iter().peekable(), content)
+                            .parse()
+                            .unwrap(),
+                    );
+                }
+                crate::SchemaStatement::Struct(tokens) => {
+                    schema.structs.push(
+                        ParserContext::new(&mut schema.tokens, tokens.iter().peekable(), content)
+                            .parse()
+                            .unwrap(),
+                    );
+                }
+                crate::SchemaStatement::Use(tokens) => {
+                    ParserContext::new(&mut schema.tokens, tokens.iter().peekable(), content).parse();
+                }
+                crate::SchemaStatement::Element(tokens) => todo!(),
+                crate::SchemaStatement::NewLine => {}    //skip
+                crate::SchemaStatement::Whitespace => {} //skip
             }
-
         }
-        Err(Error::MissingOpeningBrace)
+
+        Ok(schema)
     }
 }
-
-use std::path::{Path, PathBuf};
-use tower_lsp::lsp_types::SemanticToken;
-use url::Url;
-
-use crate::{semantic::parse_attributes, Error, RmlxTokenStream};
-use crate::semantic::Group;
 
 /// Преобразует `input` в Url, считая, что он указан относительно файла `base`.
 fn to_url(base: impl AsRef<Path>, input: &str) -> Result<Url, String> {
@@ -57,8 +86,7 @@ fn to_url(base: impl AsRef<Path>, input: &str) -> Result<Url, String> {
 
     let normalized = normalize_path(&abs_path);
 
-    Url::from_file_path(&normalized)
-        .map_err(|_| format!("Invalid path: {}", normalized.display()))
+    Url::from_file_path(&normalized).map_err(|_| format!("Invalid path: {}", normalized.display()))
 }
 
 /// Убирает `.` и `..` из пути без обращения к файловой системе
@@ -78,11 +106,51 @@ fn normalize_path(path: &Path) -> PathBuf {
 
 #[cfg(test)]
 mod tests {
-    use crate::semantic_model::to_url;
+    use crate::semantic_model::SchemaModel;
+
+    const CONTENT: &str = r#"
+#[Min(1), Max(1)]
+group Root[Container, Component];
+
+group Container[Component, Template];
+
+group Template[Container];
+
+#[Extend, Min(0), Max(1)]
+group Component;
+
+expression Resource {
+    groups: [Component],
+    required: {
+        Target: String,
+        Path:   String,
+    }
+}
+
+expression Component {
+    groups: [Component],
+    required: {
+        Target: String,
+        Path:   String,
+    },
+}
+
+expression Item {
+    groups: [Component],
+    available_in: [Template],
+    required: {
+        Path: String,
+    },
+    additional: {
+        Converter: String,
+        Fallback:  String,
+    }
+}
+"#;
 
     #[test]
-    fn url() {
-        let url = to_url("/home/irisu/file.ext", "../base.ext").unwrap();
-        println!("Url: {url}");
+    fn test() {
+        let _model = SchemaModel::new(CONTENT);
+        println!();
     }
 }

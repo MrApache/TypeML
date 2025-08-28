@@ -1,6 +1,6 @@
 use lexer_utils::*;
 use logos::{Lexer, Logos};
-use crate::{Error, SchemaTokens};
+use crate::{Error, SchemaStatement};
 
 #[derive(Logos, Debug, PartialEq, Eq, Clone)]
 #[logos(extras = Position)]
@@ -45,28 +45,8 @@ pub enum ElementTokens {
     Whitespace,
 }
 
-impl TokenType for ElementTokens {
-    fn get_token_type(&self) -> u32 {
-        match self {
-            ElementTokens::Keyword => KEYWORD_TOKEN,
-            ElementTokens::Identifier => TYPE_TOKEN,
-            ElementTokens::LeftSquareBracket => KEYWORD_TOKEN,
-            ElementTokens::RightSquareBracket => KEYWORD_TOKEN,
-            ElementTokens::LeftCurlyBracket => u32::MAX,
-            ElementTokens::RightCurlyBracket => u32::MAX,
-            ElementTokens::LeftAngleBracket => OPERATOR_TOKEN,
-            ElementTokens::RightAngleBracket => OPERATOR_TOKEN,
-            ElementTokens::NewLine => u32::MAX,
-            ElementTokens::Colon => u32::MAX,
-            ElementTokens::Semicolon => u32::MAX,
-            ElementTokens::Comma => u32::MAX,
-            ElementTokens::Whitespace => u32::MAX,
-        }
-   }
-}
-
 pub(crate) fn element_callback(
-    lex: &mut Lexer<SchemaTokens>,
+    lex: &mut Lexer<SchemaStatement>,
 ) -> Result<Vec<Token<ElementTokens>>, Error> {
 
     let mut tokens = Vec::new();

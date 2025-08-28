@@ -1,9 +1,9 @@
 use std::fmt::Display;
 
-use lexer_utils::{push_and_break, Position, Token, TokenType, KEYWORD_TOKEN, TYPE_TOKEN};
+use lexer_utils::{push_and_break, Position, Token};
 use logos::{Lexer, Logos};
 
-use crate::{Error, SchemaTokens};
+use crate::{Error, NamedStatement, SchemaStatement, TokenArrayProvider, TokenDefinition};
 
 #[derive(Logos, Debug, PartialEq, Eq, Clone)]
 #[logos(extras = Position)]
@@ -36,13 +36,13 @@ pub enum GroupToken {
 impl Display for GroupToken {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         let str = match self {
+            GroupToken::Keyword => "group",
             GroupToken::Identifier => "identifier",
             GroupToken::LeftSquareBracket => "{",
             GroupToken::RightSquareBracket => "}",
             GroupToken::Semicolon => ";",
             GroupToken::Comma => ",",
             GroupToken::NewLine => unreachable!(),
-            GroupToken::Keyword => unreachable!(),
             GroupToken::Whitespace => unreachable!(),
         };
 
@@ -50,25 +50,39 @@ impl Display for GroupToken {
     }
 }
 
-impl TokenType for GroupToken {
-    fn get_token_type(&self) -> u32 {
-        match self {
-            GroupToken::Keyword => KEYWORD_TOKEN,
-            GroupToken::Identifier => TYPE_TOKEN,
-            GroupToken::LeftSquareBracket => KEYWORD_TOKEN,
-            GroupToken::RightSquareBracket => KEYWORD_TOKEN,
-            GroupToken::NewLine => u32::MAX,
-            GroupToken::Semicolon => u32::MAX,
-            GroupToken::Comma => u32::MAX,
-            GroupToken::Whitespace => u32::MAX,
-        }
+impl TokenDefinition for GroupToken {
+    fn keyword() -> &'static str {
+        "group"
+    }
+
+    fn keyword_token() -> Self {
+        Self::Keyword
+    }
+}
+
+impl NamedStatement for GroupToken {
+    fn identifier() -> Self {
+        Self::Identifier
+    }
+}
+
+impl TokenArrayProvider for GroupToken {
+    fn comma() -> Self {
+        Self::Comma
+    }
+
+    fn left_square_bracket() -> Self {
+        Self::LeftSquareBracket
+    }
+
+    fn right_square_bracket() -> Self {
+        Self::RightSquareBracket
     }
 }
 
 pub(crate) fn group_callback(
-    lex: &mut Lexer<SchemaTokens>,
+    lex: &mut Lexer<SchemaStatement>,
 ) -> Result<Vec<Token<GroupToken>>, Error> {
-
     let mut tokens = Vec::new();
     Token::push_with_advance(&mut tokens, GroupToken::Keyword, lex);
 

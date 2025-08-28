@@ -4,7 +4,7 @@ mod schema;
 
 use rml_lexer::context::{AttributeContext, TagContext};
 use rml_lexer::{MarkupTokens, RmlTokenStream};
-use rmlx_lexer::{RmlxTokenStream, SchemaTokens};
+use rmlx_lexer::{RmlxTokenStream, SchemaStatement};
 use std::collections::HashMap;
 use std::path::Path;
 use std::sync::{Arc, RwLock};
@@ -30,7 +30,7 @@ struct Workspace {
 #[derive(Debug)]
 struct SchemaDecalration {
     content: String,
-    tokens: Vec<SchemaTokens>,
+    tokens: Vec<SchemaStatement>,
 }
 
 #[tower_lsp::async_trait]
@@ -242,12 +242,12 @@ impl Backend {
         file.tokens
             .iter()
             .flat_map(|token| match token {
-                SchemaTokens::Group(tokens) => Self::to_semantic_tokens(tokens),
-                SchemaTokens::Struct(tokens) => Self::to_semantic_tokens(tokens),
-                SchemaTokens::Element(tokens) => Self::to_semantic_tokens(tokens),
-                SchemaTokens::Expression(tokens) => Self::to_semantic_tokens(tokens),
-                SchemaTokens::Use(tokens) => Self::to_semantic_tokens(tokens),
-                SchemaTokens::Attribute(tokens) => tokens
+                SchemaStatement::Group(tokens) => Self::to_semantic_tokens(tokens),
+                SchemaStatement::Struct(tokens) => Self::to_semantic_tokens(tokens),
+                SchemaStatement::Element(tokens) => Self::to_semantic_tokens(tokens),
+                SchemaStatement::Expression(tokens) => Self::to_semantic_tokens(tokens),
+                SchemaStatement::Use(tokens) => Self::to_semantic_tokens(tokens),
+                SchemaStatement::Attribute(tokens) => tokens
                     .iter()
                     .flat_map(|token| {
                         if let rmlx_lexer::AttributeToken::Content(tokens) = token.kind() {
@@ -257,7 +257,7 @@ impl Backend {
                         }
                     })
                     .collect(),
-                SchemaTokens::Enum(tokens) => tokens
+                SchemaStatement::Enum(tokens) => tokens
                     .iter()
                     .flat_map(|token| {
                         if let rmlx_lexer::EnumToken::Attribute(tokens) = token.kind() {

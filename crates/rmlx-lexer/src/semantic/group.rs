@@ -1,9 +1,8 @@
-use std::slice::Iter;
-
-use lexer_utils::{Token, KEYWORD_TOKEN, TYPE_TOKEN};
-use tower_lsp::lsp_types::SemanticToken;
-
-use crate::{semantic::Attribute, GroupToken};
+use crate::{
+    semantic::{Attribute, ParserContext},
+    GroupToken,
+};
+use lexer_utils::TYPE_TOKEN;
 
 #[derive(Debug)]
 pub struct Group {
@@ -39,89 +38,72 @@ impl Group {
     }
 }
 
-pub fn parse_group<'s>(
-    mut iter: Iter<'s, Token<GroupToken>>,
-    src: &str,
-    tokens: &mut Vec<SemanticToken>,
-) -> Result<Group, String> {
-    // 1. читаем `group`
-    let t = iter.next().ok_or("Expected `group` keyword")?;
-    if t.kind() != &GroupToken::Keyword {
-        return Err(format!("Expected `group`, got {:?}", t.kind()));
-    }
-    tokens.push(t.to_semantic_token(KEYWORD_TOKEN));
+impl<'s> ParserContext<'s, GroupToken> {
+    pub fn parse(&mut self) -> Result<Group, String> {
+        self.consume_keyword()?;
+        let name = self.consume_type_name()?;
+        let mut groups = Vec::new();
 
-    // 2. читаем идентификатор (имя группы)
-    let t = iter.next().ok_or("Expected identifier after `group`")?;
-    if t.kind() != &GroupToken::Identifier {
-        return Err(format!("Expected identifier, got {:?}", t.kind()));
-    }
-    let name = t.slice(src).to_string();
-    tokens.push(t.to_semantic_token(TYPE_TOKEN));
+        // 3. читаем следующий токен
+        let t = self
+            .iter
+            .next()
+            .ok_or("Expected `;` or `[` after identifier")?;
 
-    let mut groups = Vec::new();
-
-    // 3. читаем следующий токен
-    let t = iter.next().ok_or("Expected `;` or `[` after identifier")?;
-
-    match t.kind() {
-        GroupToken::Semicolon => {
-            tokens.push(t.to_semantic_token(u32::MAX));
-            Ok(Group::new(name, groups))
-        }
-        GroupToken::LeftSquareBracket => {
-            tokens.push(t.to_semantic_token(u32::MAX));
-
-            loop {
-                // читаем идентификатор
-                let t = iter.next().ok_or("Expected identifier inside `[]`")?;
-                if t.kind() != &GroupToken::Identifier {
-                    return Err(format!("Expected identifier inside `[]`, got {:?}", t.kind()));
-                }
-                tokens.push(t.to_semantic_token(TYPE_TOKEN));
-                groups.push(t.slice(src).to_string());
-
-                // читаем либо `,` либо `]`
-                let t = iter.next().ok_or("Expected `,` or `]` after identifier")?;
-                match t.kind() {
-                    GroupToken::Comma => {
-                        tokens.push(t.to_semantic_token(u32::MAX));
-                        continue;
-                    }
-                    GroupToken::RightSquareBracket => {
-                        tokens.push(t.to_semantic_token(u32::MAX));
-                        break;
-                    }
-                    _ => return Err(format!("Expected `,` or `]`, got {:?}", t.kind())),
-                }
+        match t.kind() {
+            GroupToken::Semicolon => {
+                self.tokens.push(t.to_semantic_token(u32::MAX));
+                Ok(Group::new(name, groups))
             }
+            GroupToken::LeftSquareBracket => {
+                self.tokens.push(t.to_semantic_token(u32::MAX));
 
-            // после `]` обязательно `;`
-            let t = iter.next().ok_or("Expected `;` after group declaration")?;
-            if t.kind() != &GroupToken::Semicolon {
-                return Err(format!("Expected `;` after group declaration, got {:?}", t.kind()));
+                loop {
+                    // читаем идентификатор
+                    let t = self.iter.next().ok_or("Expected identifier inside `[]`")?;
+                    if t.kind() != &GroupToken::Identifier {
+                        return Err(format!(
+                            "Expected identifier inside `[]`, got {:?}",
+                            t.kind()
+                        ));
+                    }
+                    self.tokens.push(t.to_semantic_token(TYPE_TOKEN));
+                    groups.push(t.slice(self.src).to_string());
+
+                    // читаем либо `,` либо `]`
+                    let t = self
+                        .iter
+                        .next()
+                        .ok_or("Expected `,` or `]` after identifier")?;
+                    match t.kind() {
+                        GroupToken::Comma => {
+                            self.tokens.push(t.to_semantic_token(u32::MAX));
+                            continue;
+                        }
+                        GroupToken::RightSquareBracket => {
+                            self.tokens.push(t.to_semantic_token(u32::MAX));
+                            break;
+                        }
+                        _ => return Err(format!("Expected `,` or `]`, got {:?}", t.kind())),
+                    }
+                }
+
+                // после `]` обязательно `;`
+                let t = self
+                    .iter
+                    .next()
+                    .ok_or("Expected `;` after group declaration")?;
+                if t.kind() != &GroupToken::Semicolon {
+                    return Err(format!(
+                        "Expected `;` after group declaration, got {:?}",
+                        t.kind()
+                    ));
+                }
+                self.tokens.push(t.to_semantic_token(u32::MAX));
+
+                Ok(Group::new(name, groups))
             }
-            tokens.push(t.to_semantic_token(u32::MAX));
-
-            Ok(Group::new(name, groups))
-        }
-        _ => Err(format!("Expected `;` or `[`, got {:?}", t.kind())),
-    }
-}
-
-#[cfg(test)]
-mod tests {
-    use crate::{semantic::parse_group, RmlxTokenStream, SchemaTokens};
-
-    #[test]
-    fn test() {
-        const CONTENT: &str = r#"group Container;"#;
-
-        let tokens = RmlxTokenStream::new(CONTENT).to_vec().unwrap();
-        let tokens = tokens.first().unwrap();
-        if let SchemaTokens::Group(tokens) = tokens {
-            let xd = parse_group(tokens.iter(), CONTENT, &mut vec![]);
-            println!();
+            _ => Err(format!("Expected `;` or `[`, got {:?}", t.kind())),
         }
     }
 }

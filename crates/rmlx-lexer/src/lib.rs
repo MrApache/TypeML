@@ -14,17 +14,32 @@ pub trait TokenDefinition: PartialEq + Eq + Sized + Display {
     fn keyword() -> &'static str;
     fn keyword_token() -> Self;
 
-    fn identifier() -> Self {unimplemented!()}
     fn colon() -> Self {unimplemented!()}
 
-    fn left_curly_brace() -> Self { unimplemented!() }
-    fn right_curly_brace() -> Self { unimplemented!() }
+    fn left_curly_bracket() -> Self { unimplemented!() }
+    fn right_curly_bracket() -> Self { unimplemented!() }
+}
+
+pub trait TokenSimpleTypeProvider: NamedStatement {
+    fn colon() -> Self;
+    fn left_angle_bracket() -> Self;
+    fn right_angle_bracket() -> Self;
+}
+
+pub trait TokenArrayProvider: NamedStatement {
+    fn comma() -> Self;
+    fn left_square_bracket() -> Self;
+    fn right_square_bracket() -> Self;
+}
+
+pub trait NamedStatement: PartialEq + Eq + Sized + Display {
+    fn identifier() -> Self;
 }
 
 #[derive(Logos, Debug, PartialEq, Eq, Clone)]
 #[logos(extras = Position)]
 #[logos(error(Error, Error::from_lexer))]
-pub enum SchemaTokens {
+pub enum SchemaStatement {
     #[token("group", group_callback)]
     Group(Vec<Token<GroupToken>>),
 
@@ -35,7 +50,7 @@ pub enum SchemaTokens {
     Attribute(Vec<Token<AttributeToken>>),
 
     #[token("expression", expression_callback)]
-    Expression(Vec<Token<ExpressionTokens>>),
+    Expression(Vec<Token<ExpressionToken>>),
 
     #[token("enum", enum_callback)]
     Enum(Vec<Token<EnumToken>>),
@@ -54,27 +69,21 @@ pub enum SchemaTokens {
 }
 
 pub struct RmlxTokenStream<'a> {
-    inner: Lexer<'a, SchemaTokens>,
+    inner: Lexer<'a, SchemaStatement>,
 }
 
 impl<'a> RmlxTokenStream<'a> {
     pub fn new(content: &'a str) -> Self {
         Self {
-            inner: SchemaTokens::lexer(content),
+            inner: SchemaStatement::lexer(content),
         }
     }
 
-    pub fn next_token(&mut self) -> Option<Result<SchemaTokens, Error>> {
+    pub fn next_token(&mut self) -> Option<Result<SchemaStatement, Error>> {
         while let Some(token_kind) = self.inner.next() {
             match &token_kind {
-                Ok(SchemaTokens::NewLine) => {
-                    self.inner.extras.new_line();
-                    continue; // пропускаем
-                }
-                Ok(SchemaTokens::Whitespace) => {
-                    self.inner.extras.advance(self.inner.span().len() as u32);
-                    continue; // пропускаем
-                }
+                Ok(SchemaStatement::NewLine) => self.inner.extras.new_line(),
+                Ok(SchemaStatement::Whitespace) => self.inner.extras.advance(self.inner.span().len() as u32),
                 _ => return Some(token_kind), // значимый токен
             }
         }
@@ -82,7 +91,7 @@ impl<'a> RmlxTokenStream<'a> {
     }
 
 
-    pub fn to_vec(mut self) -> Result<Vec<SchemaTokens>, Error> {
+    pub fn to_vec(mut self) -> Result<Vec<SchemaStatement>, Error> {
         let mut vec = vec![];
 
         while let Some(token) = self.next_token() {
@@ -90,19 +99,5 @@ impl<'a> RmlxTokenStream<'a> {
         }
 
         Ok(vec)
-    }
-}
-
-#[cfg(test)]
-mod tests {
-    use crate::RmlxTokenStream;
-
-    #[test]
-    fn test() {
-        const CONTENT: &str =
-            r#"#[Path(std::iter)]"#;
-
-        let _tokens = RmlxTokenStream::new(CONTENT).to_vec();
-        println!();
     }
 }

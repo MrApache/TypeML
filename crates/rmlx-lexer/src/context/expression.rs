@@ -1,11 +1,16 @@
+use std::fmt::Display;
+
+use crate::{
+    Error, NamedStatement, SchemaStatement, TokenArrayProvider, TokenDefinition,
+    TokenSimpleTypeProvider,
+};
 use lexer_utils::*;
 use logos::{Lexer, Logos};
-use crate::{Error, SchemaTokens};
 
 #[derive(Logos, Debug, PartialEq, Eq, Clone)]
 #[logos(extras = Position)]
 #[logos(error(Error, Error::from_lexer))]
-pub enum ExpressionTokens {
+pub enum ExpressionToken {
     Keyword,
 
     #[regex("[a-zA-Z_][a-zA-Z0-9_]*")]
@@ -42,44 +47,100 @@ pub enum ExpressionTokens {
     Whitespace,
 }
 
-impl TokenType for ExpressionTokens {
-    fn get_token_type(&self) -> u32 {
-        match self {
-            ExpressionTokens::Keyword => KEYWORD_TOKEN,
-            ExpressionTokens::Identifier => TYPE_TOKEN,
-            ExpressionTokens::LeftSquareBracket => KEYWORD_TOKEN,
-            ExpressionTokens::RightSquareBracket => KEYWORD_TOKEN,
-            ExpressionTokens::LeftCurlyBracket => u32::MAX,
-            ExpressionTokens::RightCurlyBracket => u32::MAX,
-            ExpressionTokens::LeftAngleBracket => OPERATOR_TOKEN,
-            ExpressionTokens::RightAngleBracket => OPERATOR_TOKEN,
-            ExpressionTokens::NewLine => u32::MAX,
-            ExpressionTokens::Colon => u32::MAX,
-            ExpressionTokens::Comma => u32::MAX,
-            ExpressionTokens::Whitespace => u32::MAX,
-        }
+impl Display for ExpressionToken {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        let str = match self {
+            ExpressionToken::Keyword => "expression",
+            ExpressionToken::Identifier => "identifier",
+            ExpressionToken::LeftSquareBracket => "]",
+            ExpressionToken::RightSquareBracket => "[",
+            ExpressionToken::LeftCurlyBracket => "{",
+            ExpressionToken::RightCurlyBracket => "}",
+            ExpressionToken::LeftAngleBracket => "<",
+            ExpressionToken::RightAngleBracket => ">",
+            ExpressionToken::Colon => ":",
+            ExpressionToken::Comma => ",",
+            ExpressionToken::NewLine => unreachable!(),
+            ExpressionToken::Whitespace => unreachable!(),
+        };
+
+        write!(f, "{str}")
+    }
+}
+
+impl TokenDefinition for ExpressionToken {
+    fn keyword() -> &'static str {
+        "expression"
+    }
+
+    fn keyword_token() -> Self {
+        Self::Keyword
+    }
+
+    fn colon() -> Self {
+        Self::Colon
+    }
+
+    fn left_curly_bracket() -> Self {
+        Self::LeftCurlyBracket
+    }
+
+    fn right_curly_bracket() -> Self {
+        Self::RightCurlyBracket
+    }
+}
+
+impl TokenSimpleTypeProvider for ExpressionToken {
+    fn colon() -> Self {
+        Self::Colon
+    }
+
+    fn left_angle_bracket() -> Self {
+        Self::LeftAngleBracket
+    }
+
+    fn right_angle_bracket() -> Self {
+        Self::RightAngleBracket
+    }
+}
+
+impl TokenArrayProvider for ExpressionToken {
+    fn comma() -> Self {
+        Self::Comma
+    }
+
+    fn left_square_bracket() -> Self {
+        Self::LeftSquareBracket
+    }
+
+    fn right_square_bracket() -> Self {
+        Self::RightSquareBracket
+    }
+}
+
+impl NamedStatement for ExpressionToken {
+    fn identifier() -> Self {
+        Self::Identifier
     }
 }
 
 pub(crate) fn expression_callback(
-    lex: &mut Lexer<SchemaTokens>,
-) -> Result<Vec<Token<ExpressionTokens>>, Error> {
-
+    lex: &mut Lexer<SchemaStatement>,
+) -> Result<Vec<Token<ExpressionToken>>, Error> {
     let mut tokens = Vec::new();
-    Token::push_with_advance(&mut tokens, ExpressionTokens::Keyword, lex);
+    Token::push_with_advance(&mut tokens, ExpressionToken::Keyword, lex);
 
     let mut bracket_depth = 0;
-    let mut inner = lex.clone().morph::<ExpressionTokens>();
+    let mut inner = lex.clone().morph::<ExpressionToken>();
     while let Some(token) = inner.next() {
         let kind = token?;
         match kind {
-            ExpressionTokens::NewLine => inner.extras.new_line(),
-            ExpressionTokens::Whitespace => inner.extras.advance(inner.span().len() as u32),
+            ExpressionToken::NewLine => inner.extras.new_line(),
+            ExpressionToken::Whitespace => inner.extras.advance(inner.span().len() as u32),
             _ => {
-                if let ExpressionTokens::LeftCurlyBracket = &kind {
+                if let ExpressionToken::LeftCurlyBracket = &kind {
                     bracket_depth += 1;
-                }
-                else if let ExpressionTokens::RightCurlyBracket = &kind {
+                } else if let ExpressionToken::RightCurlyBracket = &kind {
                     if bracket_depth == 0 {
                         return Err(Error::MissingOpeningBrace);
                     }
@@ -96,4 +157,3 @@ pub(crate) fn expression_callback(
     *lex = inner.morph();
     Ok(tokens)
 }
-

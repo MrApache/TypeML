@@ -1,5 +1,4 @@
 use std::slice::Iter;
-use logos::Source;
 use tower_lsp::lsp_types::SemanticToken;
 use lexer_utils::{Token, MACRO_TOKEN, STRING_TOKEN};
 use crate::{AttributeToken, ContentToken};
@@ -97,6 +96,10 @@ pub fn parse_attributes<'s>(
                 }
                 break;
             }
+            AttributeToken::Comma => {
+                tokens.push(next.to_semantic_token(u32::MAX));
+                continue;
+            }
             _ => {
                 return Err(format!(
                     "Unexpected token after identifier: {:?}",
@@ -162,7 +165,7 @@ pub fn parse_content<'s>(
 #[cfg(test)]
 mod tests {
     use crate::semantic::attribute::parse_attributes;
-    use crate::{RmlxTokenStream, SchemaTokens};
+    use crate::{RmlxTokenStream, SchemaStatement};
 
     #[test]
     fn test() {
@@ -170,7 +173,7 @@ mod tests {
 
         let tokens = RmlxTokenStream::new(CONTENT).to_vec().unwrap();
         let attr_tokens = tokens.first().unwrap();
-        if let SchemaTokens::Attribute(tokens) = attr_tokens.clone() {
+        if let SchemaStatement::Attribute(tokens) = attr_tokens.clone() {
             let xd = parse_attributes(tokens.iter(), CONTENT, &mut vec![]);
             println!();
         }

@@ -1,8 +1,8 @@
 use std::fmt::Display;
 
+use crate::{Error, NamedStatement, SchemaStatement, TokenDefinition, TokenSimpleTypeProvider};
 use lexer_utils::*;
 use logos::{Lexer, Logos};
-use crate::{Error, SchemaTokens, TokenDefinition};
 
 #[derive(Logos, Debug, PartialEq, Eq, Clone)]
 #[logos(extras = Position)]
@@ -47,20 +47,36 @@ impl TokenDefinition for StructToken {
         Self::Keyword
     }
 
-    fn left_curly_brace() -> Self {
+    fn colon() -> Self {
+        Self::Colon
+    }
+
+    fn left_curly_bracket() -> Self {
         Self::LeftCurlyBracket
     }
 
-    fn right_curly_brace() -> Self {
+    fn right_curly_bracket() -> Self {
         Self::RightCurlyBracket
     }
+}
 
-    fn identifier() -> Self {
-        Self::Identifier
-    }
-
+impl TokenSimpleTypeProvider for StructToken {
     fn colon() -> Self {
         Self::Colon
+    }
+
+    fn left_angle_bracket() -> Self {
+        Self::LeftAngleBracket
+    }
+
+    fn right_angle_bracket() -> Self {
+        Self::RightAngleBracket
+    }
+}
+
+impl NamedStatement for StructToken {
+    fn identifier() -> Self {
+        Self::Identifier
     }
 }
 
@@ -82,27 +98,9 @@ impl Display for StructToken {
     }
 }
 
-impl TokenType for StructToken {
-    fn get_token_type(&self) -> u32 {
-        match self {
-            StructToken::Keyword => KEYWORD_TOKEN,
-            StructToken::Identifier => TYPE_TOKEN,
-            StructToken::LeftCurlyBracket => u32::MAX,
-            StructToken::RightCurlyBracket => u32::MAX,
-            StructToken::LeftAngleBracket => OPERATOR_TOKEN,
-            StructToken::RightAngleBracket => OPERATOR_TOKEN,
-            StructToken::NewLine => u32::MAX,
-            StructToken::Colon => u32::MAX,
-            StructToken::Comma => u32::MAX,
-            StructToken::Whitespace => u32::MAX,
-        }
-    }
-}
-
 pub(crate) fn struct_callback(
-    lex: &mut Lexer<SchemaTokens>,
+    lex: &mut Lexer<SchemaStatement>,
 ) -> Result<Vec<Token<StructToken>>, Error> {
-
     let mut tokens = Vec::new();
     Token::push_with_advance(&mut tokens, StructToken::Keyword, lex);
 
@@ -116,8 +114,7 @@ pub(crate) fn struct_callback(
             _ => {
                 if let StructToken::LeftCurlyBracket = &kind {
                     bracket_depth += 1;
-                }
-                else if let StructToken::RightCurlyBracket = &kind {
+                } else if let StructToken::RightCurlyBracket = &kind {
                     if bracket_depth == 0 {
                         return Err(Error::MissingOpeningBrace);
                     }
@@ -134,4 +131,3 @@ pub(crate) fn struct_callback(
     *lex = inner.morph();
     Ok(tokens)
 }
-
