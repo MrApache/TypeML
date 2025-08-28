@@ -24,16 +24,18 @@ impl SchemaModel {
             match token {
                 crate::SchemaStatement::Attribute(tokens) => {
                     match parse_attributes(tokens.iter(), content, &mut schema.tokens) {
-                        Ok(attr) => attributes.push(attr),
+                        Ok(attrs) => attributes = attrs,
                         Err(err) => panic!("Error: {err}"),
                     }
                 }
                 crate::SchemaStatement::Group(tokens) => {
-                    schema.groups.push(
+                    let mut group =
                         ParserContext::new(&mut schema.tokens, tokens.iter().peekable(), content)
                             .parse()
-                            .unwrap(),
-                    );
+                            .unwrap();
+                    group.resolve_attributes(&mut attributes);
+                    //TODO error
+                    schema.groups.push(group);
                 }
                 crate::SchemaStatement::Expression(tokens) => {
                     schema.expressions.push(
@@ -50,14 +52,16 @@ impl SchemaModel {
                     );
                 }
                 crate::SchemaStatement::Struct(tokens) => {
-                    schema.structs.push(
+                    let mut structure =
                         ParserContext::new(&mut schema.tokens, tokens.iter().peekable(), content)
                             .parse()
-                            .unwrap(),
-                    );
+                            .unwrap();
+                    structure.resolve_attributes(&mut attributes);
+                    schema.structs.push(structure);
                 }
                 crate::SchemaStatement::Use(tokens) => {
-                    ParserContext::new(&mut schema.tokens, tokens.iter().peekable(), content).parse();
+                    ParserContext::new(&mut schema.tokens, tokens.iter().peekable(), content)
+                        .parse();
                 }
                 crate::SchemaStatement::Element(tokens) => todo!(),
                 crate::SchemaStatement::NewLine => {}    //skip

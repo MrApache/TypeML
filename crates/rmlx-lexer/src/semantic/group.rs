@@ -30,10 +30,10 @@ impl Group {
                 Attribute::Extend => self.extend = true,
                 Attribute::Min(min_attribute) => self.min = Some(min_attribute.value),
                 Attribute::Max(max_attribute) => self.max = Some(max_attribute.value),
-                _ => return false,
+                _ => return true,
             }
 
-            true
+            false
         });
     }
 }
@@ -42,57 +42,27 @@ impl<'s> ParserContext<'s, GroupToken> {
     pub fn parse(&mut self) -> Result<Group, String> {
         self.consume_keyword()?;
         let name = self.consume_type_name()?;
-        let mut groups = Vec::new();
 
-        // 3. читаем следующий токен
         let t = self
             .iter
-            .next()
+            .peek()
             .ok_or("Expected `;` or `[` after identifier")?;
 
         match t.kind() {
             GroupToken::Semicolon => {
+                let t = self.iter.next().unwrap();
                 self.tokens.push(t.to_semantic_token(u32::MAX));
-                Ok(Group::new(name, groups))
+                Ok(Group::new(name, vec![]))
             }
             GroupToken::LeftSquareBracket => {
-                self.tokens.push(t.to_semantic_token(u32::MAX));
-
-                loop {
-                    // читаем идентификатор
-                    let t = self.iter.next().ok_or("Expected identifier inside `[]`")?;
-                    if t.kind() != &GroupToken::Identifier {
-                        return Err(format!(
-                            "Expected identifier inside `[]`, got {:?}",
-                            t.kind()
-                        ));
-                    }
-                    self.tokens.push(t.to_semantic_token(TYPE_TOKEN));
-                    groups.push(t.slice(self.src).to_string());
-
-                    // читаем либо `,` либо `]`
-                    let t = self
-                        .iter
-                        .next()
-                        .ok_or("Expected `,` or `]` after identifier")?;
-                    match t.kind() {
-                        GroupToken::Comma => {
-                            self.tokens.push(t.to_semantic_token(u32::MAX));
-                            continue;
-                        }
-                        GroupToken::RightSquareBracket => {
-                            self.tokens.push(t.to_semantic_token(u32::MAX));
-                            break;
-                        }
-                        _ => return Err(format!("Expected `,` or `]`, got {:?}", t.kind())),
-                    }
-                }
+                let groups = self.consume_array()?;
 
                 // после `]` обязательно `;`
                 let t = self
                     .iter
                     .next()
                     .ok_or("Expected `;` after group declaration")?;
+
                 if t.kind() != &GroupToken::Semicolon {
                     return Err(format!(
                         "Expected `;` after group declaration, got {:?}",

@@ -1,10 +1,32 @@
 use crate::StructToken;
-use crate::semantic::ParserContext;
+use crate::semantic::{Attribute, ParserContext};
 
 #[derive(Debug, Clone)]
 pub struct Struct {
     pub name: String,
     pub fields: Vec<Field>,
+    pub path: Option<String>,
+}
+
+impl Struct {
+    fn new(name: String, fields: Vec<Field>) -> Self {
+        Self {
+            name,
+            fields,
+            path: None,
+        }
+    }
+
+    pub fn resolve_attributes(&mut self, attributes: &mut Vec<Attribute>) {
+        attributes.retain(|attr| {
+            match attr {
+                Attribute::Path(path_attribute) => self.path = Some(path_attribute.value.clone()),
+                _ => return true,
+            }
+
+            false
+        });
+    }
 }
 
 #[derive(Debug, Clone)]
@@ -54,6 +76,6 @@ impl<'s> ParserContext<'s, StructToken> {
             }
         }
 
-        Ok(Struct { name, fields })
+        Ok(Struct::new(name, fields))
     }
 }

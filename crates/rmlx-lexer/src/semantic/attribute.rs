@@ -89,7 +89,6 @@ pub fn parse_attributes<'s>(
                 attrs.push(attr);
             }
             AttributeToken::RightSquareBracket => {
-                // атрибут без значения, например `#[Extend]`
                 match name.as_str() {
                     "Extend" => attrs.push(Attribute::Extend),
                     _ => return Err(format!("Attribute `{name}` requires value")),
@@ -97,6 +96,10 @@ pub fn parse_attributes<'s>(
                 break;
             }
             AttributeToken::Comma => {
+                match name.as_str() {
+                    "Extend" => attrs.push(Attribute::Extend),
+                    _ => return Err(format!("Attribute `{name}` requires value")),
+                }
                 tokens.push(next.to_semantic_token(u32::MAX));
                 continue;
             }

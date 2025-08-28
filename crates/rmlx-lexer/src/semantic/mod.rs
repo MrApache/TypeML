@@ -1,12 +1,12 @@
 mod attribute;
-mod element;
+mod enumeration;
 mod expression;
 mod group;
 mod structure;
 mod use_statement;
 
 pub use attribute::*;
-pub use element::*;
+pub use enumeration::*;
 pub use expression::*;
 pub use group::*;
 pub use structure::*;
@@ -136,31 +136,7 @@ impl<'s, T: TokenDefinition + TokenSimpleTypeProvider> ParserContext<'s, T> {
     }
 }
 
-impl<'s, T: TokenDefinition + TokenSimpleTypeProvider + TokenArrayProvider> ParserContext<'s, T> {
-    pub fn consume_advanced_typed_field(&mut self) -> Result<Field, String> {
-        let field_name = self.consume_parameter()?;
-        self.consume_colon()?;
-
-        let kind = self.iter.peek().ok_or("Unexpected end of token stream")?;
-        if kind.kind() == &T::left_square_bracket() {
-            Ok(Field {
-                name: field_name,
-                ty: Type::Array(self.consume_array()?),
-            })
-        } else if kind.kind() == &T::left_curly_bracket() {
-            Ok(Field {
-                name: field_name,
-                ty: self.consume_block()?,
-            })
-        }
-        else {
-            Ok(Field {
-                name: field_name,
-                ty: self.consume_simple_or_generic_type()?
-            })
-        }
-    }
-
+impl<'s, T: TokenDefinition + TokenArrayProvider> ParserContext<'s, T> {
     pub fn consume_array(&mut self) -> Result<Vec<String>, String> {
         let lsb_token = self.iter.next().unwrap();
         self.tokens.push(lsb_token.to_semantic_token(u32::MAX));
@@ -193,6 +169,32 @@ impl<'s, T: TokenDefinition + TokenSimpleTypeProvider + TokenArrayProvider> Pars
         }
 
         Ok(arr)
+    }
+}
+
+impl<'s, T: TokenDefinition + TokenSimpleTypeProvider + TokenArrayProvider> ParserContext<'s, T> {
+    pub fn consume_advanced_typed_field(&mut self) -> Result<Field, String> {
+        let field_name = self.consume_parameter()?;
+        self.consume_colon()?;
+
+        let kind = self.iter.peek().ok_or("Unexpected end of token stream")?;
+        if kind.kind() == &T::left_square_bracket() {
+            Ok(Field {
+                name: field_name,
+                ty: Type::Array(self.consume_array()?),
+            })
+        } else if kind.kind() == &T::left_curly_bracket() {
+            Ok(Field {
+                name: field_name,
+                ty: self.consume_block()?,
+            })
+        }
+        else {
+            Ok(Field {
+                name: field_name,
+                ty: self.consume_simple_or_generic_type()?
+            })
+        }
     }
 
     pub fn consume_block(&mut self) -> Result<Type, String> {

@@ -11,8 +11,8 @@ pub struct Enum {
 
 pub struct EnumVariant {
     pub name: String,
-    pub ty: Option<String>,
-    pub attributes: Vec<Attribute>,
+    pub ty:   Option<String>,
+    pub pattern: Option<String>,
 }
 
 impl<'s> ParserContext<'s, EnumToken> {
@@ -50,7 +50,7 @@ impl<'s> ParserContext<'s, EnumToken> {
                     self.tokens.push(token.to_semantic_token(PARAMETER_TOKEN));
 
                     // проверяем, есть ли '(' для аргумента
-                    let value_type = if let Some(t) = self.iter.clone().next() {
+                    let ty = if let Some(t) = self.iter.clone().next() {
                         if t.kind() == &EnumToken::LeftParenthesis {
                             self.iter.next(); // съесть '('
                             self.tokens.push(t.to_semantic_token(u32::MAX));
@@ -73,10 +73,17 @@ impl<'s> ParserContext<'s, EnumToken> {
                         None
                     };
 
+                    let pattern = match attributes.as_slice() {
+                        [Attribute::Pattern(value)] => Some(value.value.clone()),
+                        [] => None,
+                        _ => return Err("Unknown attribute".into()),
+                    };
+
+
                     variants.push(EnumVariant {
                         name,
-                        ty: value_type,
-                        attributes: std::mem::take(&mut attributes),
+                        ty,
+                        pattern,
                     });
 
                     // после варианта может быть ',' или '}'
