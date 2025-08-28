@@ -7,10 +7,10 @@ rml-lexer = { path = "crates/rml-lexer" }
 rmlx-lexer = { path = "crates/rmlx-lexer" }
 lexer-utils = { path = "crates/lexer-utils" }
 
-ron = "0.10.1"
+ron = "0.11.0"
 tokio = { version = "1.47.1", features = ["full"]}
 tower-lsp = "0.20.0"
 serde = "1.0.219"
 logos = "0.15.1"
 url = "2.5.7"
-chumsky = "1.0.0-alpha.8"
+reqwest = "0.12.23"

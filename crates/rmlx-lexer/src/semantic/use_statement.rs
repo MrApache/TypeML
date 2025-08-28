@@ -2,7 +2,7 @@ use lexer_utils::STRING_TOKEN;
 use crate::{semantic::ParserContext, UseToken};
 
 pub struct Use {
-    path: String,
+    pub path: String,
 }
 
 impl<'s> ParserContext<'s, UseToken> {

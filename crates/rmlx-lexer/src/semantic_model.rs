@@ -11,10 +11,11 @@ pub struct SchemaModel {
     enums: Vec<Enum>,
     expressions: Vec<Expression>,
     tokens: Vec<SemanticToken>,
+    includes: Vec<Url>,
 }
 
 impl SchemaModel {
-    pub fn new(content: &str) -> Result<Self, Error> {
+    pub fn new(file: &str, content: &str) -> Result<Self, Error> {
         let mut schema = SchemaModel::default();
         let mut stream = RmlxTokenStream::new(content);
         let mut attributes = vec![];
@@ -60,8 +61,11 @@ impl SchemaModel {
                     schema.structs.push(structure);
                 }
                 crate::SchemaStatement::Use(tokens) => {
-                    ParserContext::new(&mut schema.tokens, tokens.iter().peekable(), content)
-                        .parse();
+                    let using = ParserContext::new(&mut schema.tokens, tokens.iter().peekable(), content)
+                        .parse().unwrap();
+
+                    schema.includes.push(to_url(file, &using.path).unwrap());
+                    //TODO check file
                 }
                 crate::SchemaStatement::Element(tokens) => todo!(),
                 crate::SchemaStatement::NewLine => {}    //skip

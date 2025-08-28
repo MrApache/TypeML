@@ -6,7 +6,7 @@ edition = "2024"
 [dependencies]
 tower-lsp.workspace = true
 logos.workspace = true
-chumsky.workspace = true
 
 lexer-utils.workspace = true
 url.workspace = true
+reqwest.workspace = true
