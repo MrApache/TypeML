@@ -1,8 +1,6 @@
 use lexer_utils::*;
 use logos::{Lexer, Logos};
-
 use crate::{Error, SchemaTokens};
-
 
 #[derive(Logos, Debug, PartialEq, Eq, Clone)]
 #[logos(extras = Position)]
@@ -50,14 +48,14 @@ pub enum ElementTokens {
 impl TokenType for ElementTokens {
     fn get_token_type(&self) -> u32 {
         match self {
-            ElementTokens::Keyword => KEYWORD,
-            ElementTokens::Identifier => TYPE,
-            ElementTokens::LeftSquareBracket => KEYWORD,
-            ElementTokens::RightSquareBracket => KEYWORD,
+            ElementTokens::Keyword => KEYWORD_TOKEN,
+            ElementTokens::Identifier => TYPE_TOKEN,
+            ElementTokens::LeftSquareBracket => KEYWORD_TOKEN,
+            ElementTokens::RightSquareBracket => KEYWORD_TOKEN,
             ElementTokens::LeftCurlyBracket => u32::MAX,
             ElementTokens::RightCurlyBracket => u32::MAX,
-            ElementTokens::LeftAngleBracket => OPERATOR,
-            ElementTokens::RightAngleBracket => OPERATOR,
+            ElementTokens::LeftAngleBracket => OPERATOR_TOKEN,
+            ElementTokens::RightAngleBracket => OPERATOR_TOKEN,
             ElementTokens::NewLine => u32::MAX,
             ElementTokens::Colon => u32::MAX,
             ElementTokens::Semicolon => u32::MAX,
@@ -81,7 +79,7 @@ pub(crate) fn element_callback(
         match kind {
             ElementTokens::NewLine => inner.extras.new_line(),
             ElementTokens::Semicolon => push_and_break!(&mut tokens, kind, &mut inner),
-            ElementTokens::Whitespace => inner.extras.current_column += inner.span().len() as u32,
+            ElementTokens::Whitespace => inner.extras.advance(inner.span().len() as u32),
             _ => {
                 if let ElementTokens::LeftCurlyBracket = &kind {
                     bracket_depth += 1;

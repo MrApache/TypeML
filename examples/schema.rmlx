@@ -22,7 +22,6 @@ enum PositionType {
 
 #[Path(bevy::prelude::OverflowAxis)]
 enum OverflowAxis {
-    #[Pattern("ada")]
     Visible,
     Clip,
     Hidden,

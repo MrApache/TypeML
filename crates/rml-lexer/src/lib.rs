@@ -16,8 +16,8 @@ pub enum MarkupTokens {
     #[token("<", tag_context_callback)]
     Tag(Vec<Token<TagContext>>),
 
-    #[token("#", directive_context_callback)]
-    Directive(Vec<Token<DirectiveContext>>),
+    #[token("#", directive_callback)]
+    Directive(Vec<Token<DirectiveToken>>),
 
     #[regex(r"[^/#<]", text_context_callback)]
     Text(Token<Text>),

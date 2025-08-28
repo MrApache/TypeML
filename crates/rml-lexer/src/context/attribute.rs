@@ -3,8 +3,8 @@ use lexer_utils::*;
 
 use crate::{
     context::{
-        expression::ExpressionContext, expression_context_callback, struct_context_callback,
-        structure::StructContext, tag::TagContext,
+        expression::ExpressionToken, expression_callback, struct_callback,
+        structure::StructToken, tag::TagContext,
     },
 };
 
@@ -31,11 +31,11 @@ pub enum AttributeContext {
 
     Equal,
 
-    #[token("{", expression_context_callback)]
-    Expression(Vec<Token<ExpressionContext>>),
+    #[token("{", expression_callback)]
+    Expression(Vec<Token<ExpressionToken>>),
 
-    #[token("{{", struct_context_callback)]
-    Struct(Vec<Token<StructContext>>),
+    #[token("{{", struct_callback)]
+    Struct(Vec<Token<StructToken>>),
 }
 
 impl TokenType for AttributeContext {
@@ -58,18 +58,9 @@ pub(crate) fn attribute_context_callback(
     lex: &mut Lexer<TagContext>,
 ) -> Option<Vec<Token<AttributeContext>>> {
     let mut tokens = Vec::new();
-    tokens.push(Token {
-        kind: AttributeContext::Equal,
-        span: lex.span(),
-        delta_line: lex.extras.get_delta_line(),
-        delta_start: lex.extras.get_delta_start(),
-    });
-
-    //Skip '='
-    lex.extras.current_column += 1;
+    Token::push_with_advance(&mut tokens, AttributeContext::Equal, lex);
 
     let mut inner = lex.clone().morph::<AttributeContext>();
-
     //Read first quote
     while let Some(token) = inner.next() {
         let kind = match token {
@@ -78,24 +69,9 @@ pub(crate) fn attribute_context_callback(
         };
 
         match kind {
-            AttributeContext::Quote => {
-                tokens.push(Token {
-                    kind,
-                    span: inner.span(),
-                    delta_line: inner.extras.get_delta_line(),
-                    delta_start: inner.extras.get_delta_start(),
-                });
-                inner.extras.current_column += inner.span().len() as u32;
-                break;
-            }
-            AttributeContext::NewLine => {
-                inner.extras.new_line();
-                continue;
-            }
-            AttributeContext::Whitespace => {
-                inner.extras.current_column += inner.span().len() as u32;
-                continue;
-            }
+            AttributeContext::Quote => push_and_break!(&mut tokens, kind, &mut inner),
+            AttributeContext::NewLine => inner.extras.new_line(),
+            AttributeContext::Whitespace => inner.extras.advance(inner.span().len() as u32),
             _ => panic!(),
         }
     }
@@ -106,34 +82,11 @@ pub(crate) fn attribute_context_callback(
             Err(_) => return None,
         };
         match kind {
-            AttributeContext::Quote => {
-                //Read last quote and break
-                tokens.push(Token {
-                    kind,
-                    span: inner.span(),
-                    delta_line: inner.extras.get_delta_line(),
-                    delta_start: inner.extras.get_delta_start(),
-                });
-                inner.extras.current_column += inner.span().len() as u32;
-                break;
-            }
-            AttributeContext::NewLine => {
-                inner.extras.new_line();
-                continue;
-            }
-            AttributeContext::Whitespace => {
-                inner.extras.current_column += inner.span().len() as u32;
-                continue;
-            }
-            _ => {
-                tokens.push(Token {
-                    kind,
-                    span: inner.span(),
-                    delta_line: inner.extras.get_delta_line(),
-                    delta_start: inner.extras.get_delta_start(),
-                });
-                inner.extras.current_column += inner.span().len() as u32;
-            }
+            //Read last quote and break
+            AttributeContext::Quote => push_and_break!(&mut tokens, kind, &mut inner),
+            AttributeContext::NewLine => inner.extras.new_line(),
+            AttributeContext::Whitespace => inner.extras.advance(inner.span().len() as u32),
+            _ => Token::push_with_advance(&mut tokens, kind, &mut inner),
         }
     }
 

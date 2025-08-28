@@ -1,13 +1,15 @@
-use logos::{Lexer, Logos};
 use lexer_utils::*;
+use logos::{Lexer, Logos};
 
-use crate::{context::attribute::AttributeContext};
+use crate::context::attribute::AttributeContext;
 
 #[derive(Logos, Debug, PartialEq, Eq, Clone)]
 #[logos(extras = Position)]
-pub enum StructContext {
-    #[token("{{")]
-    Start,
+pub enum StructToken {
+    DoubleLeftCurlyBracket,
+
+    #[token("}}")]
+    DoubleRightCurlyBracket,
 
     #[regex("[a-zA-Z_][a-zA-Z0-9_]*")]
     Identifier,
@@ -21,9 +23,6 @@ pub enum StructContext {
     #[regex(r"[0-9]+")]
     Int,
 
-    #[token("}}")]
-    End,
-
     #[token(",")]
     Comma,
 
@@ -34,71 +33,41 @@ pub enum StructContext {
     Whitespace,
 }
 
-impl TokenType for StructContext {
+impl TokenType for StructToken {
     fn get_token_type(&self) -> u32 {
         match self {
-            StructContext::Start => 7,
-            StructContext::End => 7,
+            StructToken::DoubleLeftCurlyBracket => 7,
+            StructToken::DoubleRightCurlyBracket => 7,
 
-            StructContext::Identifier => 1,
-            StructContext::Float => 5,
-            StructContext::Int => 5,
+            StructToken::Identifier => 1,
+            StructToken::Float => 5,
+            StructToken::Int => 5,
 
-            StructContext::Assing => u32::MAX,
-            StructContext::Comma => u32::MAX,
-            StructContext::NewLine => u32::MAX,
-            StructContext::Whitespace => u32::MAX,
+            StructToken::Assing => u32::MAX,
+            StructToken::Comma => u32::MAX,
+            StructToken::NewLine => u32::MAX,
+            StructToken::Whitespace => u32::MAX,
         }
     }
 }
 
-pub(crate) fn struct_context_callback(lex: &mut Lexer<AttributeContext>) -> Option<Vec<Token<StructContext>>> {
+pub(crate) fn struct_callback(
+    lex: &mut Lexer<AttributeContext>,
+) -> Option<Vec<Token<StructToken>>> {
     let mut tokens = Vec::new();
-    tokens.push(Token {
-        kind: StructContext::Start,
-        span: lex.span(),
-        delta_line: lex.extras.get_delta_line(),
-        delta_start: lex.extras.get_delta_start(),
-    });
+    Token::push_with_advance(&mut tokens, StructToken::DoubleLeftCurlyBracket, lex);
 
-    //Skip '{{'
-    lex.extras.current_column += 2;
-
-    let mut inner = lex.clone().morph::<StructContext>();
+    let mut inner = lex.clone().morph::<StructToken>();
     while let Some(token) = inner.next() {
-        match token {
-            Ok(kind) => {
-                match kind {
-                    StructContext::End => {
-                        tokens.push(Token {
-                            kind,
-                            span: inner.span(),
-                            delta_line: inner.extras.get_delta_line(),
-                            delta_start: inner.extras.get_delta_start(),
-                        });
-                        inner.extras.current_column += inner.span().len() as u32;
-                        break;
-                    },
-                    StructContext::NewLine => {
-                        inner.extras.new_line();
-                        continue;
-                    },
-                    StructContext::Whitespace => {
-                        inner.extras.current_column += inner.span().len() as u32;
-                        continue;
-                    },
-                    _ => {},
-                }
-
-                tokens.push(Token {
-                    kind,
-                    span: inner.span(),
-                    delta_line: inner.extras.get_delta_line(),
-                    delta_start: inner.extras.get_delta_start(),
-                });
-                inner.extras.current_column += inner.span().len() as u32;
-            }
+        let kind = match token {
+            Ok(kind) => kind,
             Err(_) => return None,
+        };
+        match kind {
+            StructToken::DoubleRightCurlyBracket => push_and_break!(&mut tokens, kind, &mut inner),
+            StructToken::NewLine => inner.extras.new_line(),
+            StructToken::Whitespace => inner.extras.advance(inner.span().len() as u32),
+            _ => Token::push_with_advance(&mut tokens, kind, &mut inner),
         }
     }
 

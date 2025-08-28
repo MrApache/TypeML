@@ -45,14 +45,14 @@ pub enum ExpressionTokens {
 impl TokenType for ExpressionTokens {
     fn get_token_type(&self) -> u32 {
         match self {
-            ExpressionTokens::Keyword => KEYWORD,
-            ExpressionTokens::Identifier => TYPE,
-            ExpressionTokens::LeftSquareBracket => KEYWORD,
-            ExpressionTokens::RightSquareBracket => KEYWORD,
+            ExpressionTokens::Keyword => KEYWORD_TOKEN,
+            ExpressionTokens::Identifier => TYPE_TOKEN,
+            ExpressionTokens::LeftSquareBracket => KEYWORD_TOKEN,
+            ExpressionTokens::RightSquareBracket => KEYWORD_TOKEN,
             ExpressionTokens::LeftCurlyBracket => u32::MAX,
             ExpressionTokens::RightCurlyBracket => u32::MAX,
-            ExpressionTokens::LeftAngleBracket => OPERATOR,
-            ExpressionTokens::RightAngleBracket => OPERATOR,
+            ExpressionTokens::LeftAngleBracket => OPERATOR_TOKEN,
+            ExpressionTokens::RightAngleBracket => OPERATOR_TOKEN,
             ExpressionTokens::NewLine => u32::MAX,
             ExpressionTokens::Colon => u32::MAX,
             ExpressionTokens::Comma => u32::MAX,
@@ -74,7 +74,7 @@ pub(crate) fn expression_callback(
         let kind = token?;
         match kind {
             ExpressionTokens::NewLine => inner.extras.new_line(),
-            ExpressionTokens::Whitespace => inner.extras.current_column += inner.span().len() as u32,
+            ExpressionTokens::Whitespace => inner.extras.advance(inner.span().len() as u32),
             _ => {
                 if let ExpressionTokens::LeftCurlyBracket = &kind {
                     bracket_depth += 1;

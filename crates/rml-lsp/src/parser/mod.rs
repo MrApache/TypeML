@@ -2,7 +2,7 @@ mod error;
 
 use lexer_utils::Token;
 use rml_lexer::{
-    context::DirectiveContext,
+    context::DirectiveToken,
     logos::{Source, Span},
     MarkupTokens, RmlTokenStream
 };
@@ -43,18 +43,18 @@ impl<'a> RmlParser<'a> {
         Ok(directives)
     }
 
-    fn parse_directive(&self, tokens: &[Token<DirectiveContext>]) -> Result<Directive, ()> {
+    fn parse_directive(&self, tokens: &[Token<DirectiveToken>]) -> Result<Directive, ()> {
         let mut iter = tokens.iter();
         iter.next(); //TODO skip token 'Start'
         match iter.next() {
             Some(token) => {
                 match token.kind() {
-                    DirectiveContext::Expression => {
+                    DirectiveToken::Expression => {
                         let path = self.try_read_directive_path(iter.next())?;
                         let alias = self.try_read_expr_alias(iter.next(), iter.next())?;
                         Ok(Directive::Expressions { path, alias })
                     },
-                    DirectiveContext::Import => {
+                    DirectiveToken::Import => {
                         let path = self.try_read_directive_path(iter.next())?;
                         Ok(Directive::Import { path })
                     },
@@ -67,13 +67,13 @@ impl<'a> RmlParser<'a> {
 
     fn try_read_directive_path(
         &self,
-        token: Option<&Token<DirectiveContext>>,
+        token: Option<&Token<DirectiveToken>>,
     ) -> Result<String, ()> {
         if token.is_none() {
             return Err(()); // Token 'Path' is missing
         }
         let token = token.unwrap();
-        if token.kind() != &DirectiveContext::Path {
+        if token.kind() != &DirectiveToken::Path {
             return Err(()); // Unexpected token 'Path'
         }
         Ok(self.get_slice(token.span()).trim_matches('"').to_string())
@@ -81,8 +81,8 @@ impl<'a> RmlParser<'a> {
 
     fn try_read_expr_alias(
         &self,
-        token_as: Option<&Token<DirectiveContext>>,
-        token_alias: Option<&Token<DirectiveContext>>,
+        token_as: Option<&Token<DirectiveToken>>,
+        token_alias: Option<&Token<DirectiveToken>>,
     ) -> Result<String, ()> {
         if token_as.is_none() {
             return Err(()); // Token 'As' is missing

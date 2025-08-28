@@ -1,41 +1,55 @@
 mod context;
+mod semantic_model;
+mod semantic;
+
+use std::fmt::Display;
 
 pub use context::*;
 
 use logos::{Lexer, Logos};
 use lexer_utils::*;
-
 use crate::context::*;
+
+pub trait TokenDefinition: PartialEq + Eq + Sized + Display {
+    fn keyword() -> &'static str;
+    fn keyword_token() -> Self;
+
+    fn identifier() -> Self {unimplemented!()}
+    fn colon() -> Self {unimplemented!()}
+
+    fn left_curly_brace() -> Self { unimplemented!() }
+    fn right_curly_brace() -> Self { unimplemented!() }
+}
 
 #[derive(Logos, Debug, PartialEq, Eq, Clone)]
 #[logos(extras = Position)]
 #[logos(error(Error, Error::from_lexer))]
 pub enum SchemaTokens {
     #[token("group", group_callback)]
-    Group(Vec<Token<GroupTokens>>),
+    Group(Vec<Token<GroupToken>>),
 
     #[token("element", element_callback)]
     Element(Vec<Token<ElementTokens>>),
 
     #[token("#", attribute_callback)]
-    Attribute(Vec<Token<AttributeTokens>>),
+    Attribute(Vec<Token<AttributeToken>>),
 
     #[token("expression", expression_callback)]
     Expression(Vec<Token<ExpressionTokens>>),
 
     #[token("enum", enum_callback)]
-    Enum(Vec<Token<EnumTokens>>),
+    Enum(Vec<Token<EnumToken>>),
 
     #[token("struct", struct_callback)]
-    Struct(Vec<Token<StructTokens>>),
+    Struct(Vec<Token<StructToken>>),
 
     #[token("use", use_callback)]
-    Use(Vec<Token<UseTokens>>),
+    Use(Vec<Token<UseToken>>),
 
     #[token("\n")]
     NewLine,
 
-    #[regex(r" \t\r+")]
+    #[regex(r"[ \t\r]+")]
     Whitespace
 }
 
@@ -51,18 +65,22 @@ impl<'a> RmlxTokenStream<'a> {
     }
 
     pub fn next_token(&mut self) -> Option<Result<SchemaTokens, Error>> {
-        if let Some(token_kind) = self.inner.next() {
+        while let Some(token_kind) = self.inner.next() {
             match &token_kind {
-                Ok(SchemaTokens::NewLine) => self.inner.extras.new_line(),
-                Ok(SchemaTokens::Whitespace) => self.inner.extras.current_column += 1,
-                _ => {}
+                Ok(SchemaTokens::NewLine) => {
+                    self.inner.extras.new_line();
+                    continue; // пропускаем
+                }
+                Ok(SchemaTokens::Whitespace) => {
+                    self.inner.extras.advance(self.inner.span().len() as u32);
+                    continue; // пропускаем
+                }
+                _ => return Some(token_kind), // значимый токен
             }
-            Some(token_kind)
         }
-        else {
-            None
-        }
+        None // конец итератора
     }
+
 
     pub fn to_vec(mut self) -> Result<Vec<SchemaTokens>, Error> {
         let mut vec = vec![];

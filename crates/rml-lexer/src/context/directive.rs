@@ -4,9 +4,9 @@ use crate::MarkupTokens;
 
 #[derive(Logos, Debug, PartialEq, Eq, Clone)]
 #[logos(extras = Position)]
-pub enum DirectiveContext {
+pub enum DirectiveToken {
     #[token("#")]
-    Start,
+    Hash,
 
     #[token("expressions", priority = 1)]
     Expression,
@@ -27,46 +27,35 @@ pub enum DirectiveContext {
     Whitespace,
 
     #[token("\n")]
-    End,
+    NewLine,
 }
 
-//SemanticTokenType::KEYWORD   -- 0
-//SemanticTokenType::VARIABLE  -- 1
-//SemanticTokenType::STRING    -- 2
-impl TokenType for DirectiveContext {
+impl TokenType for DirectiveToken {
     fn get_token_type(&self) -> u32 {
         match self {
-            DirectiveContext::Start => 0,
-            DirectiveContext::As => 0,
+            DirectiveToken::Hash => 0,
+            DirectiveToken::As => 0,
 
-            DirectiveContext::Whitespace => 0,
-            DirectiveContext::End => 0,
+            DirectiveToken::Whitespace => 0,
+            DirectiveToken::NewLine => 0,
 
-            DirectiveContext::Expression => 0,
-            DirectiveContext::Import => 0,
+            DirectiveToken::Expression => 0,
+            DirectiveToken::Import => 0,
 
-            DirectiveContext::Alias => 1,
+            DirectiveToken::Alias => 1,
 
-            DirectiveContext::Path => 2,
+            DirectiveToken::Path => 2,
         }
     }
 }
 
-pub(crate) fn directive_context_callback(
+pub(crate) fn directive_callback(
     lex: &mut Lexer<MarkupTokens>,
-) -> Option<Vec<Token<DirectiveContext>>> {
+) -> Option<Vec<Token<DirectiveToken>>> {
     let mut tokens = Vec::new();
-    tokens.push(Token {
-        kind: DirectiveContext::Start,
-        span: lex.span(),
-        delta_line: lex.extras.get_delta_line(),
-        delta_start: lex.extras.get_delta_start(),
-    });
+    Token::push_with_advance(&mut tokens, DirectiveToken::Hash, lex);
 
-    //Skip '#'
-    lex.extras.current_column += 1;
-
-    let mut inner = lex.clone().morph::<DirectiveContext>();
+    let mut inner = lex.clone().morph::<DirectiveToken>();
     while let Some(token) = inner.next() {
         let kind = match token {
             Ok(kind) => kind,
@@ -74,26 +63,11 @@ pub(crate) fn directive_context_callback(
         };
 
         match kind {
-            DirectiveContext::End => {
-                inner.extras.new_line();
-                break;
-            }
-            DirectiveContext::Whitespace => {
-                inner.extras.current_column += inner.span().len() as u32;
-                continue;
-            }
-            _ => {
-                tokens.push(Token {
-                    kind,
-                    span: inner.span(),
-                    delta_line: inner.extras.get_delta_line(),
-                    delta_start: inner.extras.get_delta_start(),
-                });
-                inner.extras.current_column += inner.span().len() as u32;
-            }
+            DirectiveToken::NewLine => new_line_and_break!(inner),
+            DirectiveToken::Whitespace => inner.extras.advance(inner.span().len() as u32),
+            _ => Token::push_with_advance(&mut tokens, kind, &mut inner),
         }
     }
-
 
     *lex = inner.morph();
     Some(tokens)

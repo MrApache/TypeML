@@ -5,7 +5,7 @@ use crate::{Error, SchemaTokens};
 #[derive(Logos, Debug, PartialEq, Eq, Clone)]
 #[logos(extras = Position)]
 #[logos(error(Error, Error::from_lexer))]
-pub enum UseTokens {
+pub enum UseToken {
     Keyword,
 
     #[token("\n")]
@@ -18,33 +18,33 @@ pub enum UseTokens {
     Path,
 }
 
-impl TokenType for UseTokens {
+impl TokenType for UseToken {
     fn get_token_type(&self) -> u32 {
         match self {
-            UseTokens::Keyword => KEYWORD,
-            UseTokens::NewLine => u32::MAX,
-            UseTokens::Whitespace => u32::MAX,
-            UseTokens::Path => STRING,
+            UseToken::Keyword => KEYWORD_TOKEN,
+            UseToken::NewLine => u32::MAX,
+            UseToken::Whitespace => u32::MAX,
+            UseToken::Path => STRING_TOKEN,
         }
     }
 }
 
 pub(crate) fn use_callback(
     lex: &mut Lexer<SchemaTokens>,
-) -> Result<Vec<Token<UseTokens>>, Error> {
+) -> Result<Vec<Token<UseToken>>, Error> {
 
     let mut tokens = Vec::new();
-    Token::push_with_advance(&mut tokens, UseTokens::Keyword, lex);
+    Token::push_with_advance(&mut tokens, UseToken::Keyword, lex);
 
-    let mut inner = lex.clone().morph::<UseTokens>();
+    let mut inner = lex.clone().morph::<UseToken>();
     while let Some(token) = inner.next() {
         let kind = token?;
         match kind {
-            UseTokens::NewLine => {
+            UseToken::NewLine => {
                 inner.extras.new_line();
                 break;
             },
-            UseTokens::Whitespace => inner.extras.current_column += inner.span().len() as u32,
+            UseToken::Whitespace => inner.extras.advance(inner.span().len() as u32),
             _ => Token::push_with_advance(&mut tokens, kind, &mut inner),
         }
     }

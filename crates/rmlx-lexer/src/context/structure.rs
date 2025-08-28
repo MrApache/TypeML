@@ -1,21 +1,17 @@
+use std::fmt::Display;
+
 use lexer_utils::*;
 use logos::{Lexer, Logos};
-use crate::{Error, SchemaTokens};
+use crate::{Error, SchemaTokens, TokenDefinition};
 
 #[derive(Logos, Debug, PartialEq, Eq, Clone)]
 #[logos(extras = Position)]
 #[logos(error(Error, Error::from_lexer))]
-pub enum StructTokens {
+pub enum StructToken {
     Keyword,
 
     #[regex("[a-zA-Z_][a-zA-Z0-9_]*")]
     Identifier,
-
-    #[token("[")]
-    LeftSquareBracket,
-
-    #[token("]")]
-    RightSquareBracket,
 
     #[token("{")]
     LeftCurlyBracket,
@@ -42,44 +38,86 @@ pub enum StructTokens {
     Whitespace,
 }
 
-impl TokenType for StructTokens {
+impl TokenDefinition for StructToken {
+    fn keyword() -> &'static str {
+        "struct"
+    }
+
+    fn keyword_token() -> Self {
+        Self::Keyword
+    }
+
+    fn left_curly_brace() -> Self {
+        Self::LeftCurlyBracket
+    }
+
+    fn right_curly_brace() -> Self {
+        Self::RightCurlyBracket
+    }
+
+    fn identifier() -> Self {
+        Self::Identifier
+    }
+
+    fn colon() -> Self {
+        Self::Colon
+    }
+}
+
+impl Display for StructToken {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        let str = match self {
+            StructToken::Keyword => "struct",
+            StructToken::Identifier => "identifier",
+            StructToken::LeftCurlyBracket => "{",
+            StructToken::RightCurlyBracket => "}",
+            StructToken::LeftAngleBracket => "<",
+            StructToken::RightAngleBracket => ">",
+            StructToken::Colon => ";",
+            StructToken::Comma => ",",
+            StructToken::NewLine => unreachable!(),
+            StructToken::Whitespace => unreachable!(),
+        };
+        write!(f, "{str}")
+    }
+}
+
+impl TokenType for StructToken {
     fn get_token_type(&self) -> u32 {
         match self {
-            StructTokens::Keyword => KEYWORD,
-            StructTokens::Identifier => TYPE,
-            StructTokens::LeftSquareBracket => KEYWORD,
-            StructTokens::RightSquareBracket => KEYWORD,
-            StructTokens::LeftCurlyBracket => u32::MAX,
-            StructTokens::RightCurlyBracket => u32::MAX,
-            StructTokens::LeftAngleBracket => OPERATOR,
-            StructTokens::RightAngleBracket => OPERATOR,
-            StructTokens::NewLine => u32::MAX,
-            StructTokens::Colon => u32::MAX,
-            StructTokens::Comma => u32::MAX,
-            StructTokens::Whitespace => u32::MAX,
+            StructToken::Keyword => KEYWORD_TOKEN,
+            StructToken::Identifier => TYPE_TOKEN,
+            StructToken::LeftCurlyBracket => u32::MAX,
+            StructToken::RightCurlyBracket => u32::MAX,
+            StructToken::LeftAngleBracket => OPERATOR_TOKEN,
+            StructToken::RightAngleBracket => OPERATOR_TOKEN,
+            StructToken::NewLine => u32::MAX,
+            StructToken::Colon => u32::MAX,
+            StructToken::Comma => u32::MAX,
+            StructToken::Whitespace => u32::MAX,
         }
     }
 }
 
 pub(crate) fn struct_callback(
     lex: &mut Lexer<SchemaTokens>,
-) -> Result<Vec<Token<StructTokens>>, Error> {
+) -> Result<Vec<Token<StructToken>>, Error> {
 
     let mut tokens = Vec::new();
-    Token::push_with_advance(&mut tokens, StructTokens::Keyword, lex);
+    Token::push_with_advance(&mut tokens, StructToken::Keyword, lex);
 
     let mut bracket_depth = 0;
-    let mut inner = lex.clone().morph::<StructTokens>();
+    let mut inner = lex.clone().morph::<StructToken>();
     while let Some(token) = inner.next() {
         let kind = token?;
         match kind {
-            StructTokens::NewLine => inner.extras.new_line(),
-            StructTokens::Whitespace => inner.extras.current_column += inner.span().len() as u32,
+            StructToken::NewLine => inner.extras.new_line(),
+            StructToken::Whitespace => inner.extras.advance(inner.span().len() as u32),
             _ => {
-                if let StructTokens::LeftCurlyBracket = &kind {
+                if let StructToken::LeftCurlyBracket = &kind {
                     bracket_depth += 1;
                 }
-                else if let StructTokens::RightCurlyBracket = &kind {
+                else if let StructToken::RightCurlyBracket = &kind {
                     if bracket_depth == 0 {
                         return Err(Error::MissingOpeningBrace);
                     }

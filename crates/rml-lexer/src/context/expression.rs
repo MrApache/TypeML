@@ -1,15 +1,15 @@
-use logos::Logos;
-use lexer_utils::*;
 use crate::context::attribute::AttributeContext;
+use lexer_utils::*;
+use logos::Logos;
 
 #[derive(Logos, Debug, PartialEq, Eq, Clone)]
 #[logos(extras = Position)]
-pub enum ExpressionContext {
+pub enum ExpressionToken {
     #[token("{")]
-    Start,
+    LeftCurlyBracket,
 
     #[token("}")]
-    End,
+    RightCurlyBracket,
 
     #[token(":")]
     Colon,
@@ -24,70 +24,40 @@ pub enum ExpressionContext {
     Whitespace,
 }
 
-impl TokenType for ExpressionContext {
+impl TokenType for ExpressionToken {
     fn get_token_type(&self) -> u32 {
         match self {
-            ExpressionContext::Start => 4,
-            ExpressionContext::End => 4,
-            ExpressionContext::Identifier => 8,
-            ExpressionContext::Colon => u32::MAX,
-            ExpressionContext::NewLine => u32::MAX,
-            ExpressionContext::Whitespace => u32::MAX,
+            ExpressionToken::LeftCurlyBracket => 4,
+            ExpressionToken::RightCurlyBracket => 4,
+            ExpressionToken::Identifier => 8,
+            ExpressionToken::Colon => u32::MAX,
+            ExpressionToken::NewLine => u32::MAX,
+            ExpressionToken::Whitespace => u32::MAX,
         }
     }
 }
 
-pub(crate) fn expression_context_callback(lex: &mut logos::Lexer<AttributeContext>) -> Option<Vec<Token<ExpressionContext>>> {
+pub(crate) fn expression_callback(
+    lex: &mut logos::Lexer<AttributeContext>,
+) -> Option<Vec<Token<ExpressionToken>>> {
     let mut tokens = Vec::new();
-    tokens.push(Token {
-        kind: ExpressionContext::Start,
-        span: lex.span(),
-        delta_line: lex.extras.get_delta_line(),
-        delta_start: lex.extras.get_delta_start(),
-    });
+    Token::push_with_advance(&mut tokens, ExpressionToken::LeftCurlyBracket, lex);
 
-    //Skip '{'
-    lex.extras.current_column += 1;
-
-    let mut inner = lex.clone().morph::<ExpressionContext>();
+    let mut inner = lex.clone().morph::<ExpressionToken>();
     while let Some(token) = inner.next() {
-        match token {
-            Ok(kind) => {
-                match kind {
-                    ExpressionContext::End => {
-                        tokens.push(Token {
-                            kind,
-                            span: inner.span(),
-                            delta_line: inner.extras.get_delta_line(),
-                            delta_start: inner.extras.get_delta_start(),
-                        });
-                        inner.extras.current_column += inner.span().len() as u32;
-                        break;
-                    },
-                    ExpressionContext::NewLine => {
-                        inner.extras.new_line();
-                        continue;
-                    },
-                    ExpressionContext::Whitespace => {
-                        inner.extras.current_column += inner.span().len() as u32;
-                        continue;
-                    },
-                    _ => {},
-                }
-
-                tokens.push(Token {
-                    kind,
-                    span: inner.span(),
-                    delta_line: inner.extras.get_delta_line(),
-                    delta_start: inner.extras.get_delta_start(),
-                });
-                inner.extras.current_column += inner.span().len() as u32;
-            }
+        let kind = match token {
+            Ok(kind) => kind,
             Err(_) => return None,
+        };
+
+        match kind {
+            ExpressionToken::RightCurlyBracket => push_and_break!(&mut tokens, kind, &mut inner),
+            ExpressionToken::NewLine => inner.extras.new_line(),
+            ExpressionToken::Whitespace => inner.extras.advance(inner.span().len() as u32),
+            _ => Token::push_with_advance(&mut tokens, kind, &mut inner),
         }
     }
 
     *lex = inner.morph();
     Some(tokens)
 }
-

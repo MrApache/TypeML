@@ -32,7 +32,7 @@ pub(crate) fn text_context_callback(
 ) -> Option<Token<Text>> {
 
     //Skip first character
-    lex.extras.current_column += 1;
+    lex.extras.advance(1);
     let mut chars = 1;
     let mut bytes = 0;
 
@@ -55,7 +55,7 @@ pub(crate) fn text_context_callback(
             },
             _ => {
                 chars += 1;
-                inner.extras.current_column += 1;
+                inner.extras.advance(1);
                 bytes += ch.encode_utf8(&mut [0; 2]).len();
             },
         }
@@ -64,10 +64,5 @@ pub(crate) fn text_context_callback(
     inner.bump(bytes);
 
     *lex = inner.morph();
-    Some(Token {
-        kind: Text::Other,
-        span: start..start + chars,
-        delta_line,
-        delta_start,
-    })
+    Some(Token::new_custom(Text::Other, lex, start..start + chars, delta_line, delta_start))
 }

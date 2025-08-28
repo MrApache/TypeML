@@ -24,6 +24,14 @@ pub enum Error {
     MissingOpeningBrace,
     #[default]
     UnknownChar,
+
+    UnexpectedToken {
+        expected: Vec<&'static str>,
+        found: String,
+    },
+    MissingToken { 
+        expected: Vec<&'static str>,
+    },
 }
 
 impl Error {

@@ -250,7 +250,7 @@ impl Backend {
                 SchemaTokens::Attribute(tokens) => tokens
                     .iter()
                     .flat_map(|token| {
-                        if let rmlx_lexer::AttributeTokens::Content(tokens) = token.kind() {
+                        if let rmlx_lexer::AttributeToken::Content(tokens) = token.kind() {
                             Self::to_semantic_tokens(tokens)
                         } else {
                             Self::to_semantic_token(token)
@@ -260,11 +260,11 @@ impl Backend {
                 SchemaTokens::Enum(tokens) => tokens
                     .iter()
                     .flat_map(|token| {
-                        if let rmlx_lexer::EnumTokens::Attribute(tokens) = token.kind() {
+                        if let rmlx_lexer::EnumToken::Attribute(tokens) = token.kind() {
                             tokens
                                 .iter()
                                 .flat_map(|token| {
-                                    if let rmlx_lexer::AttributeTokens::Content(tokens) =
+                                    if let rmlx_lexer::AttributeToken::Content(tokens) =
                                         token.kind()
                                     {
                                         Self::to_semantic_tokens(tokens)
