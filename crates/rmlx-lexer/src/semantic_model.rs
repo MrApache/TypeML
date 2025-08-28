@@ -1,4 +1,4 @@
-use crate::semantic::{Enum, Expression, Group, ParserContext, Struct};
+use crate::semantic::{Element, Enum, Expression, Group, ParserContext, Struct};
 use crate::{semantic::parse_attributes, Error, RmlxTokenStream};
 use std::path::{Path, PathBuf};
 use tower_lsp::lsp_types::SemanticToken;
@@ -6,12 +6,14 @@ use url::Url;
 
 #[derive(Default)]
 pub struct SchemaModel {
+    includes: Vec<Url>,
+    enums: Vec<Enum>,
     groups: Vec<Group>,
     structs: Vec<Struct>,
-    enums: Vec<Enum>,
+    elements: Vec<Element>,
     expressions: Vec<Expression>,
+
     tokens: Vec<SemanticToken>,
-    includes: Vec<Url>,
 }
 
 impl SchemaModel {
@@ -25,7 +27,7 @@ impl SchemaModel {
             match token {
                 crate::SchemaStatement::Attribute(tokens) => {
                     match parse_attributes(tokens.iter(), content, &mut schema.tokens) {
-                        Ok(attrs) => attributes = attrs,
+                        Ok(attrs) => attributes.extend(attrs),
                         Err(err) => panic!("Error: {err}"),
                     }
                 }
@@ -36,6 +38,7 @@ impl SchemaModel {
                             .unwrap();
                     group.resolve_attributes(&mut attributes);
                     //TODO error
+                    attributes.clear();
                     schema.groups.push(group);
                 }
                 crate::SchemaStatement::Expression(tokens) => {
@@ -46,11 +49,13 @@ impl SchemaModel {
                     );
                 }
                 crate::SchemaStatement::Enum(tokens) => {
-                    schema.enums.push(
-                        ParserContext::new(&mut schema.tokens, tokens.iter().peekable(), content)
-                            .parse()
-                            .unwrap(),
-                    );
+                    let mut enumeration = ParserContext::new(&mut schema.tokens, tokens.iter().peekable(), content)
+                        .parse()
+                        .unwrap();
+                    enumeration.resolve_attributes(&mut attributes);
+                    //TODO error
+                    attributes.clear();
+                    schema.enums.push(enumeration);
                 }
                 crate::SchemaStatement::Struct(tokens) => {
                     let mut structure =
@@ -58,6 +63,8 @@ impl SchemaModel {
                             .parse()
                             .unwrap();
                     structure.resolve_attributes(&mut attributes);
+                    //TODO error
+                    attributes.clear();
                     schema.structs.push(structure);
                 }
                 crate::SchemaStatement::Use(tokens) => {
@@ -67,7 +74,16 @@ impl SchemaModel {
                     schema.includes.push(to_url(file, &using.path).unwrap());
                     //TODO check file
                 }
-                crate::SchemaStatement::Element(tokens) => todo!(),
+                crate::SchemaStatement::Element(tokens) => {
+                    let mut element =
+                        ParserContext::new(&mut schema.tokens, tokens.iter().peekable(), content)
+                            .parse()
+                            .unwrap();
+                    element.resolve_attributes(&mut attributes);
+                    //TODO error
+                    attributes.clear();
+                    schema.elements.push(element);
+                }
                 crate::SchemaStatement::NewLine => {}    //skip
                 crate::SchemaStatement::Whitespace => {} //skip
             }
@@ -115,50 +131,11 @@ fn normalize_path(path: &Path) -> PathBuf {
 #[cfg(test)]
 mod tests {
     use crate::semantic_model::SchemaModel;
-
-    const CONTENT: &str = r#"
-#[Min(1), Max(1)]
-group Root[Container, Component];
-
-group Container[Component, Template];
-
-group Template[Container];
-
-#[Extend, Min(0), Max(1)]
-group Component;
-
-expression Resource {
-    groups: [Component],
-    required: {
-        Target: String,
-        Path:   String,
-    }
-}
-
-expression Component {
-    groups: [Component],
-    required: {
-        Target: String,
-        Path:   String,
-    },
-}
-
-expression Item {
-    groups: [Component],
-    available_in: [Template],
-    required: {
-        Path: String,
-    },
-    additional: {
-        Converter: String,
-        Fallback:  String,
-    }
-}
-"#;
-
     #[test]
     fn test() {
-        let _model = SchemaModel::new(CONTENT);
+        let path = concat!(env!("CARGO_WORKSPACE_DIR"), "/examples/schema.rmlx");
+        let content = std::fs::read_to_string(path).expect("Failed to read file");
+        let _model = SchemaModel::new(path, &content);
         println!();
     }
 }

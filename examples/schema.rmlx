@@ -1,4 +1,4 @@
-use <url:base.rmlx>
+use <base.rmlx>
 
 #[Path(bevy::prelude::Display)]
 enum Display {
@@ -169,7 +169,7 @@ enum FlexWrap {
 #[Path(bevy::prelude::Node)]
 #[Group(base:Component)]
 element Node {
-    display: Display
+    display: Display,
     box_sizing: BoxSizing,
     position_type: PositionType,
     overflow: Overflow,

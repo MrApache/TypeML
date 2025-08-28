@@ -7,12 +7,34 @@ use crate::{
 pub struct Enum {
     pub name: String,
     pub variants: Vec<EnumVariant>,
+    pub path: Option<String>,
 }
 
 pub struct EnumVariant {
     pub name: String,
     pub ty:   Option<String>,
     pub pattern: Option<String>,
+}
+
+impl Enum {
+    pub fn new(name: String, variants: Vec<EnumVariant>) -> Self {
+        Self {
+            name,
+            variants,
+            path: None,
+        }
+    }
+
+    pub fn resolve_attributes(&mut self, attributes: &mut Vec<Attribute>) {
+        attributes.retain(|attr| {
+            match attr {
+                Attribute::Path(path) => self.path = Some(path.value.clone()),
+                _ => return true,
+            }
+
+            false
+        });
+    }
 }
 
 impl<'s> ParserContext<'s, EnumToken> {
@@ -102,9 +124,6 @@ impl<'s> ParserContext<'s, EnumToken> {
             }
         }
 
-        Ok(Enum {
-            name: enum_name,
-            variants,
-        })
+        Ok(Enum::new(enum_name, variants))
     }
 }

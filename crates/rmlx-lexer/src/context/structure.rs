@@ -1,6 +1,6 @@
 use std::fmt::Display;
 
-use crate::{Error, NamedStatement, SchemaStatement, TokenDefinition, TokenSimpleTypeProvider};
+use crate::{Error, NamedStatement, SchemaStatement, TokenBodyStatement, TokenDefinition, TokenSimpleTypeProvider};
 use lexer_utils::*;
 use logos::{Lexer, Logos};
 
@@ -46,11 +46,9 @@ impl TokenDefinition for StructToken {
     fn keyword_token() -> Self {
         Self::Keyword
     }
+}
 
-    fn colon() -> Self {
-        Self::Colon
-    }
-
+impl TokenBodyStatement for StructToken {
     fn left_curly_bracket() -> Self {
         Self::LeftCurlyBracket
     }

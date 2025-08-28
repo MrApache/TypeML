@@ -13,11 +13,11 @@ use crate::context::*;
 pub trait TokenDefinition: PartialEq + Eq + Sized + Display {
     fn keyword() -> &'static str;
     fn keyword_token() -> Self;
+}
 
-    fn colon() -> Self {unimplemented!()}
-
-    fn left_curly_bracket() -> Self { unimplemented!() }
-    fn right_curly_bracket() -> Self { unimplemented!() }
+pub trait TokenBodyStatement: PartialEq + Eq + Sized + Display {
+    fn left_curly_bracket() -> Self;
+    fn right_curly_bracket() -> Self;
 }
 
 pub trait TokenSimpleTypeProvider: NamedStatement {
@@ -44,7 +44,7 @@ pub enum SchemaStatement {
     Group(Vec<Token<GroupToken>>),
 
     #[token("element", element_callback)]
-    Element(Vec<Token<ElementTokens>>),
+    Element(Vec<Token<ElementToken>>),
 
     #[token("#", attribute_callback)]
     Attribute(Vec<Token<AttributeToken>>),

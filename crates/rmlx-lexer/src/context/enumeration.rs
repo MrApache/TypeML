@@ -2,7 +2,7 @@ use std::fmt::Display;
 
 use lexer_utils::*;
 use logos::{Lexer, Logos};
-use crate::{attribute_callback, AttributeToken, Error, NamedStatement, SchemaStatement, TokenDefinition};
+use crate::{attribute_callback, AttributeToken, Error, NamedStatement, SchemaStatement, TokenBodyStatement, TokenDefinition};
 
 #[derive(Logos, Debug, PartialEq, Eq, Clone)]
 #[logos(extras = Position)]
@@ -65,12 +65,14 @@ impl TokenDefinition for EnumToken {
     fn keyword_token() -> Self {
         Self::Keyword
     }
+}
 
-    fn left_curly_bracket() -> Self { 
+impl TokenBodyStatement for EnumToken {
+    fn left_curly_bracket() -> Self {
         Self::LeftCurlyBracket
     }
 
-    fn right_curly_bracket() -> Self { 
+    fn right_curly_bracket() -> Self {
         Self::RightCurlyBracket
     }
 }

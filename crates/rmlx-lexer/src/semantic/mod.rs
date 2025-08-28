@@ -4,15 +4,17 @@ mod expression;
 mod group;
 mod structure;
 mod use_statement;
+mod element;
 
 pub use attribute::*;
 pub use enumeration::*;
 pub use expression::*;
+pub use element::*;
 pub use group::*;
 pub use structure::*;
 pub use use_statement::*;
 
-use crate::{NamedStatement, TokenArrayProvider, TokenDefinition, TokenSimpleTypeProvider};
+use crate::{NamedStatement, TokenArrayProvider, TokenBodyStatement, TokenDefinition, TokenSimpleTypeProvider};
 use lexer_utils::*;
 use std::{iter::Peekable, slice::Iter};
 use tower_lsp::lsp_types::SemanticToken;
@@ -38,27 +40,9 @@ impl<'s, T: TokenDefinition> ParserContext<'s, T> {
             .next()
             .ok_or(format!("Unexpected EOF, expected `{}`", T::keyword()))?;
         if t.kind() != &T::keyword_token() {
-            return Err(format!("Expected `{}` keyword", T::keyword()));
+            return Err(format!("Expected `{}` keyword, found '{}'", T::keyword(), t.kind()));
         }
         self.tokens.push(t.to_semantic_token(KEYWORD_TOKEN));
-        Ok(())
-    }
-
-    pub fn consume_left_curve_brace(&mut self) -> Result<(), String> {
-        let brace = self.iter.next().ok_or("Unexpected EOF, expected `{`")?;
-        if brace.kind() != &T::left_curly_bracket() {
-            return Err(format!("Expected `{{`, found '{}'", brace.kind()));
-        }
-        self.tokens.push(brace.to_semantic_token(u32::MAX));
-        Ok(())
-    }
-
-    pub fn consume_colon(&mut self) -> Result<(), String> {
-        let colon = self.iter.next().ok_or("Unexpected EOF, expected `:`")?;
-        if colon.kind() != &T::colon() {
-            return Err(format!("Expected ':', found '{}'", colon.kind()));
-        }
-        self.tokens.push(colon.to_semantic_token(u32::MAX));
         Ok(())
     }
 
@@ -73,6 +57,17 @@ impl<'s, T: TokenDefinition> ParserContext<'s, T> {
             .ok_or("Unexpected end of token stream in statement body")?;
         self.tokens.push(next.to_semantic_token(PARAMETER_TOKEN));
         Ok(next.slice(self.src).to_string())
+    }
+}
+
+impl<'s, T: TokenDefinition + TokenBodyStatement> ParserContext<'s, T> {
+    pub fn consume_left_curve_brace(&mut self) -> Result<(), String> {
+        let brace = self.iter.next().ok_or("Unexpected EOF, expected `{`")?;
+        if brace.kind() != &T::left_curly_bracket() {
+            return Err(format!("Expected `{{`, found '{}'", brace.kind()));
+        }
+        self.tokens.push(brace.to_semantic_token(u32::MAX));
+        Ok(())
     }
 }
 
@@ -91,6 +86,15 @@ impl<'s, T: TokenDefinition + NamedStatement> ParserContext<'s, T> {
 }
 
 impl<'s, T: TokenDefinition + TokenSimpleTypeProvider> ParserContext<'s, T> {
+    pub fn consume_colon(&mut self) -> Result<(), String> {
+        let colon = self.iter.next().ok_or("Unexpected EOF, expected `:`")?;
+        if colon.kind() != &T::colon() {
+            return Err(format!("Expected ':', found '{}'", colon.kind()));
+        }
+        self.tokens.push(colon.to_semantic_token(u32::MAX));
+        Ok(())
+    }
+
     pub fn consume_typed_field(&mut self) -> Result<Field, String> {
         let field_name = self.consume_parameter()?;
         self.consume_colon()?;
@@ -172,7 +176,7 @@ impl<'s, T: TokenDefinition + TokenArrayProvider> ParserContext<'s, T> {
     }
 }
 
-impl<'s, T: TokenDefinition + TokenSimpleTypeProvider + TokenArrayProvider> ParserContext<'s, T> {
+impl<'s, T: TokenDefinition + TokenSimpleTypeProvider + TokenArrayProvider + TokenBodyStatement> ParserContext<'s, T> {
     pub fn consume_advanced_typed_field(&mut self) -> Result<Field, String> {
         let field_name = self.consume_parameter()?;
         self.consume_colon()?;
