@@ -30,25 +30,6 @@ pub enum DirectiveToken {
     NewLine,
 }
 
-impl TokenType for DirectiveToken {
-    fn get_token_type(&self) -> u32 {
-        match self {
-            DirectiveToken::Hash => 0,
-            DirectiveToken::As => 0,
-
-            DirectiveToken::Whitespace => 0,
-            DirectiveToken::NewLine => 0,
-
-            DirectiveToken::Expression => 0,
-            DirectiveToken::Import => 0,
-
-            DirectiveToken::Alias => 1,
-
-            DirectiveToken::Path => 2,
-        }
-    }
-}
-
 pub(crate) fn directive_callback(
     lex: &mut Lexer<MarkupTokens>,
 ) -> Option<Vec<Token<DirectiveToken>>> {

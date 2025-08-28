@@ -4,12 +4,14 @@ use crate::{
     EnumToken,
 };
 
+#[derive(Debug)]
 pub struct Enum {
     pub name: String,
     pub variants: Vec<EnumVariant>,
     pub path: Option<String>,
 }
 
+#[derive(Debug)]
 pub struct EnumVariant {
     pub name: String,
     pub ty:   Option<String>,

@@ -14,12 +14,6 @@ pub enum CommentContext {
     Text,
 }
 
-impl TokenType for CommentContext {
-    fn get_token_type(&self) -> u32 {
-        6
-    }
-}
-
 pub(crate) fn comment_context_callback(
     lex: &mut Lexer<MarkupTokens>,
 ) -> Option<Vec<Token<CommentContext>>> {

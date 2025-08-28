@@ -4,7 +4,7 @@ use std::path::{Path, PathBuf};
 use tower_lsp::lsp_types::SemanticToken;
 use url::Url;
 
-#[derive(Default)]
+#[derive(Default, Debug)]
 pub struct SchemaModel {
     includes: Vec<Url>,
     enums: Vec<Enum>,
@@ -13,7 +13,7 @@ pub struct SchemaModel {
     elements: Vec<Element>,
     expressions: Vec<Expression>,
 
-    tokens: Vec<SemanticToken>,
+    pub tokens: Vec<SemanticToken>,
 }
 
 impl SchemaModel {

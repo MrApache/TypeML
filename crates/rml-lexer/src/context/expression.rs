@@ -24,19 +24,6 @@ pub enum ExpressionToken {
     Whitespace,
 }
 
-impl TokenType for ExpressionToken {
-    fn get_token_type(&self) -> u32 {
-        match self {
-            ExpressionToken::LeftCurlyBracket => 4,
-            ExpressionToken::RightCurlyBracket => 4,
-            ExpressionToken::Identifier => 8,
-            ExpressionToken::Colon => u32::MAX,
-            ExpressionToken::NewLine => u32::MAX,
-            ExpressionToken::Whitespace => u32::MAX,
-        }
-    }
-}
-
 pub(crate) fn expression_callback(
     lex: &mut logos::Lexer<AttributeContext>,
 ) -> Option<Vec<Token<ExpressionToken>>> {

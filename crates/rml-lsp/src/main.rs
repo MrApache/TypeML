@@ -1,10 +1,8 @@
-use lexer_utils::{Token, TokenType};
 mod parser;
 mod schema;
 
-use rml_lexer::context::{AttributeContext, TagContext};
 use rml_lexer::{MarkupTokens, RmlTokenStream};
-use rmlx_lexer::{RmlxTokenStream, SchemaStatement};
+use rmlx_lexer::{RmlxTokenStream, SchemaModel};
 use std::collections::HashMap;
 use std::path::Path;
 use std::sync::{Arc, RwLock};
@@ -16,22 +14,22 @@ use tower_lsp::{Client, LanguageServer, LspService, Server};
 struct Backend {
     client: Client,
 
-    schemas: RwLock<HashMap<Url, SchemaDecalration>>, //RMLX files
+    schemas: RwLock<HashMap<Url, SchemaModel>>, //RMLX files
     workspaces: RwLock<HashMap<Url, Workspace>>,      //RML  files
 }
 
 #[derive(Debug)]
 struct Workspace {
-    references: Vec<Arc<SchemaDecalration>>,
+    references: Vec<Arc<SchemaModel>>,
     content: String,
     tokens: Vec<MarkupTokens>,
 }
 
-#[derive(Debug)]
-struct SchemaDecalration {
-    content: String,
-    tokens: Vec<SchemaStatement>,
-}
+//#[derive(Debug)]
+//struct SchemaDecalration {
+//    content: String,
+//    tokens: Vec<SchemaStatement>,
+//}
 
 #[tower_lsp::async_trait]
 impl LanguageServer for Backend {
@@ -165,12 +163,10 @@ impl LanguageServer for Backend {
                     panic!("Error: {:#?}", tokens.err());
                 }
                 let mut schemas = self.schemas.write().unwrap();
+                let model = SchemaModel::new(uri.path(), &params.text_document.text).unwrap();
                 schemas.insert(
                     uri,
-                    SchemaDecalration {
-                        content: params.text_document.text,
-                        tokens: tokens.unwrap(),
-                    },
+                    model
                 );
             }
             _ => unreachable!("Unsupported file type '{extension}'"),
@@ -199,11 +195,10 @@ impl LanguageServer for Backend {
                 file.content = text;
             }
             "rmlx" => {
-                let mut write = self.schemas.write().unwrap();
-                let schema = write.get_mut(&uri).unwrap();
                 let text = params.content_changes.last().unwrap().text.clone(); //TODO fix
-                schema.tokens = RmlxTokenStream::new(&text).to_vec().unwrap();
-                schema.content = text;
+                let schema = SchemaModel::new(uri.path(), &text).unwrap();
+                let mut write = self.schemas.write().unwrap();
+                write.insert(uri, schema).unwrap();
             }
             _ => unreachable!(),
         }
@@ -239,51 +234,11 @@ impl Backend {
     fn schema_semantic_tokens(&self, uri: Url) -> Vec<SemanticToken> {
         let read = self.schemas.read().unwrap();
         let file = read.get(&uri).unwrap();
-        file.tokens
-            .iter()
-            .flat_map(|token| match token {
-                SchemaStatement::Group(tokens) => Self::to_semantic_tokens(tokens),
-                SchemaStatement::Struct(tokens) => Self::to_semantic_tokens(tokens),
-                SchemaStatement::Element(tokens) => Self::to_semantic_tokens(tokens),
-                SchemaStatement::Expression(tokens) => Self::to_semantic_tokens(tokens),
-                SchemaStatement::Use(tokens) => Self::to_semantic_tokens(tokens),
-                SchemaStatement::Attribute(tokens) => tokens
-                    .iter()
-                    .flat_map(|token| {
-                        if let rmlx_lexer::AttributeToken::Content(tokens) = token.kind() {
-                            Self::to_semantic_tokens(tokens)
-                        } else {
-                            Self::to_semantic_token(token)
-                        }
-                    })
-                    .collect(),
-                SchemaStatement::Enum(tokens) => tokens
-                    .iter()
-                    .flat_map(|token| {
-                        if let rmlx_lexer::EnumToken::Attribute(tokens) = token.kind() {
-                            tokens
-                                .iter()
-                                .flat_map(|token| {
-                                    if let rmlx_lexer::AttributeToken::Content(tokens) =
-                                        token.kind()
-                                    {
-                                        Self::to_semantic_tokens(tokens)
-                                    } else {
-                                        Self::to_semantic_token(token)
-                                    }
-                                })
-                                .collect()
-                        } else {
-                            Self::to_semantic_token(token)
-                        }
-                    })
-                    .collect(),
-                _ => vec![],
-            })
-            .collect()
+        file.tokens.clone()
     }
 
-    fn markup_semantic_tokens(&self, uri: Url) -> Vec<SemanticToken> {
+    fn markup_semantic_tokens(&self, _uri: Url) -> Vec<SemanticToken> {
+        /*
         let read = self.workspaces.read().unwrap();
         let file = read.get(&uri).unwrap();
         file.tokens
@@ -315,29 +270,8 @@ impl Backend {
                 MarkupTokens::Comment(inner_tokens) => Self::to_semantic_tokens(inner_tokens),
             })
             .collect()
-    }
-
-    fn to_semantic_tokens<T: TokenType>(tokens: &[Token<T>]) -> Vec<SemanticToken> {
-        tokens
-            .iter()
-            .map(|t| SemanticToken {
-                delta_line: t.delta_line(),
-                delta_start: t.delta_start(),
-                length: t.length(),
-                token_type: t.kind().get_token_type(),
-                token_modifiers_bitset: 0,
-            })
-            .collect()
-    }
-
-    fn to_semantic_token<T: TokenType>(token: &Token<T>) -> Vec<SemanticToken> {
-        vec![SemanticToken {
-            delta_line: token.delta_line(),
-            delta_start: token.delta_start(),
-            length: token.length(),
-            token_type: token.kind().get_token_type(),
-            token_modifiers_bitset: 0,
-        }]
+         */
+        vec![]
     }
 }
 

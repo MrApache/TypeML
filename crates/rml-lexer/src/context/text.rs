@@ -21,12 +21,6 @@ pub enum Text {
     End3,
 }
 
-impl TokenType for Text {
-    fn get_token_type(&self) -> u32 {
-        u32::MAX
-    }
-}
-
 pub(crate) fn text_context_callback(
     lex: &mut Lexer<MarkupTokens>,
 ) -> Option<Token<Text>> {

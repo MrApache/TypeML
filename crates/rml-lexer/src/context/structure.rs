@@ -33,24 +33,6 @@ pub enum StructToken {
     Whitespace,
 }
 
-impl TokenType for StructToken {
-    fn get_token_type(&self) -> u32 {
-        match self {
-            StructToken::DoubleLeftCurlyBracket => 7,
-            StructToken::DoubleRightCurlyBracket => 7,
-
-            StructToken::Identifier => 1,
-            StructToken::Float => 5,
-            StructToken::Int => 5,
-
-            StructToken::Assing => u32::MAX,
-            StructToken::Comma => u32::MAX,
-            StructToken::NewLine => u32::MAX,
-            StructToken::Whitespace => u32::MAX,
-        }
-    }
-}
-
 pub(crate) fn struct_callback(
     lex: &mut Lexer<AttributeContext>,
 ) -> Option<Vec<Token<StructToken>>> {

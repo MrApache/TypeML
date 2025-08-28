@@ -31,22 +31,6 @@ pub enum TagContext {
     Attribute(Vec<Token<AttributeContext>>),
 }
 
-impl TokenType for TagContext {
-    fn get_token_type(&self) -> u32 {
-        match self {
-            TagContext::TagStart => 4,
-            TagContext::Slash => 4,
-            TagContext::TagEnd => 4,
-
-            TagContext::NewLine => u32::MAX,
-            TagContext::Whitespace => u32::MAX,
-
-            TagContext::Identifier => unreachable!(),
-            TagContext::Attribute(_) => 4,
-        }
-    }
-}
-
 pub(crate) fn tag_context_callback(
     lex: &mut Lexer<MarkupTokens>,
 ) -> Option<Vec<Token<TagContext>>> {

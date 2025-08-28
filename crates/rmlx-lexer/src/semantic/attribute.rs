@@ -39,27 +39,31 @@ pub fn parse_attributes<'s>(
 ) -> Result<Vec<Attribute>, String> {
     let mut attrs = Vec::new();
 
-    // читаем `#`
-    let t = iter.next().ok_or("Expected #")?;
-    if t.kind() != &AttributeToken::Hash {
-        return Err(format!("Expected #, got {:?}", t.kind()));
+    {
+        // читаем `#`
+        let t = iter.next().ok_or("Expected #")?;
+        tokens.push(t.to_semantic_token(MACRO_TOKEN));
+        if t.kind() != &AttributeToken::Hash {
+            return Err(format!("Expected #, got {:?}", t.kind()));
+        }
     }
-    tokens.push(t.to_semantic_token(MACRO_TOKEN));
 
-    // читаем `[`
-    let t = iter.next().ok_or("Expected [")?;
-    if t.kind() != &AttributeToken::LeftSquareBracket {
-        return Err(format!("Expected [, got {:?}", t.kind()));
+    {
+        // читаем `[`
+        let t = iter.next().ok_or("Expected [")?;
+        tokens.push(t.to_semantic_token(MACRO_TOKEN));
+        if t.kind() != &AttributeToken::LeftSquareBracket {
+            return Err(format!("Expected [, got {:?}", t.kind()));
+        }
     }
-    tokens.push(t.to_semantic_token(MACRO_TOKEN));
 
     loop {
         // читаем идентификатор
         let t = iter.next().ok_or("Expected identifier")?;
+        tokens.push(t.to_semantic_token(MACRO_TOKEN));
         if t.kind() != &AttributeToken::Identifier {
             return Err(format!("Expected identifier, got {:?}", t.kind()));
         }
-        tokens.push(t.to_semantic_token(MACRO_TOKEN));
 
         let name = src
             .get(t.span().clone())
@@ -89,6 +93,7 @@ pub fn parse_attributes<'s>(
                 attrs.push(attr);
             }
             AttributeToken::RightSquareBracket => {
+                tokens.push(next.to_semantic_token(u32::MAX));
                 match name.as_str() {
                     "Extend" => attrs.push(Attribute::Extend),
                     _ => return Err(format!("Attribute `{name}` requires value")),
@@ -96,14 +101,15 @@ pub fn parse_attributes<'s>(
                 break;
             }
             AttributeToken::Comma => {
+                tokens.push(next.to_semantic_token(u32::MAX));
                 match name.as_str() {
                     "Extend" => attrs.push(Attribute::Extend),
                     _ => return Err(format!("Attribute `{name}` requires value")),
                 }
-                tokens.push(next.to_semantic_token(u32::MAX));
                 continue;
             }
             _ => {
+                tokens.push(next.to_semantic_token(u32::MAX));
                 return Err(format!(
                     "Unexpected token after identifier: {:?}",
                     next.kind()
@@ -143,6 +149,7 @@ pub fn parse_content<'s>(
     if t.kind() != &ContentToken::LeftParenthesis {
         return Err(format!("Expected '(', got {:?}", t.kind()));
     }
+    tokens.push(t.to_semantic_token(u32::MAX));
 
     let t = iter.next().ok_or("Expected String or Value")?;
     let result_text = t.slice(src);
@@ -161,6 +168,7 @@ pub fn parse_content<'s>(
     if t.kind() != &ContentToken::RightParenthesis {
         return Err(format!("Expected ')', got {:?}", t.kind()));
     }
+    tokens.push(t.to_semantic_token(u32::MAX));
 
     Ok(result_text.to_string())
 }

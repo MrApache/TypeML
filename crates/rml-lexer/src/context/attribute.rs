@@ -38,22 +38,6 @@ pub enum AttributeContext {
     Struct(Vec<Token<StructToken>>),
 }
 
-impl TokenType for AttributeContext {
-    fn get_token_type(&self) -> u32 {
-        match self {
-            AttributeContext::Quote => 2,
-            AttributeContext::Equal => 4,
-            AttributeContext::Value => 5,
-            AttributeContext::Float => 5,
-            AttributeContext::Int => 5,
-            AttributeContext::NewLine => u32::MAX,
-            AttributeContext::Whitespace => u32::MAX,
-            AttributeContext::Expression(_) => unreachable!(),
-            AttributeContext::Struct(_) => unreachable!(),
-        }
-    }
-}
-
 pub(crate) fn attribute_context_callback(
     lex: &mut Lexer<TagContext>,
 ) -> Option<Vec<Token<AttributeContext>>> {

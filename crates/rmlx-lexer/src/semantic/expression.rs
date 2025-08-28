@@ -1,5 +1,6 @@
 use crate::{semantic::{Field, ParserContext, Type}, ExpressionToken};
 
+#[derive(Debug)]
 pub struct Expression {
     pub name: String,
     pub groups: Vec<String>,

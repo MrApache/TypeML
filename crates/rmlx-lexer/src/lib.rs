@@ -2,13 +2,13 @@ mod context;
 mod semantic_model;
 mod semantic;
 
-use std::fmt::Display;
-
 pub use context::*;
+pub use semantic_model::*;
+pub use semantic::*;
 
+use std::fmt::Display;
 use logos::{Lexer, Logos};
 use lexer_utils::*;
-use crate::context::*;
 
 pub trait TokenDefinition: PartialEq + Eq + Sized + Display {
     fn keyword() -> &'static str;
