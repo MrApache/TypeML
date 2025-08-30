@@ -1,8 +1,8 @@
-use crate::semantic::{Element, Enum, Expression, Group, ParserContext, Struct};
-use crate::{semantic::parse_attributes, Error, RmlxTokenStream};
-use std::path::{Path, PathBuf};
-use tower_lsp::lsp_types::SemanticToken;
 use url::Url;
+use std::path::{Path, PathBuf};
+use tower_lsp::lsp_types::{Diagnostic, SemanticToken};
+use crate::semantic::{Element, Enum, Expression, Group, ParserContext, Struct};
+use crate::{Error, RmlxTokenStream};
 
 #[derive(Default, Debug)]
 pub struct SchemaModel {
@@ -14,6 +14,7 @@ pub struct SchemaModel {
     expressions: Vec<Expression>,
 
     pub tokens: Vec<SemanticToken>,
+    pub diagnostics: Vec<Diagnostic>,
 }
 
 impl SchemaModel {
@@ -26,63 +27,100 @@ impl SchemaModel {
             let token = token?;
             match token {
                 crate::SchemaStatement::Attribute(tokens) => {
-                    match parse_attributes(tokens.iter(), content, &mut schema.tokens) {
-                        Ok(attrs) => attributes.extend(attrs),
-                        Err(err) => panic!("Error: {err}"),
+                    let attrs = ParserContext::new(
+                        tokens.iter().peekable(),
+                        &mut schema.diagnostics,
+                        &mut schema.tokens,
+                        content,
+                    )
+                    .parse();
+
+                    if let Some(attrs) = attrs {
+                        attributes = attrs;
                     }
                 }
                 crate::SchemaStatement::Group(tokens) => {
-                    let mut group =
-                        ParserContext::new(&mut schema.tokens, tokens.iter().peekable(), content)
-                            .parse()
-                            .unwrap();
-                    group.resolve_attributes(&mut attributes);
-                    //TODO error
-                    attributes.clear();
-                    schema.groups.push(group);
+                    let group = ParserContext::new(
+                        tokens.iter().peekable(),
+                        &mut schema.diagnostics,
+                        &mut schema.tokens,
+                        content,
+                    )
+                    .parse();
+
+                    if let Some(mut group) = group {
+                        group.set_attributes(std::mem::take(&mut attributes));
+                        schema.groups.push(group);
+                    }
                 }
                 crate::SchemaStatement::Expression(tokens) => {
-                    schema.expressions.push(
-                        ParserContext::new(&mut schema.tokens, tokens.iter().peekable(), content)
-                            .parse()
-                            .unwrap(),
-                    );
+                    let expression = ParserContext::new(
+                        tokens.iter().peekable(),
+                        &mut schema.diagnostics,
+                        &mut schema.tokens,
+                        content,
+                    )
+                    .parse();
+
+                    if let Some(expression) = expression {
+                        schema.expressions.push(expression);
+                    }
                 }
                 crate::SchemaStatement::Enum(tokens) => {
-                    let mut enumeration = ParserContext::new(&mut schema.tokens, tokens.iter().peekable(), content)
-                        .parse()
-                        .unwrap();
-                    enumeration.resolve_attributes(&mut attributes);
-                    //TODO error
-                    attributes.clear();
-                    schema.enums.push(enumeration);
+                    let enumeration = ParserContext::new(
+                        tokens.iter().peekable(),
+                        &mut schema.diagnostics,
+                        &mut schema.tokens,
+                        content,
+                    )
+                    .parse();
+
+                    if let Some(mut enumeration) = enumeration {
+                        enumeration.set_attributes(std::mem::take(&mut attributes));
+                        schema.enums.push(enumeration);
+                    }
                 }
                 crate::SchemaStatement::Struct(tokens) => {
-                    let mut structure =
-                        ParserContext::new(&mut schema.tokens, tokens.iter().peekable(), content)
-                            .parse()
-                            .unwrap();
-                    structure.resolve_attributes(&mut attributes);
-                    //TODO error
-                    attributes.clear();
-                    schema.structs.push(structure);
+                    let structure = ParserContext::new(
+                        tokens.iter().peekable(),
+                        &mut schema.diagnostics,
+                        &mut schema.tokens,
+                        content,
+                    )
+                    .parse();
+
+                    if let Some(mut structure) = structure {
+                        structure.set_attributes(std::mem::take(&mut attributes));
+                        schema.structs.push(structure);
+                    }
                 }
                 crate::SchemaStatement::Use(tokens) => {
-                    let using = ParserContext::new(&mut schema.tokens, tokens.iter().peekable(), content)
-                        .parse().unwrap();
+                    let using = ParserContext::new(
+                        tokens.iter().peekable(),
+                        &mut schema.diagnostics,
+                        &mut schema.tokens,
+                        content,
+                    )
+                    .parse();
 
-                    schema.includes.push(to_url(file, &using.path).unwrap());
-                    //TODO check file
+                    if let Some(using) = using {
+                        //TODO check file
+                        schema.includes.push(to_url(file, &using.path).unwrap());
+                    }
                 }
                 crate::SchemaStatement::Element(tokens) => {
-                    let mut element =
-                        ParserContext::new(&mut schema.tokens, tokens.iter().peekable(), content)
-                            .parse()
-                            .unwrap();
-                    element.resolve_attributes(&mut attributes);
-                    //TODO error
-                    attributes.clear();
-                    schema.elements.push(element);
+                    let element = ParserContext::new(
+                        tokens.iter().peekable(),
+                        &mut schema.diagnostics,
+                        &mut schema.tokens,
+                        content,
+                    )
+                    .parse();
+
+                    if let Some(mut element) = element {
+                        element.set_attributes(std::mem::take(&mut attributes));
+                        schema.elements.push(element);
+                    }
                 }
                 crate::SchemaStatement::NewLine => {}    //skip
                 crate::SchemaStatement::Whitespace => {} //skip
@@ -133,7 +171,7 @@ mod tests {
     use crate::semantic_model::SchemaModel;
     #[test]
     fn test() {
-        let path = concat!(env!("CARGO_WORKSPACE_DIR"), "/examples/schema.rmlx");
+        let path = concat!(env!("CARGO_WORKSPACE_DIR"), "examples/base.rmlx");
         let content = std::fs::read_to_string(path).expect("Failed to read file");
         let _model = SchemaModel::new(path, &content);
         println!();

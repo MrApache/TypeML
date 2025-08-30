@@ -1,11 +1,11 @@
-use crate::StructToken;
+use crate::{next_or_none, peek_or_none, StructToken};
 use crate::semantic::{Attribute, ParserContext};
 
-#[derive(Debug, Clone)]
+#[derive(Debug)]
 pub struct Struct {
     pub name: String,
     pub fields: Vec<Field>,
-    pub path: Option<String>,
+    pub attributes: Vec<Attribute>,
 }
 
 impl Struct {
@@ -13,19 +13,12 @@ impl Struct {
         Self {
             name,
             fields,
-            path: None,
+            attributes: vec![],
         }
     }
 
-    pub fn resolve_attributes(&mut self, attributes: &mut Vec<Attribute>) {
-        attributes.retain(|attr| {
-            match attr {
-                Attribute::Path(path_attribute) => self.path = Some(path_attribute.value.clone()),
-                _ => return true,
-            }
-
-            false
-        });
+    pub(crate) fn set_attributes(&mut self, attributes: Vec<Attribute>) {
+        self.attributes = attributes;
     }
 }
 
@@ -44,17 +37,17 @@ pub enum Type {
 }
 
 impl<'s> ParserContext<'s, StructToken> {
-    pub fn parse(&mut self) -> Result<Struct, String> {
-        self.consume_keyword()?;
+    pub fn parse(&mut self) -> Option<Struct> {
+        self.consume_keyword();
         let name = self.consume_type_name()?;
         self.consume_left_curve_brace()?;
 
         let mut fields = Vec::new();
         loop {
-            let next = self.iter.peek().ok_or("Unexpected EOF in struct body")?;
+            let next = peek_or_none!(self, "Unexpected end of token stream in struct body")?;
             match next.kind() {
                 StructToken::RightCurlyBracket => {
-                    let next = self.iter.next().unwrap();
+                    let next = next_or_none!(self).unwrap();
                     self.tokens.push(next.to_semantic_token(u32::MAX));
                     break;
                 }
@@ -63,19 +56,25 @@ impl<'s> ParserContext<'s, StructToken> {
                     fields.push(self.consume_typed_field()?);
 
                     // после поля может быть , или :
-                    let sep = self.iter.next().ok_or("Unexpected EOF after field")?;
+                    let sep = next_or_none!(self, "Unexpected end of token stream after field")?;
                     self.tokens.push(sep.to_semantic_token(u32::MAX));
                     match sep.kind() {
                         StructToken::Comma => continue,
                         StructToken::RightCurlyBracket => break,
-                        _ => return Err("Expected `,` or `}` after field".into()),
+                        _ => {
+                            self.create_error_message("Expected ',' or '}' after field");
+                            return None;
+                        }
                     }
                 }
                 StructToken::NewLine | StructToken::Whitespace => unreachable!(),
-                _ => return Err("Unexpected token in struct body".into()),
+                _ => {
+                    self.create_error_message("Unexpected token in struct body");
+                    return None;
+                }
             }
         }
 
-        Ok(Struct::new(name, fields))
+        Some(Struct::new(name, fields))
     }
 }

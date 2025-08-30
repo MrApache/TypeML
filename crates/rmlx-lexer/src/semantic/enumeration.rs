@@ -1,21 +1,20 @@
-use lexer_utils::PARAMETER_TOKEN;
 use crate::{
-    semantic::{parse_attributes, Attribute, ParserContext},
-    EnumToken,
+    next_or_none, peek_or_none, semantic::{Attribute, ParserContext}, EnumToken
 };
+use lexer_utils::PARAMETER_TOKEN;
 
 #[derive(Debug)]
 pub struct Enum {
     pub name: String,
     pub variants: Vec<EnumVariant>,
-    pub path: Option<String>,
+    pub attributes: Vec<Attribute>,
 }
 
 #[derive(Debug)]
 pub struct EnumVariant {
     pub name: String,
-    pub ty:   Option<String>,
-    pub pattern: Option<String>,
+    pub ty: Option<String>,
+    pub attributes: Vec<Attribute>,
 }
 
 impl Enum {
@@ -23,25 +22,18 @@ impl Enum {
         Self {
             name,
             variants,
-            path: None,
+            attributes: vec![],
         }
     }
 
-    pub fn resolve_attributes(&mut self, attributes: &mut Vec<Attribute>) {
-        attributes.retain(|attr| {
-            match attr {
-                Attribute::Path(path) => self.path = Some(path.value.clone()),
-                _ => return true,
-            }
-
-            false
-        });
+    pub(crate) fn set_attributes(&mut self, attributes: Vec<Attribute>) {
+        self.attributes = attributes;
     }
 }
 
 impl<'s> ParserContext<'s, EnumToken> {
-    pub fn parse(&mut self) -> Result<Enum, String> {
-        self.consume_keyword()?;
+    pub fn parse(&mut self) -> Option<Enum> {
+        self.consume_keyword();
         let enum_name = self.consume_type_name()?;
         self.consume_left_curve_brace()?;
 
@@ -50,22 +42,24 @@ impl<'s> ParserContext<'s, EnumToken> {
 
         // читаем варианты
         loop {
-            let token = self
-                .iter
-                .next()
-                .ok_or_else(|| "Unexpected end of tokens while parsing enum".to_string())?;
-
+            let token = next_or_none!(self, "Unexpected end of tokens while parsing enum")?;
             match token.kind() {
                 // конец enum
                 EnumToken::RightCurlyBracket => {
-                    self.iter.next(); // съесть '}'
                     self.tokens.push(token.to_semantic_token(u32::MAX));
                     break;
                 }
 
                 // атрибуты перед вариантом (0 или более)
                 EnumToken::Attribute(tokens) => {
-                    attributes = parse_attributes(tokens.iter(), self.src, self.tokens)?;
+                    attributes = ParserContext::new(
+                        tokens.iter().peekable(),
+                        self.diagnostics,
+                        self.tokens,
+                        self.src,
+                    )
+                    .parse()
+                    .unwrap_or_default();
                 }
 
                 // имя варианта
@@ -74,18 +68,22 @@ impl<'s> ParserContext<'s, EnumToken> {
                     self.tokens.push(token.to_semantic_token(PARAMETER_TOKEN));
 
                     // проверяем, есть ли '(' для аргумента
-                    let ty = if let Some(t) = self.iter.clone().next() {
+                    let ty = if let Some(t) = self.iter.peek() {
                         if t.kind() == &EnumToken::LeftParenthesis {
-                            self.iter.next(); // съесть '('
+                            let t = next_or_none!(self).unwrap(); // съесть '('
                             self.tokens.push(t.to_semantic_token(u32::MAX));
 
                             // читаем тип значения
                             let ty = self.consume_type_name()?;
 
                             // читаем ')'
-                            let t = self.iter.next().ok_or("Expected ')' after type")?;
+                            let t = next_or_none!(self, "Expected ')' after type")?;
                             if t.kind() != &EnumToken::RightParenthesis {
-                                return Err(format!("Expected ')', got {:?}", t.kind()));
+                                self.create_error_message(format!(
+                                    "Expected ')', got {:?}",
+                                    t.kind()
+                                ));
+                                return None;
                             }
                             self.tokens.push(t.to_semantic_token(u32::MAX));
 
@@ -97,35 +95,30 @@ impl<'s> ParserContext<'s, EnumToken> {
                         None
                     };
 
-                    let pattern = match attributes.as_slice() {
-                        [Attribute::Pattern(value)] => Some(value.value.clone()),
-                        [] => None,
-                        _ => return Err("Unknown attribute".into()),
-                    };
-
-
-                    variants.push(EnumVariant {
-                        name,
-                        ty,
-                        pattern,
-                    });
+                    variants.push(EnumVariant { name, ty, attributes: std::mem::take(&mut attributes) });
 
                     // после варианта может быть ',' или '}'
-                    if let Some(t) = self.iter.clone().next() {
+                    if let Some(t) = peek_or_none!(self) {
                         match t.kind() {
                             EnumToken::Comma => {
-                                self.iter.next(); // съесть ','
+                                let t = next_or_none!(self).unwrap();
                                 self.tokens.push(t.to_semantic_token(u32::MAX));
                             }
-                            EnumToken::RightCurlyBracket => {} // конец enum, обработаем в начале цикла
-                            _ => return Err(format!("Expected ',' or '}}', got {:?}", t.kind())),
+                            EnumToken::RightCurlyBracket => continue, // конец enum, обработаем в начале цикла
+                            kind => {
+                                self.create_error_message(format!("Expected ',' or '}}', got {kind}"));
+                                return None;
+                            }
                         }
                     }
                 }
-                _ => return Err(format!("Expected variant, got {:?}", token.kind())),
+                kind => {
+                    self.create_error_message(format!("Expected variant, got {kind}"));
+                    return None;
+                }
             }
         }
 
-        Ok(Enum::new(enum_name, variants))
+        Some(Enum::new(enum_name, variants))
     }
 }

@@ -1,4 +1,4 @@
-use crate::{semantic::{Field, ParserContext, Type}, ExpressionToken};
+use crate::{peek_or_none, semantic::{Field, ParserContext, Type}, ExpressionToken};
 
 #[derive(Debug)]
 pub struct Expression {
@@ -10,8 +10,8 @@ pub struct Expression {
 }
 
 impl<'s> ParserContext<'s, ExpressionToken> {
-    pub fn parse(&mut self) -> Result<Expression, String> {
-        self.consume_keyword()?;
+    pub fn parse(&mut self) -> Option<Expression> {
+        self.consume_keyword();
         let name = self.consume_type_name()?;
         let mut groups = Vec::new();
         let mut required = Vec::new();
@@ -20,8 +20,7 @@ impl<'s> ParserContext<'s, ExpressionToken> {
         self.consume_left_curve_brace()?;
 
         loop {
-            let next = self.iter.peek().ok_or("Unexpected end of token stream")?;
-
+            let next = peek_or_none!(self)?;
             match next.kind() {
                 ExpressionToken::RightCurlyBracket => {
                     self.tokens.push(next.to_semantic_token(u32::MAX));
@@ -35,31 +34,38 @@ impl<'s> ParserContext<'s, ExpressionToken> {
                             if let Type::Array(arr) = field.ty {
                                 groups = arr;
                             } else {
-                                return Err("Expected array for `groups`".into());
+                                self.create_error_message("Expected array for 'groups'");
+                                return None;
                             }
                         }
                         "available_in" => {
                             if let Type::Array(arr) = field.ty {
                                 available_in = arr;
                             } else {
-                                return Err("Expected array for `available_in`".into());
+                                self.create_error_message("Expected array for `available_in`");
+                                return None;
                             }
                         }
                         "required" => {
                             if let Type::Block(block) = field.ty {
                                 required = block;
                             } else {
-                                return Err("Expected block for `required`".into());
+                                self.create_error_message("Expected block for `required`");
+                                return None;
                             }
                         }
                         "additional" => {
                             if let Type::Block(block) = field.ty {
                                 additional = block;
                             } else {
-                                return Err("Expected block for `additional`".into());
+                                self.create_error_message("Expected block for `additional`");
+                                return None;
                             }
                         }
-                        _ => return Err(format!("Unknown field: {}", field.name)),
+                        _ => {
+                            self.create_error_message(format!("Unknown field: {}", field.name));
+                            return None;
+                        }
                     }
                     // после поля может быть ',' или конец блока '}': съедаем если ','
                     if let Some(tok) = self.iter.peek_mut() {
@@ -70,11 +76,14 @@ impl<'s> ParserContext<'s, ExpressionToken> {
                     }
                 }
                 ExpressionToken::NewLine | ExpressionToken::Whitespace => unreachable!(),
-                _ => return Err("Unexpected token in expression body".into()),
+                _ => {
+                    self.create_error_message("Unexpected token in expression body");
+                    return None;
+                }
             }
         }
 
-        Ok(Expression {
+        Some(Expression {
             name,
             groups,
             required,

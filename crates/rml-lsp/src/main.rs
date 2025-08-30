@@ -162,8 +162,9 @@ impl LanguageServer for Backend {
                 if tokens.is_err() {
                     panic!("Error: {:#?}", tokens.err());
                 }
+                let mut model = SchemaModel::new(uri.path(), &params.text_document.text).unwrap();
+                self.client.publish_diagnostics(uri.clone(), std::mem::take(&mut model.diagnostics), None).await;
                 let mut schemas = self.schemas.write().unwrap();
-                let model = SchemaModel::new(uri.path(), &params.text_document.text).unwrap();
                 schemas.insert(
                     uri,
                     model
@@ -196,7 +197,8 @@ impl LanguageServer for Backend {
             }
             "rmlx" => {
                 let text = params.content_changes.last().unwrap().text.clone(); //TODO fix
-                let schema = SchemaModel::new(uri.path(), &text).unwrap();
+                let mut schema = SchemaModel::new(uri.path(), &text).unwrap();
+                self.client.publish_diagnostics(uri.clone(), std::mem::take(&mut schema.diagnostics), None).await;
                 let mut write = self.schemas.write().unwrap();
                 write.insert(uri, schema).unwrap();
             }

@@ -1,9 +1,9 @@
+group Template[Container];
+
 #[Min(1), Max(1)]
 group Root[Container, Component];
 
 group Container[Component, Template];
-
-group Template[Container];
 
 #[Extend, Min(0), Max(1)]
 group Component;

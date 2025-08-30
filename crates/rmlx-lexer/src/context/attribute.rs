@@ -1,6 +1,8 @@
+use std::fmt::Display;
+
 use lexer_utils::*;
 use logos::{Lexer, Logos};
-use crate::Error;
+use crate::{Error, TokenDefinition};
 
 #[derive(Logos, Debug, PartialEq, Eq, Clone)]
 #[logos(extras = Position)]
@@ -28,6 +30,33 @@ pub enum AttributeToken {
 
     #[token("(", content_callback)]
     Content(Vec<Token<ContentToken>>),
+}
+
+impl Display for AttributeToken {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        let str = match self {
+            AttributeToken::Content(_) => "content",
+            AttributeToken::Identifier => "identifier",
+            AttributeToken::Hash => "#",
+            AttributeToken::LeftSquareBracket => "[",
+            AttributeToken::RightSquareBracket => "]",
+            AttributeToken::Comma => ",",
+            AttributeToken::NewLine => unreachable!(),
+            AttributeToken::Whitespace => unreachable!(),
+        };
+
+        write!(f, "{str}")
+    }
+}
+
+impl TokenDefinition for AttributeToken {
+    fn keyword() -> &'static str {
+        "#"
+    }
+
+    fn keyword_token() -> Self {
+        Self::Hash
+    }
 }
 
 pub(crate) fn attribute_callback<'source, T>(
@@ -72,6 +101,30 @@ pub enum ContentToken {
 
     #[token("\n")]
     NewLine,
+}
+
+impl Display for ContentToken {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        let str = match self {
+            ContentToken::Value => "value",
+            ContentToken::String => "string",
+            ContentToken::LeftParenthesis => "(",
+            ContentToken::RightParenthesis => ")",
+            ContentToken::NewLine => unreachable!(),
+        };
+
+        write!(f, "{str}")
+    }
+}
+
+impl TokenDefinition for ContentToken {
+    fn keyword() -> &'static str {
+        "("
+    }
+
+    fn keyword_token() -> Self {
+        Self::LeftParenthesis
+    }
 }
 
 fn content_callback(lex: &mut Lexer<AttributeToken>) -> Result<Vec<Token<ContentToken>>, Error> {

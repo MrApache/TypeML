@@ -1,28 +1,29 @@
 use lexer_utils::STRING_TOKEN;
-use crate::{semantic::ParserContext, UseToken};
+use crate::{next_or_none, semantic::ParserContext, UseToken};
 
 pub struct Use {
     pub path: String,
 }
 
 impl<'s> ParserContext<'s, UseToken> {
-    pub fn parse(&mut self) -> Result<Use, String> {
-        self.consume_keyword()?;
+    pub fn parse(&mut self) -> Option<Use> {
+        self.consume_keyword();
 
-        let t = self.iter.next().ok_or("Expected <...> path")?;
+        let t = next_or_none!(self, "Expected <...> path")?;
         if t.kind() != &UseToken::Path {
-            return Err(format!("Expected path, found {:?}", t.kind()));
+            self.create_error_message(format!("Expected path, found {:?}", t.kind()));
+            return None;
         }
 
         let path = self.src
             .get(t.span())
             .map(trim_angle_brackets)
-            .ok_or("Invalid span for path")?
+            .unwrap()
             .to_string();
 
         self.tokens.push(t.to_semantic_token(STRING_TOKEN));
 
-        Ok(Use { path })
+        Some(Use { path })
     }
 }
 

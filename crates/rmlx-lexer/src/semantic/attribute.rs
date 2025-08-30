@@ -1,192 +1,95 @@
-use std::slice::Iter;
-use tower_lsp::lsp_types::SemanticToken;
-use lexer_utils::{Token, MACRO_TOKEN, STRING_TOKEN};
-use crate::{AttributeToken, ContentToken};
+use crate::{next_or_none, AttributeToken, ContentToken, ParserContext};
+use lexer_utils::{MACRO_TOKEN, STRING_TOKEN};
 
-pub enum Attribute {
-    Extend,
-    Pattern(PatternAttribute),
-    Group(GroupAttribute),
-    Path(PathAttribute),
-    Min(MinAttribute),
-    Max(MaxAttribute),
+#[derive(Debug)]
+pub struct Attribute {
+    name: String,
+    content: Option<String>,
 }
 
-pub struct PathAttribute {
-    pub value: String,
-}
+impl<'s> ParserContext<'s, AttributeToken> {
+    pub fn parse(&mut self) -> Option<Vec<Attribute>> {
+        self.consume_keyword_with_token_type(MACRO_TOKEN);
 
-pub struct GroupAttribute {
-    pub value: String,
-}
+        let mut attrs = Vec::new();
 
-pub struct MinAttribute {
-    pub value: u32,
-}
-
-pub struct MaxAttribute {
-    pub value: u32,
-}
-
-pub struct PatternAttribute {
-    pub value: String,
-}
-
-pub fn parse_attributes<'s>(
-    mut iter: Iter<'s, Token<AttributeToken>>,
-    src: &str,
-    tokens: &mut Vec<SemanticToken>,
-) -> Result<Vec<Attribute>, String> {
-    let mut attrs = Vec::new();
-
-    {
-        // читаем `#`
-        let t = iter.next().ok_or("Expected #")?;
-        tokens.push(t.to_semantic_token(MACRO_TOKEN));
-        if t.kind() != &AttributeToken::Hash {
-            return Err(format!("Expected #, got {:?}", t.kind()));
-        }
-    }
-
-    {
-        // читаем `[`
-        let t = iter.next().ok_or("Expected [")?;
-        tokens.push(t.to_semantic_token(MACRO_TOKEN));
-        if t.kind() != &AttributeToken::LeftSquareBracket {
-            return Err(format!("Expected [, got {:?}", t.kind()));
-        }
-    }
-
-    loop {
-        // читаем идентификатор
-        let t = iter.next().ok_or("Expected identifier")?;
-        tokens.push(t.to_semantic_token(MACRO_TOKEN));
-        if t.kind() != &AttributeToken::Identifier {
-            return Err(format!("Expected identifier, got {:?}", t.kind()));
-        }
-
-        let name = src
-            .get(t.span().clone())
-            .ok_or("Invalid span for identifier")?
-            .to_string();
-
-        // читаем контент (может отсутствовать)
-        let next = iter.next().ok_or("Expected content or , or ]")?;
-        match next.kind() {
-            AttributeToken::Content(inner_tokens) => {
-                let value_str = parse_content(inner_tokens.iter(), src, tokens)?;
-
-                let attr = match name.as_str() {
-                    "Path" => Attribute::Path(PathAttribute { value: value_str }),
-                    "Group" => Attribute::Group(GroupAttribute { value: value_str }),
-                    "Min" => Attribute::Min(MinAttribute {
-                        value: parse_min_value(&value_str)?,
-                    }),
-                    "Max" => Attribute::Max(MaxAttribute {
-                        value: parse_max_value(&value_str)?,
-                    }),
-                    "Pattern" => Attribute::Pattern(PatternAttribute { value: value_str }),
-                    "Extend" => return Err("Attribute 'Extend' does not have a content".into()),
-                    _ => return Err(format!("Unknown attribute `{name}`")),
-                };
-
-                attrs.push(attr);
+        {
+            // читаем `[`
+            let t = next_or_none!(self)?;
+            self.tokens.push(t.to_semantic_token(MACRO_TOKEN));
+            if t.kind() != &AttributeToken::LeftSquareBracket {
+                self.create_error_message(format!("Expected '[', got {}", t.kind()));
+                return None;
             }
-            AttributeToken::RightSquareBracket => {
-                tokens.push(next.to_semantic_token(u32::MAX));
-                match name.as_str() {
-                    "Extend" => attrs.push(Attribute::Extend),
-                    _ => return Err(format!("Attribute `{name}` requires value")),
-                }
-                break;
-            }
-            AttributeToken::Comma => {
-                tokens.push(next.to_semantic_token(u32::MAX));
-                match name.as_str() {
-                    "Extend" => attrs.push(Attribute::Extend),
-                    _ => return Err(format!("Attribute `{name}` requires value")),
-                }
+        }
+
+        loop {
+            // читаем идентификатор
+            let t = next_or_none!(self)?;
+            if t.kind() == &AttributeToken::Comma {
+                self.tokens.push(t.to_semantic_token(u32::MAX));
                 continue;
             }
-            _ => {
-                tokens.push(next.to_semantic_token(u32::MAX));
-                return Err(format!(
-                    "Unexpected token after identifier: {:?}",
-                    next.kind()
-                ))
+            else if t.kind() == &AttributeToken::RightSquareBracket {
+                self.tokens.push(t.to_semantic_token(u32::MAX));
+                break;
+            }
+            else if t.kind() != &AttributeToken::Identifier {
+                self.tokens.push(t.to_semantic_token(u32::MAX));
+                self.create_error_message(format!("Expected identifier, got {}", t.kind()));
+                return None;
+            }
+            self.tokens.push(t.to_semantic_token(MACRO_TOKEN));
+
+            let name = t.slice(self.src).to_string();
+
+            let next = next_or_none!(self, "Expected content or , or ]")?;
+            match next.kind() {
+                AttributeToken::Content(inner_tokens) => {
+                    let content = ParserContext::new(inner_tokens.iter().peekable(), self.diagnostics, self.tokens, self.src).parse();
+                    attrs.push(Attribute { name, content });
+                }
+                AttributeToken::Comma => {
+                    self.tokens.push(next.to_semantic_token(u32::MAX));
+                }
+                kind => {
+                    self.tokens.push(next.to_semantic_token(u32::MAX));
+                    self.create_error_message(format!("Unexpected token after identifier: {kind}"));
+                    return None;
+                }
             }
         }
 
-        let next = iter.next().ok_or("Expected , or ]")?;
-        if next.kind() == &AttributeToken::Comma {
-            tokens.push(next.to_semantic_token(u32::MAX));
-            continue;
-        }
-
-        if next.kind() == &AttributeToken::RightSquareBracket {
-            tokens.push(next.to_semantic_token(MACRO_TOKEN));
-            break;
-        }
+        Some(attrs)
     }
-
-    Ok(attrs)
 }
 
-fn parse_min_value(value_str: &str) -> Result<u32, String> {
-    Ok(value_str.parse::<u32>().map_err(|_| "Invalid Min value")?)
-}
+impl<'s> ParserContext<'s, ContentToken> {
+    pub fn parse(&mut self) -> Option<String> {
+        self.consume_keyword_with_token_type(u32::MAX);
 
-fn parse_max_value(value_str: &str) -> Result<u32, String> {
-    Ok(value_str.parse::<u32>().map_err(|_| "Invalid Max value")?)
-}
+        let t = next_or_none!(self, "Expected String or Value")?;
+        let result_text = t.slice(self.src);
+        let (semantic_token, result_text) = match t.kind() {
+            ContentToken::String => {
+                let text = t.slice(self.src).trim_matches('"');
+                (t.to_semantic_token(STRING_TOKEN), text)
+            }
+            ContentToken::Value => (t.to_semantic_token(STRING_TOKEN), result_text),
+            _ => {
+                self.create_error_message("Expected value");
+                return None;
+            }
+        };
+        self.tokens.push(semantic_token);
 
-pub fn parse_content<'s>(
-    mut iter: Iter<'s, Token<ContentToken>>,
-    src: &str,
-    tokens: &mut Vec<SemanticToken>,
-) -> Result<String, String> {
-    let t = iter.next().ok_or("Expected '('")?;
-    if t.kind() != &ContentToken::LeftParenthesis {
-        return Err(format!("Expected '(', got {:?}", t.kind()));
-    }
-    tokens.push(t.to_semantic_token(u32::MAX));
-
-    let t = iter.next().ok_or("Expected String or Value")?;
-    let result_text = t.slice(src);
-    let (semantic_token, result_text) = match t.kind() {
-        ContentToken::String => {
-            let text = t.slice(src).trim_matches('"');
-            (t.to_semantic_token(STRING_TOKEN), text)
-        },
-        ContentToken::Value => (t.to_semantic_token(STRING_TOKEN), result_text),
-        _ => return Err(format!("Expected String or Value, got {:?}", t.kind())),
-    };
-    tokens.push(semantic_token);
-
-    // Читаем ')'
-    let t = iter.next().ok_or("Expected ')'")?;
-    if t.kind() != &ContentToken::RightParenthesis {
-        return Err(format!("Expected ')', got {:?}", t.kind()));
-    }
-    tokens.push(t.to_semantic_token(u32::MAX));
-
-    Ok(result_text.to_string())
-}
-
-#[cfg(test)]
-mod tests {
-    use crate::semantic::attribute::parse_attributes;
-    use crate::{RmlxTokenStream, SchemaStatement};
-
-    #[test]
-    fn test() {
-        const CONTENT: &str = r#"#[Path(std::iter), Min(0), Max(1), Pattern("Hello, world!")]"#;
-
-        let tokens = RmlxTokenStream::new(CONTENT).to_vec().unwrap();
-        let attr_tokens = tokens.first().unwrap();
-        if let SchemaStatement::Attribute(tokens) = attr_tokens.clone() {
-            let xd = parse_attributes(tokens.iter(), CONTENT, &mut vec![]);
-            println!();
+        let t = next_or_none!(self, "Expected ')'")?;
+        if t.kind() != &ContentToken::RightParenthesis {
+            self.create_error_message(format!("Expected ')', got {}", t.kind()));
+            return None;
         }
+        self.tokens.push(t.to_semantic_token(u32::MAX));
+
+        Some(result_text.to_string())
     }
 }
