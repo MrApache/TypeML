@@ -116,8 +116,8 @@ impl<T> Token<T> {
                 character: lexer.extras.current_column,
             },
             end: LspPosition {
-                line: lexer.extras.line, //TODO Fix
-                character: span.len() as u32,
+                line: lexer.extras.line,
+                character: lexer.extras.current_column + span.len() as u32,
             },
             span,
         }
