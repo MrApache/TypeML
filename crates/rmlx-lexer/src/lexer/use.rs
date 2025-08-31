@@ -1,8 +1,7 @@
-use std::fmt::Display;
-
+use crate::{Error, SchemaStatement, StatementTokens};
 use lexer_utils::*;
 use logos::{Lexer, Logos};
-use crate::{Error, SchemaStatement, StatementTokens};
+use std::fmt::Display;
 
 #[derive(Logos, Debug, PartialEq, Eq, Clone)]
 #[logos(extras = Position)]
@@ -18,6 +17,8 @@ pub enum UseToken {
 
     #[regex(r#"<[^ \t\r\n><]*>"#)]
     Path,
+
+    SyntaxError,
 }
 
 impl Display for UseToken {
@@ -25,6 +26,7 @@ impl Display for UseToken {
         let str = match self {
             UseToken::Keyword => "use",
             UseToken::Path => "path",
+            UseToken::SyntaxError => "error",
             UseToken::NewLine => unreachable!(),
             UseToken::Whitespace => unreachable!(),
         };
@@ -43,26 +45,22 @@ impl StatementTokens for UseToken {
     }
 }
 
-pub(crate) fn use_callback(
-    lex: &mut Lexer<SchemaStatement>,
-) -> Result<Vec<Token<UseToken>>, Error> {
-
+pub(crate) fn use_callback(lex: &mut Lexer<SchemaStatement>) -> Vec<Token<UseToken>> {
     let mut tokens = Vec::new();
     Token::push_with_advance(&mut tokens, UseToken::Keyword, lex);
 
     let mut inner = lex.clone().morph::<UseToken>();
     while let Some(token) = inner.next() {
-        let kind = token?;
-        match kind {
+        match unwrap_or_continue!(token, &mut tokens, UseToken::SyntaxError, &mut inner) {
             UseToken::NewLine => {
                 inner.extras.new_line();
                 break;
-            },
+            }
             UseToken::Whitespace => inner.extras.advance(inner.span().len() as u32),
-            _ => Token::push_with_advance(&mut tokens, kind, &mut inner),
+            kind => Token::push_with_advance(&mut tokens, kind, &mut inner),
         }
     }
 
     *lex = inner.morph();
-    Ok(tokens)
+    tokens
 }

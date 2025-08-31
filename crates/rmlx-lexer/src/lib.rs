@@ -5,9 +5,9 @@ mod utils;
 pub use ast::*;
 pub use lexer::*;
 
-use std::fmt::Display;
-use logos::{Lexer, Logos};
 use lexer_utils::*;
+use logos::{Lexer, Logos};
+use std::fmt::Display;
 
 pub trait StatementTokens: PartialEq + Eq + Sized + Display {
     fn keyword() -> &'static str;
@@ -64,7 +64,9 @@ pub enum SchemaStatement {
     NewLine,
 
     #[regex(r"[ \t\r]+")]
-    Whitespace
+    Whitespace,
+
+    SyntaxError(Token<()>),
 }
 
 pub struct RmlxTokenStream<'a> {
@@ -78,25 +80,26 @@ impl<'a> RmlxTokenStream<'a> {
         }
     }
 
-    pub fn next_token(&mut self) -> Option<Result<SchemaStatement, Error>> {
-        while let Some(token_kind) = self.inner.next() {
-            match &token_kind {
-                Ok(SchemaStatement::NewLine) => self.inner.extras.new_line(),
-                Ok(SchemaStatement::Whitespace) => self.inner.extras.advance(self.inner.span().len() as u32),
-                _ => return Some(token_kind), // значимый токен
+    pub fn next_token(&mut self) -> Option<SchemaStatement> {
+        while let Some(token) = self.inner.next() {
+            if token.is_err() {
+                let token = Token::new((), &mut self.inner);
+                return Some(SchemaStatement::SyntaxError(token));
+            }
+            match token.unwrap() {
+                SchemaStatement::NewLine => self.inner.extras.new_line(),
+                SchemaStatement::Whitespace => self.inner.extras.advance(self.inner.span().len() as u32),
+                kind => return Some(kind)
             }
         }
-        None // конец итератора
+        None
     }
 
-
-    pub fn to_vec(mut self) -> Result<Vec<SchemaStatement>, Error> {
+    pub fn to_vec(mut self) -> Vec<SchemaStatement> {
         let mut vec = vec![];
-
         while let Some(token) = self.next_token() {
-            vec.push(token?);
+            vec.push(token);
         }
-
-        Ok(vec)
+        vec
     }
 }

@@ -1,8 +1,10 @@
-use std::fmt::Display;
-
-use crate::{Error, NamedStatement, SchemaStatement, TokenBodyStatement, StatementTokens, TokenSimpleTypeProvider};
+use crate::{
+    Error, NamedStatement, SchemaStatement, StatementTokens, TokenBodyStatement,
+    TokenSimpleTypeProvider,
+};
 use lexer_utils::*;
 use logos::{Lexer, Logos};
+use std::fmt::Display;
 
 #[derive(Logos, Debug, PartialEq, Eq, Clone)]
 #[logos(extras = Position)]
@@ -36,6 +38,8 @@ pub enum StructToken {
 
     #[regex(r"[ \t\r]+")]
     Whitespace,
+
+    SyntaxError,
 }
 
 impl StatementTokens for StructToken {
@@ -83,6 +87,7 @@ impl Display for StructToken {
         let str = match self {
             StructToken::Keyword => "struct",
             StructToken::Identifier => "identifier",
+            StructToken::SyntaxError => "error",
             StructToken::LeftCurlyBracket => "{",
             StructToken::RightCurlyBracket => "}",
             StructToken::LeftAngleBracket => "<",
@@ -98,23 +103,23 @@ impl Display for StructToken {
 
 pub(crate) fn struct_callback(
     lex: &mut Lexer<SchemaStatement>,
-) -> Result<Vec<Token<StructToken>>, Error> {
+) -> Vec<Token<StructToken>> {
     let mut tokens = Vec::new();
     Token::push_with_advance(&mut tokens, StructToken::Keyword, lex);
 
     let mut bracket_depth = 0;
     let mut inner = lex.clone().morph::<StructToken>();
     while let Some(token) = inner.next() {
-        let kind = token?;
-        match kind {
+        match unwrap_or_continue!(token, &mut tokens, StructToken::SyntaxError, &mut inner) {
             StructToken::NewLine => inner.extras.new_line(),
             StructToken::Whitespace => inner.extras.advance(inner.span().len() as u32),
-            _ => {
+            kind => {
                 if let StructToken::LeftCurlyBracket = &kind {
                     bracket_depth += 1;
                 } else if let StructToken::RightCurlyBracket = &kind {
                     if bracket_depth == 0 {
-                        return Err(Error::MissingOpeningBrace);
+                        Token::push_with_advance(&mut tokens, StructToken::SyntaxError, &mut inner);
+                        return tokens;
                     }
                     bracket_depth -= 1;
                     if bracket_depth == 0 {
@@ -127,5 +132,5 @@ pub(crate) fn struct_callback(
     }
 
     *lex = inner.morph();
-    Ok(tokens)
+    tokens
 }

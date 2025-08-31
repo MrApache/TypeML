@@ -12,6 +12,17 @@ pub const MACRO_TOKEN: u32 = 7;
 pub const FUNCTION: u32 = 8;
 
 #[macro_export]
+macro_rules! unwrap_or_continue {
+    ($result:expr, $tokens:expr, $kind:expr, $lex:expr) => {{
+        if $result.is_err() {
+            Token::push_with_advance($tokens, $kind, $lex);
+            continue;
+        }
+        $result.unwrap()
+    }};
+}
+
+#[macro_export]
 macro_rules! push_and_break {
     ($tokens:expr, $kind:expr, $lex:expr) => {{
         Token::push_with_advance($tokens, $kind, $lex);
@@ -61,6 +72,19 @@ impl Position {
 
     pub const fn advance(&mut self, length: u32) {
         self.current_column += length;
+    }
+
+    pub const fn new_range(&self, length: u32) -> Range {
+        Range {
+            start: LspPosition {
+                line: self.line,
+                character: self.current_column,
+            },
+            end: LspPosition {
+                line: self.line,
+                character: self.current_column + length,
+            },
+        }
     }
 }
 

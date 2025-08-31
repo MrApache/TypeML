@@ -1,8 +1,10 @@
-use std::fmt::Display;
-
-use crate::{Error, NamedStatement, SchemaStatement, TokenArrayProvider, TokenBodyStatement, StatementTokens, TokenSimpleTypeProvider};
+use crate::{
+    Error, NamedStatement, SchemaStatement, StatementTokens, TokenArrayProvider,
+    TokenBodyStatement, TokenSimpleTypeProvider,
+};
 use lexer_utils::*;
 use logos::{Lexer, Logos};
+use std::fmt::Display;
 
 #[derive(Logos, Debug, PartialEq, Eq, Clone)]
 #[logos(extras = Position)]
@@ -42,6 +44,8 @@ pub enum ExpressionToken {
 
     #[regex(r"[ \t\r]+")]
     Whitespace,
+
+    SyntaxError,
 }
 
 impl Display for ExpressionToken {
@@ -59,6 +63,7 @@ impl Display for ExpressionToken {
             ExpressionToken::Comma => ",",
             ExpressionToken::NewLine => unreachable!(),
             ExpressionToken::Whitespace => unreachable!(),
+            ExpressionToken::SyntaxError => "error",
         };
 
         write!(f, "{str}")
@@ -119,25 +124,23 @@ impl NamedStatement for ExpressionToken {
     }
 }
 
-pub(crate) fn expression_callback(
-    lex: &mut Lexer<SchemaStatement>,
-) -> Result<Vec<Token<ExpressionToken>>, Error> {
+pub(crate) fn expression_callback(lex: &mut Lexer<SchemaStatement>) -> Vec<Token<ExpressionToken>> {
     let mut tokens = Vec::new();
     Token::push_with_advance(&mut tokens, ExpressionToken::Keyword, lex);
 
     let mut bracket_depth = 0;
     let mut inner = lex.clone().morph::<ExpressionToken>();
     while let Some(token) = inner.next() {
-        let kind = token?;
-        match kind {
+        match unwrap_or_continue!(token, &mut tokens, ExpressionToken::SyntaxError, &mut inner) {
             ExpressionToken::NewLine => inner.extras.new_line(),
             ExpressionToken::Whitespace => inner.extras.advance(inner.span().len() as u32),
-            _ => {
+            kind => {
                 if let ExpressionToken::LeftCurlyBracket = &kind {
                     bracket_depth += 1;
                 } else if let ExpressionToken::RightCurlyBracket = &kind {
                     if bracket_depth == 0 {
-                        return Err(Error::MissingOpeningBrace);
+                        Token::push_with_advance(&mut tokens, ExpressionToken::SyntaxError, &mut inner);
+                        return tokens;
                     }
                     bracket_depth -= 1;
                     if bracket_depth == 0 {
@@ -150,5 +153,5 @@ pub(crate) fn expression_callback(
     }
 
     *lex = inner.morph();
-    Ok(tokens)
+    tokens
 }

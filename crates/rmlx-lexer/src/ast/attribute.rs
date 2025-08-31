@@ -14,48 +14,55 @@ impl<'s> ParserContext<'s, AttributeToken> {
         let mut attrs = Vec::new();
 
         {
-            // читаем `[`
+            // consume `[`
             let t = next_or_none!(self)?;
             self.tokens.push(t.to_semantic_token(MACRO_TOKEN));
-            if t.kind() != &AttributeToken::LeftSquareBracket {
-                self.create_error_message(format!("Expected '[', got {}", t.kind()));
-                return None;
+            match t.kind() {
+                AttributeToken::LeftSquareBracket => {} //continue
+                AttributeToken::SyntaxError => self.report_error(t, "Syntax error"),
+                kind => self.report_error(t, &format!("Expected '[', got {kind}")),
             }
         }
 
         loop {
             // читаем идентификатор
-            let t = next_or_none!(self)?;
-            if t.kind() == &AttributeToken::Comma {
-                self.tokens.push(t.to_semantic_token(u32::MAX));
-                continue;
+            let name_token = next_or_none!(self)?;
+            match name_token.kind() {
+                AttributeToken::Comma => {
+                    self.tokens.push(name_token.to_semantic_token(u32::MAX));
+                    continue;
+                }
+                AttributeToken::RightSquareBracket => {
+                    self.tokens.push(name_token.to_semantic_token(u32::MAX));
+                    break;
+                }
+                AttributeToken::Identifier => {
+                    self.tokens.push(name_token.to_semantic_token(MACRO_TOKEN))
+                }
+                AttributeToken::SyntaxError => self.report_error(name_token, "Syntax error"),
+                kind => self.report_error(name_token, &format!("Expected identifier, got {kind}")),
             }
-            else if t.kind() == &AttributeToken::RightSquareBracket {
-                self.tokens.push(t.to_semantic_token(u32::MAX));
-                break;
-            }
-            else if t.kind() != &AttributeToken::Identifier {
-                self.tokens.push(t.to_semantic_token(u32::MAX));
-                self.create_error_message(format!("Expected identifier, got {}", t.kind()));
-                return None;
-            }
-            self.tokens.push(t.to_semantic_token(MACRO_TOKEN));
 
-            let name = t.slice(self.src).to_string();
+            let name = name_token.slice(self.src).to_string();
 
             let next = next_or_none!(self, "Expected content or , or ]")?;
             match next.kind() {
                 AttributeToken::Content(inner_tokens) => {
-                    let content = ParserContext::new(inner_tokens.iter().peekable(), self.diagnostics, self.tokens, self.src).parse();
+                    let content = ParserContext::new(
+                        inner_tokens.iter().peekable(),
+                        self.diagnostics,
+                        self.tokens,
+                        self.src,
+                    )
+                    .parse();
                     attrs.push(Attribute { name, content });
                 }
                 AttributeToken::Comma => {
                     self.tokens.push(next.to_semantic_token(u32::MAX));
                 }
+                AttributeToken::SyntaxError => self.report_error(next, "Syntax error"),
                 kind => {
-                    self.tokens.push(next.to_semantic_token(u32::MAX));
-                    self.create_error_message(format!("Unexpected token after identifier: {kind}"));
-                    return None;
+                    self.report_error(next, &format!("Unexpected token after identifier: {kind}"))
                 }
             }
         }
@@ -70,25 +77,31 @@ impl<'s> ParserContext<'s, ContentToken> {
 
         let t = next_or_none!(self, "Expected String or Value")?;
         let result_text = t.slice(self.src);
-        let (semantic_token, result_text) = match t.kind() {
+        let result_text = match t.kind() {
             ContentToken::String => {
-                let text = t.slice(self.src).trim_matches('"');
-                (t.to_semantic_token(STRING_TOKEN), text)
+                self.tokens.push(t.to_semantic_token(STRING_TOKEN));
+                t.slice(self.src).trim_matches('"')
             }
-            ContentToken::Value => (t.to_semantic_token(STRING_TOKEN), result_text),
+            ContentToken::Value => {
+                self.tokens.push(t.to_semantic_token(STRING_TOKEN));
+                result_text
+            }
+            ContentToken::SyntaxError => {
+                self.report_error(t, "Syntax error");
+                ""
+            }
             _ => {
-                self.create_error_message("Expected value");
-                return None;
+                self.report_error(t, "Expected value");
+                ""
             }
         };
-        self.tokens.push(semantic_token);
 
         let t = next_or_none!(self, "Expected ')'")?;
-        if t.kind() != &ContentToken::RightParenthesis {
-            self.create_error_message(format!("Expected ')', got {}", t.kind()));
-            return None;
+        match t.kind() {
+            ContentToken::RightParenthesis => self.tokens.push(t.to_semantic_token(u32::MAX)),
+            ContentToken::SyntaxError => self.report_error(t, "Syntax error"),
+            kind => self.report_error(t, &format!("Expected ')', got {kind}")),
         }
-        self.tokens.push(t.to_semantic_token(u32::MAX));
 
         Some(result_text.to_string())
     }

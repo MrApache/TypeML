@@ -10,9 +10,16 @@ impl<'s> ParserContext<'s, UseToken> {
         self.consume_keyword();
 
         let t = next_or_none!(self, "Expected <...> path")?;
-        if t.kind() != &UseToken::Path {
-            self.create_error_message(format!("Expected path, found {:?}", t.kind()));
-            return None;
+        match t.kind() {
+            UseToken::Path => self.tokens.push(t.to_semantic_token(STRING_TOKEN)),
+            UseToken::SyntaxError => {
+                self.report_error(t, "Syntax error");
+                return None;
+            }
+            _ => {
+                self.report_error(t, &format!("Expected path, found {}", t.kind()));
+                return None;
+            },
         }
 
         let path = self.src
@@ -21,7 +28,6 @@ impl<'s> ParserContext<'s, UseToken> {
             .unwrap()
             .to_string();
 
-        self.tokens.push(t.to_semantic_token(STRING_TOKEN));
 
         Some(Use { path })
     }

@@ -1,5 +1,5 @@
 use crate::{Error, NamedStatement, SchemaStatement, StatementTokens, TokenArrayProvider};
-use lexer_utils::{push_and_break, Position, Token};
+use lexer_utils::{push_and_break, unwrap_or_continue, Position, Token};
 use logos::{Lexer, Logos};
 use std::fmt::Display;
 
@@ -29,6 +29,8 @@ pub enum GroupToken {
 
     #[regex(r"[ \t\r]+")]
     Whitespace,
+
+    SyntaxError,
 }
 
 impl Display for GroupToken {
@@ -42,6 +44,7 @@ impl Display for GroupToken {
             GroupToken::Comma => ",",
             GroupToken::NewLine => unreachable!(),
             GroupToken::Whitespace => unreachable!(),
+            GroupToken::SyntaxError => "error",
         };
 
         write!(f, "{str}")
@@ -78,23 +81,20 @@ impl TokenArrayProvider for GroupToken {
     }
 }
 
-pub(crate) fn group_callback(
-    lex: &mut Lexer<SchemaStatement>,
-) -> Result<Vec<Token<GroupToken>>, Error> {
+pub(crate) fn group_callback(lex: &mut Lexer<SchemaStatement>) -> Vec<Token<GroupToken>> {
     let mut tokens = Vec::new();
     Token::push_with_advance(&mut tokens, GroupToken::Keyword, lex);
 
     let mut inner = lex.clone().morph::<GroupToken>();
     while let Some(token) = inner.next() {
-        let kind = token?;
-        match kind {
+        match unwrap_or_continue!(token, &mut tokens, GroupToken::SyntaxError, &mut inner) {
             GroupToken::NewLine => inner.extras.new_line(),
-            GroupToken::Semicolon => push_and_break!(&mut tokens, kind, &mut inner),
+            GroupToken::Semicolon => push_and_break!(&mut tokens, GroupToken::Semicolon, &mut inner),
             GroupToken::Whitespace => inner.extras.advance(inner.span().len() as u32),
-            _ => Token::push_with_advance(&mut tokens, kind, &mut inner),
+            kind => Token::push_with_advance(&mut tokens, kind, &mut inner),
         }
     }
 
     *lex = inner.morph();
-    Ok(tokens)
+    tokens
 }

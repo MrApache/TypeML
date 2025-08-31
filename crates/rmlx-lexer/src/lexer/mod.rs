@@ -22,6 +22,7 @@ pub enum Error {
     #[default]
     UnknownChar,
     UnexpectedChar(char),
+
     MissingOpeningBrace,
 
     UnexpectedToken {

@@ -55,23 +55,18 @@ impl<'s> ParserContext<'s, StructToken> {
                 StructToken::Identifier => {
                     fields.push(self.consume_typed_field()?);
 
-                    // после поля может быть , или :
                     let sep = next_or_none!(self, "Unexpected end of token stream after field")?;
                     self.tokens.push(sep.to_semantic_token(u32::MAX));
                     match sep.kind() {
                         StructToken::Comma => continue,
                         StructToken::RightCurlyBracket => break,
-                        _ => {
-                            self.create_error_message("Expected ',' or '}' after field");
-                            return None;
-                        }
+                        StructToken::SyntaxError => self.report_error(sep, "Syntax error"),
+                        _ => self.report_error(sep, "Expected ',' or '}' after field"),
                     }
                 }
                 StructToken::NewLine | StructToken::Whitespace => unreachable!(),
-                _ => {
-                    self.create_error_message("Unexpected token in struct body");
-                    return None;
-                }
+                StructToken::SyntaxError => self.consume_error("Syntax error"),
+                _ => self.consume_error("Unexpected token in struct body"),
             }
         }
 

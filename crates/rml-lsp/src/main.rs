@@ -157,11 +157,6 @@ impl LanguageServer for Backend {
                 );
             }
             "rmlx" => {
-                let stream = RmlxTokenStream::new(&params.text_document.text);
-                let tokens = stream.to_vec();
-                if tokens.is_err() {
-                    panic!("Error: {:#?}", tokens.err());
-                }
                 let mut model = SchemaAst::new(uri.path(), &params.text_document.text).unwrap();
                 self.client.publish_diagnostics(uri.clone(), std::mem::take(&mut model.diagnostics), None).await;
                 let mut schemas = self.schemas.write().unwrap();

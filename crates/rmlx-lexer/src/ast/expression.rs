@@ -1,22 +1,19 @@
-use crate::{peek_or_none, ast::{Field, ParserContext, Type}, ExpressionToken};
+use crate::{
+    ast::{Field, ParserContext},
+    next_or_none, peek_or_none, ExpressionToken,
+};
 
 #[derive(Debug)]
 pub struct Expression {
     pub name: String,
-    pub groups: Vec<String>,
-    pub required: Vec<Field>,
-    pub additional: Vec<Field>,
-    pub available_in: Vec<String>,
+    pub fields: Vec<Field>,
 }
 
 impl<'s> ParserContext<'s, ExpressionToken> {
     pub fn parse(&mut self) -> Option<Expression> {
         self.consume_keyword();
         let name = self.consume_type_name()?;
-        let mut groups = Vec::new();
-        let mut required = Vec::new();
-        let mut additional = Vec::new();
-        let mut available_in = Vec::new();
+        let mut fields = vec![];
         self.consume_left_curve_brace()?;
 
         loop {
@@ -29,66 +26,25 @@ impl<'s> ParserContext<'s, ExpressionToken> {
 
                 ExpressionToken::Identifier => {
                     let field = self.consume_advanced_typed_field()?;
-                    match field.name.as_str() {
-                        "groups" => {
-                            if let Type::Array(arr) = field.ty {
-                                groups = arr;
-                            } else {
-                                self.create_error_message("Expected array for 'groups'");
-                                return None;
+                    fields.push(field);
+
+                    if let Some(token) = self.iter.peek() {
+                        match token.kind() {
+                            ExpressionToken::Comma => {
+                                let token = next_or_none!(self).unwrap();
+                                self.tokens.push(token.to_semantic_token(u32::MAX));
                             }
-                        }
-                        "available_in" => {
-                            if let Type::Array(arr) = field.ty {
-                                available_in = arr;
-                            } else {
-                                self.create_error_message("Expected array for `available_in`");
-                                return None;
-                            }
-                        }
-                        "required" => {
-                            if let Type::Block(block) = field.ty {
-                                required = block;
-                            } else {
-                                self.create_error_message("Expected block for `required`");
-                                return None;
-                            }
-                        }
-                        "additional" => {
-                            if let Type::Block(block) = field.ty {
-                                additional = block;
-                            } else {
-                                self.create_error_message("Expected block for `additional`");
-                                return None;
-                            }
-                        }
-                        _ => {
-                            self.create_error_message(format!("Unknown field: {}", field.name));
-                            return None;
-                        }
-                    }
-                    // после поля может быть ',' или конец блока '}': съедаем если ','
-                    if let Some(tok) = self.iter.peek_mut() {
-                        if tok.kind() == &ExpressionToken::Comma {
-                            let tok = self.iter.next().unwrap();
-                            self.tokens.push(tok.to_semantic_token(u32::MAX));
+                            ExpressionToken::SyntaxError => self.consume_error("Syntax error"),
+                            _ => {}
                         }
                     }
                 }
                 ExpressionToken::NewLine | ExpressionToken::Whitespace => unreachable!(),
-                _ => {
-                    self.create_error_message("Unexpected token in expression body");
-                    return None;
-                }
+                ExpressionToken::SyntaxError => self.consume_error("Syntax error"),
+                _ => self.consume_error("Unexpected token in expression body"),
             }
         }
 
-        Some(Expression {
-            name,
-            groups,
-            required,
-            additional,
-            available_in,
-        })
+        Some(Expression { name, fields })
     }
 }

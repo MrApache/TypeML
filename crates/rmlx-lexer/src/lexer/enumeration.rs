@@ -1,8 +1,10 @@
-use std::fmt::Display;
-
+use crate::{
+    attribute_callback, AttributeToken, Error, NamedStatement, SchemaStatement, StatementTokens,
+    TokenBodyStatement,
+};
 use lexer_utils::*;
 use logos::{Lexer, Logos};
-use crate::{attribute_callback, AttributeToken, Error, NamedStatement, SchemaStatement, TokenBodyStatement, StatementTokens};
+use std::fmt::Display;
 
 #[derive(Logos, Debug, PartialEq, Eq, Clone)]
 #[logos(extras = Position)]
@@ -36,6 +38,8 @@ pub enum EnumToken {
 
     #[token("#", attribute_callback)]
     Attribute(Vec<Token<AttributeToken>>),
+
+    SyntaxError,
 }
 
 impl Display for EnumToken {
@@ -45,12 +49,13 @@ impl Display for EnumToken {
             EnumToken::Identifier => "identifier",
             EnumToken::LeftCurlyBracket => "{",
             EnumToken::RightCurlyBracket => "}",
-            EnumToken::LeftParenthesis =>  "(",
+            EnumToken::LeftParenthesis => "(",
             EnumToken::RightParenthesis => ")",
             EnumToken::Comma => ",",
             EnumToken::Attribute(_) => "attribute",
             EnumToken::NewLine => unreachable!(),
             EnumToken::Whitespace => unreachable!(),
+            EnumToken::SyntaxError => "error",
         };
 
         write!(f, "{str}")
@@ -83,27 +88,23 @@ impl NamedStatement for EnumToken {
     }
 }
 
-pub(crate) fn enum_callback(
-    lex: &mut Lexer<SchemaStatement>,
-) -> Result<Vec<Token<EnumToken>>, Error> {
-
+pub(crate) fn enum_callback(lex: &mut Lexer<SchemaStatement>) -> Vec<Token<EnumToken>> {
     let mut tokens = Vec::new();
     Token::push_with_advance(&mut tokens, EnumToken::Keyword, lex);
 
     let mut bracket_depth = 0;
     let mut inner = lex.clone().morph::<EnumToken>();
     while let Some(token) = inner.next() {
-        let kind = token?;
-        match kind {
+        match unwrap_or_continue!(token, &mut tokens, EnumToken::SyntaxError, &mut inner) {
             EnumToken::NewLine => inner.extras.new_line(),
             EnumToken::Whitespace => inner.extras.advance(inner.span().len() as u32),
-            _ => {
+            kind => {
                 if let EnumToken::LeftCurlyBracket = &kind {
                     bracket_depth += 1;
-                }
-                else if let EnumToken::RightCurlyBracket = &kind {
+                } else if let EnumToken::RightCurlyBracket = &kind {
                     if bracket_depth == 0 {
-                        return Err(Error::MissingOpeningBrace);
+                        Token::push_with_advance(&mut tokens, EnumToken::SyntaxError, &mut inner);
+                        return tokens;
                     }
                     bracket_depth -= 1;
                     if bracket_depth == 0 {
@@ -116,6 +117,5 @@ pub(crate) fn enum_callback(
     }
 
     *lex = inner.morph();
-    Ok(tokens)
+    tokens
 }
-

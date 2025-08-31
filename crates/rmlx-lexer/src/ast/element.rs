@@ -1,7 +1,6 @@
 use crate::{
-    next_or_none, peek_or_none,
     ast::{Attribute, Field, ParserContext},
-    ElementToken,
+    next_or_none, peek_or_none, ElementToken,
 };
 
 #[derive(Debug)]
@@ -41,8 +40,7 @@ impl<'s> ParserContext<'s, ElementToken> {
                 self.consume_left_curve_brace()?;
 
                 loop {
-                    let next =
-                        peek_or_none!(self, "Unexpected end of token stream in element body")?;
+                    let next = peek_or_none!(self, "Unexpected end of token stream in element body")?;
                     match next.kind() {
                         ElementToken::RightCurlyBracket | ElementToken::Semicolon => {
                             let next = next_or_none!(self).unwrap();
@@ -53,31 +51,23 @@ impl<'s> ParserContext<'s, ElementToken> {
                         ElementToken::Identifier => {
                             fields.push(self.consume_typed_field()?);
 
-                            // после поля может быть , или :
-                            let sep =
-                                next_or_none!(self, "Unexpected end of token stream after field")?;
+                            let sep = next_or_none!(self, "Unexpected end of token stream after field")?;
                             self.tokens.push(sep.to_semantic_token(u32::MAX));
                             match sep.kind() {
                                 ElementToken::Comma => continue,
                                 ElementToken::RightCurlyBracket => break,
-                                _ => {
-                                    self.create_error_message("Expected ',' or '}' after field");
-                                    return None;
-                                }
+                                ElementToken::SyntaxError => self.report_error(sep, "Syntax error"),
+                                _ => self.report_error(sep, "Expected ',' or '}' after field"),
                             }
                         }
                         ElementToken::NewLine | ElementToken::Whitespace => unreachable!(),
-                        _ => {
-                            self.create_error_message("Unexpected token in element body");
-                            return None;
-                        }
+                        ElementToken::SyntaxError => self.consume_error("Syntax error"),
+                        _ => self.consume_error("Unexpected token in element body"),
                     }
                 }
             }
-            _ => {
-                self.create_error_message("Unexpected token in element body");
-                return None;
-            }
+            ElementToken::SyntaxError => self.consume_error("Syntax error"),
+            _ => self.consume_error("Unexpected token in element body"),
         }
 
         Some(Element::new(name, fields))

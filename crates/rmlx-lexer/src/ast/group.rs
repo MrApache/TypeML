@@ -42,20 +42,21 @@ impl<'s> ParserContext<'s, GroupToken> {
                 let groups = self.consume_array().unwrap_or_default();
 
                 let t = next_or_none!(self, "Expected ';' after group declaration")?;
-                if t.kind() != &GroupToken::Semicolon {
-                    self.create_error_message(format!(
-                        "Expected ';' after group declaration, got {}",
-                        t.kind()
-                    ));
-                    return None;
+                match t.kind() {
+                    GroupToken::Semicolon => self.tokens.push(t.to_semantic_token(u32::MAX)),
+                    GroupToken::SyntaxError => self.report_error(t, "Syntax error"),
+                    kind =>  {
+                        self.report_error(t, &format!("Expected ';' after group declaration, got {kind}"));
+                    }
                 }
-                self.tokens.push(t.to_semantic_token(u32::MAX));
-
                 Some(Group::new(name, groups))
             }
+            GroupToken::SyntaxError => {
+                self.consume_error("Syntax error");
+                None
+            }
             kind => {
-                next_or_none!(self).unwrap();
-                self.create_error_message(format!("Expected ';' or '[', got {kind}"));
+                self.consume_error(&format!("Expected ';' or '[', got {kind}"));
                 None
             }
         }

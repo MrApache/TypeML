@@ -110,15 +110,6 @@ impl<'s, T: StatementTokens> ParserContext<'s, T> {
         Some(parameter.slice(self.src).to_string())
     }
 
-    fn create_error_message(&mut self, message: impl Into<String>) {
-        self.diagnostics.push(Diagnostic {
-            range: self.previous_token_range,
-            severity: Some(DiagnosticSeverity::ERROR),
-            message: message.into(),
-            ..Default::default()
-        });
-    }
-
     pub fn transform<U: StatementTokens>(
         self,
         iter: Peekable<Iter<'s, Token<U>>>,
@@ -132,16 +123,31 @@ impl<'s, T: StatementTokens> ParserContext<'s, T> {
             previous_token_range: self.previous_token_range,
         }
     }
+
+    fn consume_error(&mut self, message: &str) {
+        let error_token = next_or_none!(self).unwrap();
+        self.report_error(error_token, message);
+    }
+
+    fn report_error(&mut self, token: &Token<T>, message: &str) {
+        self.tokens.push(token.to_semantic_token(u32::MAX));
+        self.diagnostics.push(Diagnostic {
+            range: self.previous_token_range,
+            severity: Some(DiagnosticSeverity::ERROR),
+            message: message.into(),
+            ..Default::default()
+        });
+    }
 }
 
 impl<'s, T: StatementTokens + TokenBodyStatement> ParserContext<'s, T> {
     pub fn consume_left_curve_brace(&mut self) -> Option<()> {
         let brace = next_or_none!(self, "Unexpected end of token stream, expected '{'")?;
         if brace.kind() != &T::left_curly_bracket() {
-            self.create_error_message(format!("Expected `{{`, found '{}'", brace.kind()));
-            return None;
+            self.report_error(brace, &format!("Expected `{{`, found '{}'", brace.kind()));
+        } else {
+            self.tokens.push(brace.to_semantic_token(u32::MAX));
         }
-        self.tokens.push(brace.to_semantic_token(u32::MAX));
         Some(())
     }
 }
@@ -150,10 +156,13 @@ impl<'s, T: StatementTokens + NamedStatement> ParserContext<'s, T> {
     pub fn consume_type_name(&mut self) -> Option<String> {
         let name = next_or_none!(self, "Unexpected end of token stream, expected identifier")?;
         if name.kind() != &T::identifier() {
-            self.create_error_message(format!("Expected identifier, found '{}'", name.kind()));
-            return None;
+            self.report_error(
+                name,
+                &format!("Expected identifier, found '{}'", name.kind()),
+            );
+        } else {
+            self.tokens.push(name.to_semantic_token(TYPE_TOKEN));
         }
-        self.tokens.push(name.to_semantic_token(TYPE_TOKEN));
         Some(name.slice(self.src).to_string())
     }
 }
@@ -162,10 +171,10 @@ impl<'s, T: StatementTokens + TokenSimpleTypeProvider> ParserContext<'s, T> {
     pub fn consume_colon(&mut self) -> Option<()> {
         let colon = next_or_none!(self, "Unexpected end of token stream, expected ':'")?;
         if colon.kind() != &T::colon() {
-            self.create_error_message(format!("Expected ':', found '{}'", colon.kind()));
-            return None;
+            self.report_error(colon, &format!("Expected ':', found '{}'", colon.kind()));
+        } else {
+            self.tokens.push(colon.to_semantic_token(u32::MAX));
         }
-        self.tokens.push(colon.to_semantic_token(u32::MAX));
         Some(())
     }
 
@@ -185,7 +194,7 @@ impl<'s, T: StatementTokens + TokenSimpleTypeProvider> ParserContext<'s, T> {
             if token.kind() == &T::left_angle_bracket() {
                 // съедаем <
                 {
-                    let t = next_or_none!(self).expect("Unreachable");
+                    let t = next_or_none!(self).unwrap();
                     self.tokens.push(t.to_semantic_token(OPERATOR_TOKEN));
                 }
 
@@ -195,10 +204,10 @@ impl<'s, T: StatementTokens + TokenSimpleTypeProvider> ParserContext<'s, T> {
                     let close =
                         next_or_none!(self, "Unexpected end of token stream, expected '>'")?;
                     if close.kind() != &T::right_angle_bracket() {
-                        self.create_error_message("Expected '>' after generic type");
-                        return None;
+                        self.report_error(close, "Expected '>' after generic type");
+                    } else {
+                        self.tokens.push(close.to_semantic_token(OPERATOR_TOKEN));
                     }
-                    self.tokens.push(close.to_semantic_token(OPERATOR_TOKEN));
                 }
 
                 Some(Type::Generic(type_name, inner_type_name))
@@ -227,8 +236,7 @@ impl<'s, T: StatementTokens + TokenArrayProvider> ParserContext<'s, T> {
                 self.tokens.push(type_token.to_semantic_token(TYPE_TOKEN));
                 arr.push(type_token.slice(self.src).to_string());
             } else {
-                self.create_error_message("Expected identifier inside array");
-                return None;
+                self.report_error(type_token, "Expected identifier inside array");
             }
 
             if let Some(tok) = self.iter.peek_mut() {
@@ -238,8 +246,7 @@ impl<'s, T: StatementTokens + TokenArrayProvider> ParserContext<'s, T> {
                 } else if tok.kind() == &T::right_square_bracket() {
                     continue;
                 } else {
-                    self.create_error_message("Expected ',' or ']' in array");
-                    return None;
+                    self.consume_error("Expected ',' or ']' in array");
                 }
             }
         }
@@ -285,8 +292,7 @@ where
             } else if token.kind() == &T::identifier() {
                 block.push(self.consume_typed_field()?);
             } else {
-                self.create_error_message("Expected ',' or '}' in block");
-                return None;
+                self.consume_error("Expected ',' or '}' in block");
             }
         }
 
@@ -314,7 +320,6 @@ impl SchemaAst {
         let mut attributes = vec![];
 
         while let Some(token) = stream.next_token() {
-            let token = token?;
             match token {
                 crate::SchemaStatement::Attribute(tokens) => {
                     let attrs = ParserContext::new(
@@ -394,7 +399,6 @@ impl SchemaAst {
                     .parse();
 
                     if let Some(using) = using {
-                        //TODO check file
                         schema.includes.push(to_url(file, &using.path).unwrap());
                     }
                 }
@@ -412,8 +416,17 @@ impl SchemaAst {
                         schema.elements.push(element);
                     }
                 }
-                crate::SchemaStatement::NewLine => {}    //skip
-                crate::SchemaStatement::Whitespace => {} //skip
+                crate::SchemaStatement::NewLine => {}
+                crate::SchemaStatement::Whitespace => {}
+                crate::SchemaStatement::SyntaxError(token) => {
+                    schema.diagnostics.push(Diagnostic {
+                        range: token.range(),
+                        severity: Some(DiagnosticSeverity::ERROR),
+                        message: "Syntax Error: Error".to_string(),
+                        ..Default::default()
+                    });
+                    schema.tokens.push(token.to_semantic_token(u32::MAX));
+                }
             }
         }
 

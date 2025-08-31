@@ -1,5 +1,6 @@
 use crate::{
-    next_or_none, peek_or_none, ast::{Attribute, ParserContext}, EnumToken
+    ast::{Attribute, ParserContext},
+    next_or_none, peek_or_none, EnumToken,
 };
 use lexer_utils::PARAMETER_TOKEN;
 
@@ -40,17 +41,14 @@ impl<'s> ParserContext<'s, EnumToken> {
         let mut variants = Vec::new();
         let mut attributes = Vec::new();
 
-        // читаем варианты
         loop {
             let token = next_or_none!(self, "Unexpected end of tokens while parsing enum")?;
             match token.kind() {
-                // конец enum
                 EnumToken::RightCurlyBracket => {
                     self.tokens.push(token.to_semantic_token(u32::MAX));
                     break;
                 }
 
-                // атрибуты перед вариантом (0 или более)
                 EnumToken::Attribute(tokens) => {
                     attributes = ParserContext::new(
                         tokens.iter().peekable(),
@@ -62,31 +60,27 @@ impl<'s> ParserContext<'s, EnumToken> {
                     .unwrap_or_default();
                 }
 
-                // имя варианта
                 EnumToken::Identifier => {
                     let name = token.slice(self.src).to_string();
                     self.tokens.push(token.to_semantic_token(PARAMETER_TOKEN));
 
-                    // проверяем, есть ли '(' для аргумента
                     let ty = if let Some(t) = self.iter.peek() {
                         if t.kind() == &EnumToken::LeftParenthesis {
                             let t = next_or_none!(self).unwrap(); // съесть '('
                             self.tokens.push(t.to_semantic_token(u32::MAX));
 
-                            // читаем тип значения
                             let ty = self.consume_type_name()?;
 
-                            // читаем ')'
                             let t = next_or_none!(self, "Expected ')' after type")?;
-                            if t.kind() != &EnumToken::RightParenthesis {
-                                self.create_error_message(format!(
-                                    "Expected ')', got {:?}",
-                                    t.kind()
-                                ));
-                                return None;
+                            match t.kind() {
+                                EnumToken::LeftParenthesis => {
+                                    self.tokens.push(t.to_semantic_token(u32::MAX))
+                                }
+                                EnumToken::SyntaxError => self.report_error(t, "Syntax error"),
+                                kind => {
+                                    self.report_error(t, &format!("Expected ')', got {kind}",));
+                                }
                             }
-                            self.tokens.push(t.to_semantic_token(u32::MAX));
-
                             Some(ty)
                         } else {
                             None
@@ -95,9 +89,12 @@ impl<'s> ParserContext<'s, EnumToken> {
                         None
                     };
 
-                    variants.push(EnumVariant { name, ty, attributes: std::mem::take(&mut attributes) });
+                    variants.push(EnumVariant {
+                        name,
+                        ty,
+                        attributes: std::mem::take(&mut attributes),
+                    });
 
-                    // после варианта может быть ',' или '}'
                     if let Some(t) = peek_or_none!(self) {
                         match t.kind() {
                             EnumToken::Comma => {
@@ -105,17 +102,15 @@ impl<'s> ParserContext<'s, EnumToken> {
                                 self.tokens.push(t.to_semantic_token(u32::MAX));
                             }
                             EnumToken::RightCurlyBracket => continue, // конец enum, обработаем в начале цикла
+                            EnumToken::SyntaxError => self.consume_error("Syntax error"),
                             kind => {
-                                self.create_error_message(format!("Expected ',' or '}}', got {kind}"));
-                                return None;
+                                self.consume_error(&format!("Expected ',' or '}}', got {kind}"))
                             }
                         }
                     }
                 }
-                kind => {
-                    self.create_error_message(format!("Expected variant, got {kind}"));
-                    return None;
-                }
+                EnumToken::SyntaxError => self.report_error(token, "Syntax error"),
+                kind => self.report_error(token, &format!("Expected variant, got {kind}")),
             }
         }
 

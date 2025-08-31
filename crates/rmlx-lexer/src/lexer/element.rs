@@ -39,6 +39,8 @@ pub enum ElementToken {
 
     #[regex(r"[ \t\r]+")]
     Whitespace,
+
+    SyntaxError
 }
 
 impl Display for ElementToken {
@@ -55,6 +57,7 @@ impl Display for ElementToken {
             ElementToken::Comma => ",",
             ElementToken::NewLine => unreachable!(),
             ElementToken::Whitespace => unreachable!(),
+            ElementToken::SyntaxError => "error",
         };
 
         write!(f, "{str}")
@@ -103,7 +106,7 @@ impl TokenSimpleTypeProvider for ElementToken {
 
 pub(crate) fn element_callback(
     lex: &mut Lexer<SchemaStatement>,
-) -> Result<Vec<Token<ElementToken>>, Error> {
+) -> Vec<Token<ElementToken>> {
 
     let mut tokens = Vec::new();
     Token::push_with_advance(&mut tokens, ElementToken::Keyword, lex);
@@ -111,18 +114,18 @@ pub(crate) fn element_callback(
     let mut bracket_depth = 0;
     let mut inner = lex.clone().morph::<ElementToken>();
     while let Some(token) = inner.next() {
-        let kind = token?;
-        match kind {
+        match unwrap_or_continue!(token, &mut tokens, ElementToken::SyntaxError, &mut inner) {
             ElementToken::NewLine => inner.extras.new_line(),
-            ElementToken::Semicolon => push_and_break!(&mut tokens, kind, &mut inner),
+            ElementToken::Semicolon => push_and_break!(&mut tokens, ElementToken::Semicolon, &mut inner),
             ElementToken::Whitespace => inner.extras.advance(inner.span().len() as u32),
-            _ => {
+            kind => {
                 if let ElementToken::LeftCurlyBracket = &kind {
                     bracket_depth += 1;
                 }
                 else if let ElementToken::RightCurlyBracket = &kind {
                     if bracket_depth == 0 {
-                        return Err(Error::MissingOpeningBrace);
+                        Token::push_with_advance(&mut tokens, ElementToken::SyntaxError, &mut inner);
+                        return tokens;
                     }
                     bracket_depth -= 1;
                     if bracket_depth == 0 {
@@ -135,5 +138,5 @@ pub(crate) fn element_callback(
     }
 
     *lex = inner.morph();
-    Ok(tokens)
+    tokens
 }
