@@ -40,22 +40,19 @@ pub trait NamedStatement: PartialEq + Eq + Sized + Display {
 #[logos(error(Error, Error::from_lexer))]
 pub enum SchemaStatement {
     #[token("group", group_callback)]
-    Group(Vec<Token<GroupToken>>),
-
-    #[token("element", element_callback)]
-    Element(Vec<Token<ElementToken>>),
-
-    #[token("#", attribute_callback)]
-    Attribute(Vec<Token<AttributeToken>>),
+    Group(Vec<Token<GroupDefinitionToken>>),
 
     #[token("expression", expression_callback)]
     Expression(Vec<Token<ExpressionToken>>),
 
     #[token("enum", enum_callback)]
-    Enum(Vec<Token<EnumToken>>),
+    Enum(Vec<Token<EnumDefinitionToken>>),
 
-    #[token("struct", struct_callback)]
-    Struct(Vec<Token<StructToken>>),
+    #[regex("[a-zA-Z_][a-zA-Z0-9_]*", type_callback)]
+    Type(Vec<Token<TypeDefinitionToken>>),
+
+    #[token("#", attribute_callback)]
+    Attribute(Vec<Token<AttributeToken>>),
 
     #[token("use", use_callback)]
     Use(Vec<Token<UseToken>>),

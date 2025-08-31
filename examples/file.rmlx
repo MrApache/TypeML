@@ -1,4 +1,4 @@
-#use <uri:schema.rmlx>
+use <uri:schema.rmlx>
 
 expr Text -> Resource {
     Target: PlayerList,

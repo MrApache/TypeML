@@ -9,7 +9,7 @@ use std::fmt::Display;
 #[derive(Logos, Debug, PartialEq, Eq, Clone)]
 #[logos(extras = Position)]
 #[logos(error(Error, Error::from_lexer))]
-pub enum EnumToken {
+pub enum EnumDefinitionToken {
     Keyword,
 
     #[regex("[a-zA-Z_][a-zA-Z0-9_]*")]
@@ -42,27 +42,27 @@ pub enum EnumToken {
     SyntaxError,
 }
 
-impl Display for EnumToken {
+impl Display for EnumDefinitionToken {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         let str = match self {
-            EnumToken::Keyword => "enum",
-            EnumToken::Identifier => "identifier",
-            EnumToken::LeftCurlyBracket => "{",
-            EnumToken::RightCurlyBracket => "}",
-            EnumToken::LeftParenthesis => "(",
-            EnumToken::RightParenthesis => ")",
-            EnumToken::Comma => ",",
-            EnumToken::Attribute(_) => "attribute",
-            EnumToken::NewLine => unreachable!(),
-            EnumToken::Whitespace => unreachable!(),
-            EnumToken::SyntaxError => "error",
+            EnumDefinitionToken::Keyword => "enum",
+            EnumDefinitionToken::Identifier => "identifier",
+            EnumDefinitionToken::LeftCurlyBracket => "{",
+            EnumDefinitionToken::RightCurlyBracket => "}",
+            EnumDefinitionToken::LeftParenthesis => "(",
+            EnumDefinitionToken::RightParenthesis => ")",
+            EnumDefinitionToken::Comma => ",",
+            EnumDefinitionToken::Attribute(_) => "attribute",
+            EnumDefinitionToken::NewLine => unreachable!(),
+            EnumDefinitionToken::Whitespace => unreachable!(),
+            EnumDefinitionToken::SyntaxError => "error",
         };
 
         write!(f, "{str}")
     }
 }
 
-impl StatementTokens for EnumToken {
+impl StatementTokens for EnumDefinitionToken {
     fn keyword() -> &'static str {
         "enum"
     }
@@ -72,7 +72,7 @@ impl StatementTokens for EnumToken {
     }
 }
 
-impl TokenBodyStatement for EnumToken {
+impl TokenBodyStatement for EnumDefinitionToken {
     fn left_curly_bracket() -> Self {
         Self::LeftCurlyBracket
     }
@@ -82,28 +82,28 @@ impl TokenBodyStatement for EnumToken {
     }
 }
 
-impl NamedStatement for EnumToken {
+impl NamedStatement for EnumDefinitionToken {
     fn identifier() -> Self {
         Self::Identifier
     }
 }
 
-pub(crate) fn enum_callback(lex: &mut Lexer<SchemaStatement>) -> Vec<Token<EnumToken>> {
+pub(crate) fn enum_callback(lex: &mut Lexer<SchemaStatement>) -> Vec<Token<EnumDefinitionToken>> {
     let mut tokens = Vec::new();
-    Token::push_with_advance(&mut tokens, EnumToken::Keyword, lex);
+    Token::push_with_advance(&mut tokens, EnumDefinitionToken::Keyword, lex);
 
     let mut bracket_depth = 0;
-    let mut inner = lex.clone().morph::<EnumToken>();
+    let mut inner = lex.clone().morph::<EnumDefinitionToken>();
     while let Some(token) = inner.next() {
-        match unwrap_or_continue!(token, &mut tokens, EnumToken::SyntaxError, &mut inner) {
-            EnumToken::NewLine => inner.extras.new_line(),
-            EnumToken::Whitespace => inner.extras.advance(inner.span().len() as u32),
+        match unwrap_or_continue!(token, &mut tokens, EnumDefinitionToken::SyntaxError, &mut inner) {
+            EnumDefinitionToken::NewLine => inner.extras.new_line(),
+            EnumDefinitionToken::Whitespace => inner.extras.advance(inner.span().len() as u32),
             kind => {
-                if let EnumToken::LeftCurlyBracket = &kind {
+                if let EnumDefinitionToken::LeftCurlyBracket = &kind {
                     bracket_depth += 1;
-                } else if let EnumToken::RightCurlyBracket = &kind {
+                } else if let EnumDefinitionToken::RightCurlyBracket = &kind {
                     if bracket_depth == 0 {
-                        Token::push_with_advance(&mut tokens, EnumToken::SyntaxError, &mut inner);
+                        Token::push_with_advance(&mut tokens, EnumDefinitionToken::SyntaxError, &mut inner);
                         return tokens;
                     }
                     bracket_depth -= 1;

@@ -1,7 +1,7 @@
 use crate::{
     next_or_none, peek_or_none,
     ast::{Attribute, ParserContext},
-    GroupToken,
+    GroupDefinitionToken,
 };
 
 #[derive(Debug)]
@@ -25,7 +25,7 @@ impl Group {
     }
 }
 
-impl<'s> ParserContext<'s, GroupToken> {
+impl<'s> ParserContext<'s, GroupDefinitionToken> {
     pub fn parse(&mut self) -> Option<Group> {
         self.consume_keyword();
         let name = self.consume_type_name()?;
@@ -33,25 +33,25 @@ impl<'s> ParserContext<'s, GroupToken> {
         let t = peek_or_none!(self, "Expected ';' or '[' after identifier")?;
 
         match t.kind() {
-            GroupToken::Semicolon => {
+            GroupDefinitionToken::Semicolon => {
                 let t = next_or_none!(self).unwrap();
                 self.tokens.push(t.to_semantic_token(u32::MAX));
                 Some(Group::new(name, vec![]))
             }
-            GroupToken::LeftSquareBracket => {
+            GroupDefinitionToken::LeftSquareBracket => {
                 let groups = self.consume_array().unwrap_or_default();
 
                 let t = next_or_none!(self, "Expected ';' after group declaration")?;
                 match t.kind() {
-                    GroupToken::Semicolon => self.tokens.push(t.to_semantic_token(u32::MAX)),
-                    GroupToken::SyntaxError => self.report_error(t, "Syntax error"),
+                    GroupDefinitionToken::Semicolon => self.tokens.push(t.to_semantic_token(u32::MAX)),
+                    GroupDefinitionToken::SyntaxError => self.report_error(t, "Syntax error"),
                     kind =>  {
                         self.report_error(t, &format!("Expected ';' after group declaration, got {kind}"));
                     }
                 }
                 Some(Group::new(name, groups))
             }
-            GroupToken::SyntaxError => {
+            GroupDefinitionToken::SyntaxError => {
                 self.consume_error("Syntax error");
                 None
             }

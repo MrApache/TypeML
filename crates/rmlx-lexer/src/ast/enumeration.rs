@@ -1,6 +1,6 @@
 use crate::{
     ast::{Attribute, ParserContext},
-    next_or_none, peek_or_none, EnumToken,
+    next_or_none, peek_or_none, EnumDefinitionToken,
 };
 use lexer_utils::PARAMETER_TOKEN;
 
@@ -32,7 +32,7 @@ impl Enum {
     }
 }
 
-impl<'s> ParserContext<'s, EnumToken> {
+impl<'s> ParserContext<'s, EnumDefinitionToken> {
     pub fn parse(&mut self) -> Option<Enum> {
         self.consume_keyword();
         let enum_name = self.consume_type_name()?;
@@ -44,12 +44,12 @@ impl<'s> ParserContext<'s, EnumToken> {
         loop {
             let token = next_or_none!(self, "Unexpected end of tokens while parsing enum")?;
             match token.kind() {
-                EnumToken::RightCurlyBracket => {
+                EnumDefinitionToken::RightCurlyBracket => {
                     self.tokens.push(token.to_semantic_token(u32::MAX));
                     break;
                 }
 
-                EnumToken::Attribute(tokens) => {
+                EnumDefinitionToken::Attribute(tokens) => {
                     attributes = ParserContext::new(
                         tokens.iter().peekable(),
                         self.diagnostics,
@@ -60,12 +60,12 @@ impl<'s> ParserContext<'s, EnumToken> {
                     .unwrap_or_default();
                 }
 
-                EnumToken::Identifier => {
+                EnumDefinitionToken::Identifier => {
                     let name = token.slice(self.src).to_string();
                     self.tokens.push(token.to_semantic_token(PARAMETER_TOKEN));
 
                     let ty = if let Some(t) = self.iter.peek() {
-                        if t.kind() == &EnumToken::LeftParenthesis {
+                        if t.kind() == &EnumDefinitionToken::LeftParenthesis {
                             let t = next_or_none!(self).unwrap(); // съесть '('
                             self.tokens.push(t.to_semantic_token(u32::MAX));
 
@@ -73,10 +73,10 @@ impl<'s> ParserContext<'s, EnumToken> {
 
                             let t = next_or_none!(self, "Expected ')' after type")?;
                             match t.kind() {
-                                EnumToken::LeftParenthesis => {
+                                EnumDefinitionToken::RightParenthesis => {
                                     self.tokens.push(t.to_semantic_token(u32::MAX))
                                 }
-                                EnumToken::SyntaxError => self.report_error(t, "Syntax error"),
+                                EnumDefinitionToken::SyntaxError => self.report_error(t, "Syntax error"),
                                 kind => {
                                     self.report_error(t, &format!("Expected ')', got {kind}",));
                                 }
@@ -97,19 +97,19 @@ impl<'s> ParserContext<'s, EnumToken> {
 
                     if let Some(t) = peek_or_none!(self) {
                         match t.kind() {
-                            EnumToken::Comma => {
+                            EnumDefinitionToken::Comma => {
                                 let t = next_or_none!(self).unwrap();
                                 self.tokens.push(t.to_semantic_token(u32::MAX));
                             }
-                            EnumToken::RightCurlyBracket => continue, // конец enum, обработаем в начале цикла
-                            EnumToken::SyntaxError => self.consume_error("Syntax error"),
+                            EnumDefinitionToken::RightCurlyBracket => continue, // конец enum, обработаем в начале цикла
+                            EnumDefinitionToken::SyntaxError => self.consume_error("Syntax error"),
                             kind => {
                                 self.consume_error(&format!("Expected ',' or '}}', got {kind}"))
                             }
                         }
                     }
                 }
-                EnumToken::SyntaxError => self.report_error(token, "Syntax error"),
+                EnumDefinitionToken::SyntaxError => self.report_error(token, "Syntax error"),
                 kind => self.report_error(token, &format!("Expected variant, got {kind}")),
             }
         }

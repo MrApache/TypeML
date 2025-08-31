@@ -33,7 +33,7 @@ impl<'s> ParserContext<'s, AttributeToken> {
                     continue;
                 }
                 AttributeToken::RightSquareBracket => {
-                    self.tokens.push(name_token.to_semantic_token(u32::MAX));
+                    self.tokens.push(name_token.to_semantic_token(MACRO_TOKEN));
                     break;
                 }
                 AttributeToken::Identifier => {
@@ -59,6 +59,10 @@ impl<'s> ParserContext<'s, AttributeToken> {
                 }
                 AttributeToken::Comma => {
                     self.tokens.push(next.to_semantic_token(u32::MAX));
+                }
+                AttributeToken::RightSquareBracket => {
+                    self.tokens.push(next.to_semantic_token(MACRO_TOKEN));
+                    break;
                 }
                 AttributeToken::SyntaxError => self.report_error(next, "Syntax error"),
                 kind => {

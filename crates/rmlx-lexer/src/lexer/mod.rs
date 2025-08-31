@@ -1,18 +1,16 @@
 mod group;
 mod attribute;
-mod element;
 mod expression;
-mod r#use;
-mod structure;
 mod enumeration;
+mod r#use;
+mod r#type;
 
 pub use group::*;
 pub use attribute::*;
-pub use element::*;
 pub use expression::*;
-pub use r#use::*;
-pub use structure::*;
 pub use enumeration::*;
+pub use r#use::*;
+pub use r#type::*;
 
 use lexer_utils::Position;
 use logos::{Lexer, Logos};

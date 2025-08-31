@@ -1,18 +1,15 @@
 mod attribute;
-mod element;
 mod enumeration;
 mod expression;
 mod group;
-mod structure;
-mod use_statement;
+mod r#use;
+mod r#type;
 
 pub use attribute::*;
-pub use element::*;
 pub use enumeration::*;
 pub use expression::*;
 pub use group::*;
-pub use structure::*;
-pub use use_statement::*;
+pub use r#use::*;
 
 use crate::{
     utils::to_url, Error, NamedStatement, RmlxTokenStream, StatementTokens, TokenArrayProvider,
@@ -65,6 +62,20 @@ macro_rules! peek_or_none {
     }};
 }
 
+#[derive(Debug, Clone)]
+pub struct Field {
+    pub name: String,
+    pub ty: Type,
+}
+
+#[derive(Debug, Clone)]
+pub enum Type {
+    Simple(String),
+    Generic(String, String),
+    Array(Vec<String>),
+    Block(Vec<Field>),
+}
+
 pub struct ParserContext<'s, T: StatementTokens> {
     iter: Peekable<Iter<'s, Token<T>>>,
     diagnostics: &'s mut Vec<Diagnostic>,
@@ -92,15 +103,16 @@ impl<'s, T: StatementTokens> ParserContext<'s, T> {
         }
     }
 
-    pub fn consume_keyword(&mut self) {
-        self.consume_keyword_with_token_type(KEYWORD_TOKEN);
+    pub fn consume_keyword(&mut self) -> &str {
+        self.consume_keyword_with_token_type(KEYWORD_TOKEN)
     }
 
-    pub fn consume_keyword_with_token_type(&mut self, token_type: u32) {
+    pub fn consume_keyword_with_token_type(&mut self, token_type: u32) -> &str {
         let keyword = self.iter.next().unwrap();
         self.tokens.push(keyword.to_semantic_token(token_type));
         self.statement_range = keyword.range();
         self.previous_token_range = self.statement_range;
+        keyword.slice(self.src)
     }
 
     pub fn consume_parameter(&mut self) -> Option<String> {
@@ -305,8 +317,7 @@ pub struct SchemaAst {
     includes: Vec<Url>,
     enums: Vec<Enum>,
     groups: Vec<Group>,
-    structs: Vec<Struct>,
-    elements: Vec<Element>,
+    types: Vec<r#type::Type>,
     expressions: Vec<Expression>,
 
     pub tokens: Vec<SemanticToken>,
@@ -375,20 +386,6 @@ impl SchemaAst {
                         schema.enums.push(enumeration);
                     }
                 }
-                crate::SchemaStatement::Struct(tokens) => {
-                    let structure = ParserContext::new(
-                        tokens.iter().peekable(),
-                        &mut schema.diagnostics,
-                        &mut schema.tokens,
-                        content,
-                    )
-                    .parse();
-
-                    if let Some(mut structure) = structure {
-                        structure.set_attributes(std::mem::take(&mut attributes));
-                        schema.structs.push(structure);
-                    }
-                }
                 crate::SchemaStatement::Use(tokens) => {
                     let using = ParserContext::new(
                         tokens.iter().peekable(),
@@ -402,8 +399,8 @@ impl SchemaAst {
                         schema.includes.push(to_url(file, &using.path).unwrap());
                     }
                 }
-                crate::SchemaStatement::Element(tokens) => {
-                    let element = ParserContext::new(
+                crate::SchemaStatement::Type(tokens) => {
+                    let r#type = ParserContext::new(
                         tokens.iter().peekable(),
                         &mut schema.diagnostics,
                         &mut schema.tokens,
@@ -411,22 +408,22 @@ impl SchemaAst {
                     )
                     .parse();
 
-                    if let Some(mut element) = element {
-                        element.set_attributes(std::mem::take(&mut attributes));
-                        schema.elements.push(element);
+                    if let Some(mut r#type) = r#type {
+                        r#type.set_attributes(std::mem::take(&mut attributes));
+                        schema.types.push(r#type);
                     }
                 }
-                crate::SchemaStatement::NewLine => {}
-                crate::SchemaStatement::Whitespace => {}
                 crate::SchemaStatement::SyntaxError(token) => {
                     schema.diagnostics.push(Diagnostic {
                         range: token.range(),
                         severity: Some(DiagnosticSeverity::ERROR),
-                        message: "Syntax Error: Error".to_string(),
+                        message: "Syntax error".to_string(),
                         ..Default::default()
                     });
                     schema.tokens.push(token.to_semantic_token(u32::MAX));
                 }
+                crate::SchemaStatement::NewLine => {}
+                crate::SchemaStatement::Whitespace => {}
             }
         }
 

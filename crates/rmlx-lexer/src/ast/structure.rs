@@ -1,3 +1,4 @@
+/*
 use crate::{next_or_none, peek_or_none, StructToken};
 use crate::ast::{Attribute, ParserContext};
 
@@ -22,19 +23,6 @@ impl Struct {
     }
 }
 
-#[derive(Debug, Clone)]
-pub struct Field {
-    pub name: String,
-    pub ty: Type,
-}
-
-#[derive(Debug, Clone)]
-pub enum Type {
-    Simple(String),
-    Generic(String, String),
-    Array(Vec<String>),
-    Block(Vec<Field>),
-}
 
 impl<'s> ParserContext<'s, StructToken> {
     pub fn parse(&mut self) -> Option<Struct> {
@@ -46,6 +34,10 @@ impl<'s> ParserContext<'s, StructToken> {
         loop {
             let next = peek_or_none!(self, "Unexpected end of token stream in struct body")?;
             match next.kind() {
+                StructToken::Semicolon => {
+                    let next = next_or_none!(self).unwrap();
+                    self.tokens.push(next.to_semantic_token(u32::MAX));
+                }
                 StructToken::RightCurlyBracket => {
                     let next = next_or_none!(self).unwrap();
                     self.tokens.push(next.to_semantic_token(u32::MAX));
@@ -73,3 +65,5 @@ impl<'s> ParserContext<'s, StructToken> {
         Some(Struct::new(name, fields))
     }
 }
+
+*/
