@@ -314,11 +314,11 @@ where
 
 #[derive(Default, Debug)]
 pub struct SchemaAst {
-    includes: Vec<Url>,
-    enums: Vec<Enum>,
-    groups: Vec<Group>,
-    types: Vec<r#type::Type>,
-    expressions: Vec<Expression>,
+    pub(crate) includes: Vec<Url>,
+    pub(crate) enums: Vec<Enum>,
+    pub(crate) groups: Vec<Group>,
+    pub(crate) types: Vec<r#type::Type>,
+    pub(crate) expressions: Vec<Expression>,
 
     pub tokens: Vec<SemanticToken>,
     pub diagnostics: Vec<Diagnostic>,
