@@ -2,7 +2,7 @@ use std::fmt::Display;
 
 use lexer_utils::*;
 use logos::{Lexer, Logos};
-use crate::{Error, SchemaStatement, TokenDefinition};
+use crate::{Error, SchemaStatement, StatementTokens};
 
 #[derive(Logos, Debug, PartialEq, Eq, Clone)]
 #[logos(extras = Position)]
@@ -33,7 +33,7 @@ impl Display for UseToken {
     }
 }
 
-impl TokenDefinition for UseToken {
+impl StatementTokens for UseToken {
     fn keyword() -> &'static str {
         "use"
     }

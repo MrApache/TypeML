@@ -2,7 +2,7 @@ use std::fmt::Display;
 
 use lexer_utils::*;
 use logos::{Lexer, Logos};
-use crate::{attribute_callback, AttributeToken, Error, NamedStatement, SchemaStatement, TokenBodyStatement, TokenDefinition};
+use crate::{attribute_callback, AttributeToken, Error, NamedStatement, SchemaStatement, TokenBodyStatement, StatementTokens};
 
 #[derive(Logos, Debug, PartialEq, Eq, Clone)]
 #[logos(extras = Position)]
@@ -57,7 +57,7 @@ impl Display for EnumToken {
     }
 }
 
-impl TokenDefinition for EnumToken {
+impl StatementTokens for EnumToken {
     fn keyword() -> &'static str {
         "enum"
     }

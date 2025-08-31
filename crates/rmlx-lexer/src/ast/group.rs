@@ -1,6 +1,6 @@
 use crate::{
     next_or_none, peek_or_none,
-    semantic::{Attribute, ParserContext},
+    ast::{Attribute, ParserContext},
     GroupToken,
 };
 
@@ -41,7 +41,6 @@ impl<'s> ParserContext<'s, GroupToken> {
             GroupToken::LeftSquareBracket => {
                 let groups = self.consume_array().unwrap_or_default();
 
-                // после `]` обязательно `;`
                 let t = next_or_none!(self, "Expected ';' after group declaration")?;
                 if t.kind() != &GroupToken::Semicolon {
                     self.create_error_message(format!(

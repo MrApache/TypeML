@@ -1,5 +1,5 @@
 use crate::{next_or_none, peek_or_none, StructToken};
-use crate::semantic::{Attribute, ParserContext};
+use crate::ast::{Attribute, ParserContext};
 
 #[derive(Debug)]
 pub struct Struct {

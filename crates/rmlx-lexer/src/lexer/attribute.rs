@@ -2,7 +2,7 @@ use std::fmt::Display;
 
 use lexer_utils::*;
 use logos::{Lexer, Logos};
-use crate::{Error, TokenDefinition};
+use crate::{Error, StatementTokens};
 
 #[derive(Logos, Debug, PartialEq, Eq, Clone)]
 #[logos(extras = Position)]
@@ -49,7 +49,7 @@ impl Display for AttributeToken {
     }
 }
 
-impl TokenDefinition for AttributeToken {
+impl StatementTokens for AttributeToken {
     fn keyword() -> &'static str {
         "#"
     }
@@ -117,7 +117,7 @@ impl Display for ContentToken {
     }
 }
 
-impl TokenDefinition for ContentToken {
+impl StatementTokens for ContentToken {
     fn keyword() -> &'static str {
         "("
     }

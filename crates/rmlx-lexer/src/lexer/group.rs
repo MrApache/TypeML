@@ -1,9 +1,7 @@
-use std::fmt::Display;
-
+use crate::{Error, NamedStatement, SchemaStatement, StatementTokens, TokenArrayProvider};
 use lexer_utils::{push_and_break, Position, Token};
 use logos::{Lexer, Logos};
-
-use crate::{Error, NamedStatement, SchemaStatement, TokenArrayProvider, TokenDefinition};
+use std::fmt::Display;
 
 #[derive(Logos, Debug, PartialEq, Eq, Clone)]
 #[logos(extras = Position)]
@@ -50,7 +48,7 @@ impl Display for GroupToken {
     }
 }
 
-impl TokenDefinition for GroupToken {
+impl StatementTokens for GroupToken {
     fn keyword() -> &'static str {
         "group"
     }

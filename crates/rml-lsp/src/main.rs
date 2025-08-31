@@ -2,7 +2,7 @@ mod parser;
 mod schema;
 
 use rml_lexer::{MarkupTokens, RmlTokenStream};
-use rmlx_lexer::{RmlxTokenStream, SchemaModel};
+use rmlx_lexer::{RmlxTokenStream, SchemaAst};
 use std::collections::HashMap;
 use std::path::Path;
 use std::sync::{Arc, RwLock};
@@ -14,13 +14,13 @@ use tower_lsp::{Client, LanguageServer, LspService, Server};
 struct Backend {
     client: Client,
 
-    schemas: RwLock<HashMap<Url, SchemaModel>>, //RMLX files
+    schemas: RwLock<HashMap<Url, SchemaAst>>, //RMLX files
     workspaces: RwLock<HashMap<Url, Workspace>>,      //RML  files
 }
 
 #[derive(Debug)]
 struct Workspace {
-    references: Vec<Arc<SchemaModel>>,
+    references: Vec<Arc<SchemaAst>>,
     content: String,
     tokens: Vec<MarkupTokens>,
 }
@@ -162,7 +162,7 @@ impl LanguageServer for Backend {
                 if tokens.is_err() {
                     panic!("Error: {:#?}", tokens.err());
                 }
-                let mut model = SchemaModel::new(uri.path(), &params.text_document.text).unwrap();
+                let mut model = SchemaAst::new(uri.path(), &params.text_document.text).unwrap();
                 self.client.publish_diagnostics(uri.clone(), std::mem::take(&mut model.diagnostics), None).await;
                 let mut schemas = self.schemas.write().unwrap();
                 schemas.insert(
@@ -197,7 +197,7 @@ impl LanguageServer for Backend {
             }
             "rmlx" => {
                 let text = params.content_changes.last().unwrap().text.clone(); //TODO fix
-                let mut schema = SchemaModel::new(uri.path(), &text).unwrap();
+                let mut schema = SchemaAst::new(uri.path(), &text).unwrap();
                 self.client.publish_diagnostics(uri.clone(), std::mem::take(&mut schema.diagnostics), None).await;
                 let mut write = self.schemas.write().unwrap();
                 write.insert(uri, schema).unwrap();

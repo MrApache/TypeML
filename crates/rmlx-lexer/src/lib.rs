@@ -1,16 +1,15 @@
-mod context;
-mod semantic_model;
-mod semantic;
+mod ast;
+mod lexer;
+mod utils;
 
-pub use context::*;
-pub use semantic_model::*;
-pub use semantic::*;
+pub use ast::*;
+pub use lexer::*;
 
 use std::fmt::Display;
 use logos::{Lexer, Logos};
 use lexer_utils::*;
 
-pub trait TokenDefinition: PartialEq + Eq + Sized + Display {
+pub trait StatementTokens: PartialEq + Eq + Sized + Display {
     fn keyword() -> &'static str;
     fn keyword_token() -> Self;
 }

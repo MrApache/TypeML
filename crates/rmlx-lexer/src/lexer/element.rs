@@ -1,13 +1,13 @@
 use std::fmt::Display;
 
-use crate::{Error, NamedStatement, SchemaStatement, TokenBodyStatement, TokenDefinition, TokenSimpleTypeProvider};
 use lexer_utils::*;
 use logos::{Lexer, Logos};
+use crate::{Error, NamedStatement, SchemaStatement, TokenBodyStatement, StatementTokens, TokenSimpleTypeProvider};
 
 #[derive(Logos, Debug, PartialEq, Eq, Clone)]
 #[logos(extras = Position)]
 #[logos(error(Error, Error::from_lexer))]
-pub enum StructToken {
+pub enum ElementToken {
     Keyword,
 
     #[regex("[a-zA-Z_][a-zA-Z0-9_]*")]
@@ -31,6 +31,9 @@ pub enum StructToken {
     #[token(":")]
     Colon,
 
+    #[token(";")]
+    Semicolon,
+
     #[token(",")]
     Comma,
 
@@ -38,9 +41,29 @@ pub enum StructToken {
     Whitespace,
 }
 
-impl TokenDefinition for StructToken {
+impl Display for ElementToken {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        let str = match self {
+            ElementToken::Keyword => "element",
+            ElementToken::Identifier => "identifier",
+            ElementToken::LeftCurlyBracket => "{",
+            ElementToken::RightCurlyBracket => "}",
+            ElementToken::LeftAngleBracket => "<",
+            ElementToken::RightAngleBracket => ">",
+            ElementToken::Colon => ":",
+            ElementToken::Semicolon => ";",
+            ElementToken::Comma => ",",
+            ElementToken::NewLine => unreachable!(),
+            ElementToken::Whitespace => unreachable!(),
+        };
+
+        write!(f, "{str}")
+    }
+}
+
+impl StatementTokens for ElementToken {
     fn keyword() -> &'static str {
-        "struct"
+        "element"
     }
 
     fn keyword_token() -> Self {
@@ -48,7 +71,7 @@ impl TokenDefinition for StructToken {
     }
 }
 
-impl TokenBodyStatement for StructToken {
+impl TokenBodyStatement for ElementToken {
     fn left_curly_bracket() -> Self {
         Self::LeftCurlyBracket
     }
@@ -58,7 +81,13 @@ impl TokenBodyStatement for StructToken {
     }
 }
 
-impl TokenSimpleTypeProvider for StructToken {
+impl NamedStatement for ElementToken {
+    fn identifier() -> Self {
+        Self::Identifier
+    }
+}
+
+impl TokenSimpleTypeProvider for ElementToken {
     fn colon() -> Self {
         Self::Colon
     }
@@ -72,47 +101,26 @@ impl TokenSimpleTypeProvider for StructToken {
     }
 }
 
-impl NamedStatement for StructToken {
-    fn identifier() -> Self {
-        Self::Identifier
-    }
-}
-
-impl Display for StructToken {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        let str = match self {
-            StructToken::Keyword => "struct",
-            StructToken::Identifier => "identifier",
-            StructToken::LeftCurlyBracket => "{",
-            StructToken::RightCurlyBracket => "}",
-            StructToken::LeftAngleBracket => "<",
-            StructToken::RightAngleBracket => ">",
-            StructToken::Colon => ";",
-            StructToken::Comma => ",",
-            StructToken::NewLine => unreachable!(),
-            StructToken::Whitespace => unreachable!(),
-        };
-        write!(f, "{str}")
-    }
-}
-
-pub(crate) fn struct_callback(
+pub(crate) fn element_callback(
     lex: &mut Lexer<SchemaStatement>,
-) -> Result<Vec<Token<StructToken>>, Error> {
+) -> Result<Vec<Token<ElementToken>>, Error> {
+
     let mut tokens = Vec::new();
-    Token::push_with_advance(&mut tokens, StructToken::Keyword, lex);
+    Token::push_with_advance(&mut tokens, ElementToken::Keyword, lex);
 
     let mut bracket_depth = 0;
-    let mut inner = lex.clone().morph::<StructToken>();
+    let mut inner = lex.clone().morph::<ElementToken>();
     while let Some(token) = inner.next() {
         let kind = token?;
         match kind {
-            StructToken::NewLine => inner.extras.new_line(),
-            StructToken::Whitespace => inner.extras.advance(inner.span().len() as u32),
+            ElementToken::NewLine => inner.extras.new_line(),
+            ElementToken::Semicolon => push_and_break!(&mut tokens, kind, &mut inner),
+            ElementToken::Whitespace => inner.extras.advance(inner.span().len() as u32),
             _ => {
-                if let StructToken::LeftCurlyBracket = &kind {
+                if let ElementToken::LeftCurlyBracket = &kind {
                     bracket_depth += 1;
-                } else if let StructToken::RightCurlyBracket = &kind {
+                }
+                else if let ElementToken::RightCurlyBracket = &kind {
                     if bracket_depth == 0 {
                         return Err(Error::MissingOpeningBrace);
                     }

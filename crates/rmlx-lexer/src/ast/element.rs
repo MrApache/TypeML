@@ -1,6 +1,6 @@
 use crate::{
     next_or_none, peek_or_none,
-    semantic::{Attribute, Field, ParserContext},
+    ast::{Attribute, Field, ParserContext},
     ElementToken,
 };
 

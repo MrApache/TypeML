@@ -1,5 +1,5 @@
 use lexer_utils::STRING_TOKEN;
-use crate::{next_or_none, semantic::ParserContext, UseToken};
+use crate::{next_or_none, ast::ParserContext, UseToken};
 
 pub struct Use {
     pub path: String,

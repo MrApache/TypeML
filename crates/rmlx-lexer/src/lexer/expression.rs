@@ -1,6 +1,6 @@
 use std::fmt::Display;
 
-use crate::{Error, NamedStatement, SchemaStatement, TokenArrayProvider, TokenBodyStatement, TokenDefinition, TokenSimpleTypeProvider};
+use crate::{Error, NamedStatement, SchemaStatement, TokenArrayProvider, TokenBodyStatement, StatementTokens, TokenSimpleTypeProvider};
 use lexer_utils::*;
 use logos::{Lexer, Logos};
 
@@ -65,7 +65,7 @@ impl Display for ExpressionToken {
     }
 }
 
-impl TokenDefinition for ExpressionToken {
+impl StatementTokens for ExpressionToken {
     fn keyword() -> &'static str {
         "expression"
     }

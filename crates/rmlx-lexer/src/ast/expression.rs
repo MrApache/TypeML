@@ -1,4 +1,4 @@
-use crate::{peek_or_none, semantic::{Field, ParserContext, Type}, ExpressionToken};
+use crate::{peek_or_none, ast::{Field, ParserContext, Type}, ExpressionToken};
 
 #[derive(Debug)]
 pub struct Expression {

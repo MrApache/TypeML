@@ -1,5 +1,5 @@
 use crate::{
-    next_or_none, peek_or_none, semantic::{Attribute, ParserContext}, EnumToken
+    next_or_none, peek_or_none, ast::{Attribute, ParserContext}, EnumToken
 };
 use lexer_utils::PARAMETER_TOKEN;
 
