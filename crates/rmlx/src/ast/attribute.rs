@@ -99,13 +99,6 @@ impl ParserContext<'_, ContentToken> {
             }
         };
 
-        let t = next_or_none!(self, "Expected ')'")?;
-        match t.kind() {
-            ContentToken::RightParenthesis => self.tokens.push(t.to_semantic_token(u32::MAX)),
-            ContentToken::SyntaxError => self.report_error(t, "Syntax error"),
-            kind => self.report_error(t, &format!("Expected ')', got {kind}")),
-        }
-
         self.consume_right_par()?;
 
         Some(result_text.to_string())
