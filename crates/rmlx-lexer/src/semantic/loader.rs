@@ -1,6 +1,6 @@
-use std::path::Path;
-use url::Url;
 use reqwest::StatusCode;
+use std::{ffi::OsStr, path::Path};
+use url::Url;
 
 #[derive(thiserror::Error, Debug)]
 pub enum LoadError {
@@ -31,12 +31,10 @@ pub enum LoadError {
 pub async fn load_rmlx(url: &Url) -> Result<String, LoadError> {
     match url.scheme() {
         "http" | "https" => load_remote_rmlx(url).await,
-        "file" => {
-            match url.to_file_path() {
-                Ok(path_buf) => load_local_path(&path_buf).await,
-                Err(_) => Err(LoadError::InvalidUrl(url.to_string())),
-            }
-        }
+        "file" => match url.to_file_path() {
+            Ok(path_buf) => load_local_path(&path_buf).await,
+            Err(()) => Err(LoadError::InvalidUrl(url.to_string())),
+        },
         _ => {
             // трактуем как локальный путь (например, "C:\..." на Windows без схемы невалиден)
             let path = Path::new(url.as_str());
@@ -63,7 +61,7 @@ async fn load_local_path(path: &Path) -> Result<String, LoadError> {
 async fn load_remote_rmlx(url: &Url) -> Result<String, LoadError> {
     //let url = Url::parse(url_str).map_err(|_| LoadError::InvalidUrl(url_str.to_string()))?;
     // Попробуем выяснить расширение из пути URL
-    if has_rmlx_extension_in_url_path(&url) {
+    if has_rmlx_extension_in_url_path(url) {
         // Проведём сначала HEAD, чтобы убедиться, что ресурс доступен
         let client = reqwest::Client::new();
         let head_resp = client.head(url.clone()).send().await;
@@ -132,16 +130,15 @@ async fn load_remote_rmlx(url: &Url) -> Result<String, LoadError> {
         if let Some(fname) = filename_opt {
             if Path::new(&fname)
                 .extension()
-                .and_then(|s| s.to_str())
-                .map(|s| s.eq_ignore_ascii_case("rmlx"))
-                .unwrap_or(false)
+                .and_then(OsStr::to_str)
+                .is_some_and(|s| s.eq_ignore_ascii_case("rmlx"))
             {
                 // получили тело как текст
                 let text = resp.text().await?;
                 return Ok(text);
-            } else {
-                return Err(LoadError::WrongExtension);
             }
+
+            return Err(LoadError::WrongExtension);
         }
 
         // если ни в URL ни в Content-Disposition нет расширения — откажемся
@@ -154,9 +151,8 @@ fn has_rmlx_extension_in_url_path(url: &Url) -> bool {
     let path = url.path(); // e.g. "/dir/file.rmlx"
     Path::new(path)
         .extension()
-        .and_then(|s| s.to_str())
-        .map(|s| s.eq_ignore_ascii_case("rmlx"))
-        .unwrap_or(false)
+        .and_then(OsStr::to_str)
+        .is_some_and(|s| s.eq_ignore_ascii_case("rmlx"))
 }
 
 /// Простая вычитка имени файла из Content-Disposition
@@ -170,12 +166,11 @@ fn extract_filename_from_content_disposition(cd: &str) -> Option<String> {
         let tail = &cd[start..];
         // убрать пробелы
         let tail = tail.trim_start();
-        if tail.starts_with('"') {
-            if let Some(end) = tail[1..].find('"') {
-                return Some(tail[1..1 + end].to_string());
+        if let Some(rest) = tail.strip_prefix('"') {
+            if let Some(end) = rest.find('"') {
+                return Some(rest[..end].to_string());
             }
         } else {
-            // до ';' или конца
             let end = tail.find(';').unwrap_or(tail.len());
             return Some(tail[..end].trim().to_string());
         }

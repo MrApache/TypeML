@@ -2,7 +2,7 @@ use crate::{
     Error, NamedStatement, SchemaStatement, StatementTokens, TokenBodyStatement,
     TokenSimpleTypeProvider,
 };
-use lexer_utils::*;
+use lexer_utils::{push_and_break, unwrap_or_continue, Position, Token};
 use logos::{Lexer, Logos};
 use std::fmt::Display;
 
@@ -26,6 +26,9 @@ pub enum TypeDefinitionToken {
 
     #[token(">")]
     RightAngleBracket,
+
+    #[token("-")]
+    Dash,
 
     #[token("\n")]
     NewLine,
@@ -55,10 +58,11 @@ impl Display for TypeDefinitionToken {
             TypeDefinitionToken::LeftAngleBracket => "<",
             TypeDefinitionToken::RightAngleBracket => ">",
             TypeDefinitionToken::Colon => ":",
-            TypeDefinitionToken::Semicolon => ";",
             TypeDefinitionToken::Comma => ",",
-            TypeDefinitionToken::NewLine => unreachable!(),
-            TypeDefinitionToken::Whitespace => unreachable!(),
+            TypeDefinitionToken::Dash => "-",
+            TypeDefinitionToken::Semicolon => ";",
+            TypeDefinitionToken::NewLine => "newline",
+            TypeDefinitionToken::Whitespace => "whitespace",
             TypeDefinitionToken::SyntaxError => "syntax error",
         };
 
@@ -113,7 +117,12 @@ pub(crate) fn type_callback(lex: &mut Lexer<SchemaStatement>) -> Vec<Token<TypeD
     let mut bracket_depth = 0;
     let mut inner = lex.clone().morph::<TypeDefinitionToken>();
     while let Some(token) = inner.next() {
-        match unwrap_or_continue!(token, &mut tokens, TypeDefinitionToken::SyntaxError, &mut inner) {
+        match unwrap_or_continue!(
+            token,
+            &mut tokens,
+            TypeDefinitionToken::SyntaxError,
+            &mut inner
+        ) {
             TypeDefinitionToken::NewLine => inner.extras.new_line(),
             TypeDefinitionToken::Semicolon => {
                 push_and_break!(&mut tokens, TypeDefinitionToken::Semicolon, &mut inner)
@@ -136,7 +145,7 @@ pub(crate) fn type_callback(lex: &mut Lexer<SchemaStatement>) -> Vec<Token<TypeD
                         push_and_break!(&mut tokens, kind, &mut inner);
                     }
                 }
-                Token::push_with_advance(&mut tokens, kind, &mut inner)
+                Token::push_with_advance(&mut tokens, kind, &mut inner);
             }
         }
     }

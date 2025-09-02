@@ -1,3 +1,5 @@
+#![allow(clippy::cast_possible_truncation)]
+
 use logos::{Lexer, Logos, Source, Span};
 use tower_lsp::lsp_types::{Position as LspPosition, Range, SemanticToken};
 
@@ -74,6 +76,7 @@ impl Position {
         self.current_column += length;
     }
 
+    #[must_use]
     pub const fn new_range(&self, length: u32) -> Range {
         Range {
             start: LspPosition {

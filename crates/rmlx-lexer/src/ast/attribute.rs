@@ -7,7 +7,7 @@ pub struct Attribute {
     content: Option<String>,
 }
 
-impl<'s> ParserContext<'s, AttributeToken> {
+impl ParserContext<'_, AttributeToken> {
     pub fn parse(&mut self) -> Option<Vec<Attribute>> {
         self.consume_keyword_with_token_type(MACRO_TOKEN);
 
@@ -37,7 +37,7 @@ impl<'s> ParserContext<'s, AttributeToken> {
                     break;
                 }
                 AttributeToken::Identifier => {
-                    self.tokens.push(name_token.to_semantic_token(MACRO_TOKEN))
+                    self.tokens.push(name_token.to_semantic_token(MACRO_TOKEN));
                 }
                 AttributeToken::SyntaxError => self.report_error(name_token, "Syntax error"),
                 kind => self.report_error(name_token, &format!("Expected identifier, got {kind}")),
@@ -66,7 +66,7 @@ impl<'s> ParserContext<'s, AttributeToken> {
                 }
                 AttributeToken::SyntaxError => self.report_error(next, "Syntax error"),
                 kind => {
-                    self.report_error(next, &format!("Unexpected token after identifier: {kind}"))
+                    self.report_error(next, &format!("Unexpected token after identifier: {kind}"));
                 }
             }
         }
@@ -75,7 +75,7 @@ impl<'s> ParserContext<'s, AttributeToken> {
     }
 }
 
-impl<'s> ParserContext<'s, ContentToken> {
+impl ParserContext<'_, ContentToken> {
     pub fn parse(&mut self) -> Option<String> {
         self.consume_keyword_with_token_type(u32::MAX);
 

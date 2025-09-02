@@ -1,5 +1,5 @@
 use crate::{Error, StatementTokens};
-use lexer_utils::*;
+use lexer_utils::{push_and_break, unwrap_or_continue, Position, Token};
 use logos::{Lexer, Logos};
 use std::fmt::Display;
 
@@ -30,7 +30,7 @@ pub enum AttributeToken {
     #[token("(", content_callback)]
     Content(Vec<Token<ContentToken>>),
 
-    SyntaxError
+    SyntaxError,
 }
 
 impl Display for AttributeToken {
@@ -42,8 +42,8 @@ impl Display for AttributeToken {
             AttributeToken::LeftSquareBracket => "[",
             AttributeToken::RightSquareBracket => "]",
             AttributeToken::Comma => ",",
-            AttributeToken::NewLine => unreachable!(),
-            AttributeToken::Whitespace => unreachable!(),
+            AttributeToken::NewLine => "newline",
+            AttributeToken::Whitespace => "whitespace",
             AttributeToken::SyntaxError => "error",
         };
 
@@ -63,7 +63,7 @@ impl StatementTokens for AttributeToken {
 
 pub(crate) fn attribute_callback<'source, T>(
     lex: &mut Lexer<'source, T>,
-) -> Result<Vec<Token<AttributeToken>>, Error>
+) -> Vec<Token<AttributeToken>>
 where
     T: Logos<'source, Extras = Position, Source = str>,
     T: Clone,
@@ -84,7 +84,7 @@ where
     }
 
     *lex = inner.morph();
-    Ok(tokens)
+    tokens
 }
 
 #[derive(Logos, Debug, PartialEq, Eq, Clone)]
@@ -115,7 +115,7 @@ impl Display for ContentToken {
             ContentToken::String => "string",
             ContentToken::LeftParenthesis => "(",
             ContentToken::RightParenthesis => ")",
-            ContentToken::NewLine => unreachable!(),
+            ContentToken::NewLine => "newline",
             ContentToken::SyntaxError => "error",
         };
 
@@ -133,7 +133,7 @@ impl StatementTokens for ContentToken {
     }
 }
 
-fn content_callback(lex: &mut Lexer<AttributeToken>) -> Result<Vec<Token<ContentToken>>, Error> {
+fn content_callback(lex: &mut Lexer<AttributeToken>) -> Vec<Token<ContentToken>> {
     let mut tokens = Vec::new();
     Token::push_with_advance(&mut tokens, ContentToken::LeftParenthesis, lex);
 
@@ -141,11 +141,13 @@ fn content_callback(lex: &mut Lexer<AttributeToken>) -> Result<Vec<Token<Content
     while let Some(token) = inner.next() {
         match unwrap_or_continue!(token, &mut tokens, ContentToken::SyntaxError, &mut inner) {
             ContentToken::NewLine => inner.extras.new_line(),
-            ContentToken::RightParenthesis => push_and_break!(&mut tokens, ContentToken::RightParenthesis, &mut inner),
+            ContentToken::RightParenthesis => {
+                push_and_break!(&mut tokens, ContentToken::RightParenthesis, &mut inner)
+            }
             kind => Token::push_with_advance(&mut tokens, kind, &mut inner),
         }
     }
 
     *lex = inner.morph();
-    Ok(tokens)
+    tokens
 }

@@ -17,7 +17,7 @@ pub fn to_url(base: impl AsRef<Path>, input: &str) -> Result<Url, String> {
 
     let normalized = normalize_path(&abs_path);
 
-    Url::from_file_path(&normalized).map_err(|_| format!("Invalid path: {}", normalized.display()))
+    Url::from_file_path(&normalized).map_err(|()| format!("Invalid path: {}", normalized.display()))
 }
 
 fn normalize_path(path: &Path) -> PathBuf {

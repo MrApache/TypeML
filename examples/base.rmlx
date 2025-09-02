@@ -1,24 +1,26 @@
-group Template[Container];
+@namespace <base>
 
-#[Min(1), Max(1)]
-group Root[Container, Component];
+#[Description("Component")]
+extend group Component;
 
-group Container[Component, Template];
+#[Description("Entity")]
+group Container
+| unique Component*
+| Container?
+| Template?;
 
-#[Extend, Min(0), Max(1)]
-group Component;
+#[Description("Main group")]
+group Root[1]
+| unique Component*
+| Container?;
 
-#[Group(Root)]
-element Layout;
+#[Description("Template")]
+group Template
+| Container[1];
 
-#[Group(Component)]
-element Component;
-
-#[Group(Template)]
-element ItemTemplate;
-
-#[Group(Template)]
-element Test {
+element Layout -> Root;
+element ItemTemplate -> Template;
+element Test -> Template {
     target: String,
     path:   String,
 }

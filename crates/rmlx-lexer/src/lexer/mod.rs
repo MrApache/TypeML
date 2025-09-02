@@ -2,7 +2,7 @@ mod group;
 mod attribute;
 mod expression;
 mod enumeration;
-mod r#use;
+mod directive;
 mod r#type;
 
 use std::fmt::Display;
@@ -10,7 +10,7 @@ pub use group::*;
 pub use attribute::*;
 pub use expression::*;
 pub use enumeration::*;
-pub use r#use::*;
+pub use directive::*;
 pub use r#type::*;
 
 use lexer_utils::{Position, Token};
@@ -73,6 +73,9 @@ pub trait NamedStatement: PartialEq + Eq + Sized + Display {
 #[logos(extras = Position)]
 #[logos(error(Error, Error::from_lexer))]
 pub enum SchemaStatement {
+    #[token("extend group", group_callback)]
+    ExtendGroup(Vec<Token<GroupDefinitionToken>>),
+
     #[token("group", group_callback)]
     Group(Vec<Token<GroupDefinitionToken>>),
 
@@ -88,8 +91,8 @@ pub enum SchemaStatement {
     #[token("#", attribute_callback)]
     Attribute(Vec<Token<AttributeToken>>),
 
-    #[token("use", use_callback)]
-    Use(Vec<Token<UseToken>>),
+    #[token("@", directive_callback)]
+    Directive(Vec<Token<DirectiveToken>>),
 
     #[token("\n")]
     NewLine,
@@ -105,6 +108,7 @@ pub struct RmlxTokenStream<'a> {
 }
 
 impl<'a> RmlxTokenStream<'a> {
+    #[must_use]
     pub fn new(content: &'a str) -> Self {
         Self {
             inner: SchemaStatement::lexer(content),
@@ -126,6 +130,7 @@ impl<'a> RmlxTokenStream<'a> {
         None
     }
 
+    #[must_use]
     pub fn to_vec(mut self) -> Vec<SchemaStatement> {
         let mut vec = vec![];
         while let Some(token) = self.next_token() {

@@ -2,7 +2,7 @@ mod parser;
 mod schema;
 
 use rml_lexer::{MarkupTokens, RmlTokenStream};
-use rmlx_lexer::{RmlxTokenStream, SchemaAst};
+use rmlx_lexer::SchemaAst;
 use std::collections::HashMap;
 use std::path::Path;
 use std::sync::{Arc, RwLock};
@@ -157,7 +157,7 @@ impl LanguageServer for Backend {
                 );
             }
             "rmlx" => {
-                let mut model = SchemaAst::new(uri.path(), &params.text_document.text).unwrap();
+                let mut model = SchemaAst::new(&params.text_document.text);
                 self.client.publish_diagnostics(uri.clone(), std::mem::take(&mut model.diagnostics), None).await;
                 let mut schemas = self.schemas.write().unwrap();
                 schemas.insert(
@@ -192,7 +192,7 @@ impl LanguageServer for Backend {
             }
             "rmlx" => {
                 let text = params.content_changes.last().unwrap().text.clone(); //TODO fix
-                let mut schema = SchemaAst::new(uri.path(), &text).unwrap();
+                let mut schema = SchemaAst::new(&text);
                 self.client.publish_diagnostics(uri.clone(), std::mem::take(&mut schema.diagnostics), None).await;
                 let mut write = self.schemas.write().unwrap();
                 write.insert(uri, schema).unwrap();
@@ -279,8 +279,8 @@ async fn main() {
 
     let (service, socket) = LspService::new(|client| Backend {
         client,
-        schemas: Default::default(),
-        workspaces: Default::default(),
+        schemas: RwLock::default(),
+        workspaces: RwLock::default(),
     });
     Server::new(stdin, stdout, socket).serve(service).await;
 }

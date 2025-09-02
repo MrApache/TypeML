@@ -2,7 +2,7 @@ use crate::{
     Error, NamedStatement, SchemaStatement, StatementTokens, TokenArrayProvider,
     TokenBodyStatement, TokenSimpleTypeProvider,
 };
-use lexer_utils::*;
+use lexer_utils::{push_and_break, unwrap_or_continue, Position, Token};
 use logos::{Lexer, Logos};
 use std::fmt::Display;
 
@@ -61,8 +61,8 @@ impl Display for ExpressionToken {
             ExpressionToken::RightAngleBracket => ">",
             ExpressionToken::Colon => ":",
             ExpressionToken::Comma => ",",
-            ExpressionToken::NewLine => unreachable!(),
-            ExpressionToken::Whitespace => unreachable!(),
+            ExpressionToken::NewLine => "newline",
+            ExpressionToken::Whitespace => "whitespace",
             ExpressionToken::SyntaxError => "error",
         };
 
@@ -139,7 +139,11 @@ pub(crate) fn expression_callback(lex: &mut Lexer<SchemaStatement>) -> Vec<Token
                     bracket_depth += 1;
                 } else if let ExpressionToken::RightCurlyBracket = &kind {
                     if bracket_depth == 0 {
-                        Token::push_with_advance(&mut tokens, ExpressionToken::SyntaxError, &mut inner);
+                        Token::push_with_advance(
+                            &mut tokens,
+                            ExpressionToken::SyntaxError,
+                            &mut inner,
+                        );
                         return tokens;
                     }
                     bracket_depth -= 1;
@@ -147,7 +151,7 @@ pub(crate) fn expression_callback(lex: &mut Lexer<SchemaStatement>) -> Vec<Token
                         push_and_break!(&mut tokens, kind, &mut inner);
                     }
                 }
-                Token::push_with_advance(&mut tokens, kind, &mut inner)
+                Token::push_with_advance(&mut tokens, kind, &mut inner);
             }
         }
     }

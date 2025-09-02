@@ -1,6 +1,6 @@
-use <base.rmlx>
+@use <base.rmlx>
 
-#[Path(bevy::prelude::Display)]
+#[Path("bevy::prelude::Display")]
 enum Display {
     Flex,
     Grid,
@@ -8,19 +8,19 @@ enum Display {
     None,
 }
 
-#[Path(bevy::prelude::BoxSizing)]
+#[Path("bevy::prelude::BoxSizing")]
 enum BoxSizing {
     BorderBox,
     ContentBox
 }
 
-#[Path(bevy::prelude::PositionType)]
+#[Path("bevy::prelude::PositionType")]
 enum PositionType {
     Relative,
     Absolute
 }
 
-#[Path(bevy::prelude::OverflowAxis)]
+#[Path("bevy::prelude::OverflowAxis")]
 enum OverflowAxis {
     Visible,
     Clip,
@@ -28,50 +28,50 @@ enum OverflowAxis {
     Scroll,
 }
 
-#[Path(bevy::prelude::Overflow)]
+#[Path("bevy::prelude::Overflow")]
 struct Overflow {
     x: OverflowAxis,
     y: OverflowAxis,
 }
 
-#[Path(bevy::prelude::OverflowClipBox)]
+#[Path("bevy::prelude::OverflowClipBox")]
 enum OverflowClipBox {
     ContentBox,
     PaddingBox,
     BorderBox,
 }
 
-#[Path(bevy::prelude::OverflowClipMargin)]
+#[Path("bevy::prelude::OverflowClipMargin")]
 struct OverflowClipMargin {
     visual_box: OverflowClipBox,
     margin: f32,
 }
 
-#[Path(bevy::prelude::Val)]
+#[Path("bevy::prelude::Val")]
 enum Val {
     Auto,
 
-    #[Pattern("([0-9]+(?:\.[0-9]+)?)px")]
-    Px(f32),
+    Px(f32)
+    | "([0-9]+(?:\.[0-9]+)?)px"
 
-    #[Pattern("([0-9]+(?:\.[0-9]+)?)%")]
-    Percent(f32),
+    Percent(f32)
+    | "([0-9]+(?:\.[0-9]+)?)%",
 
-    #[Pattern("[0-9]+(?:\.[0-9]+)?)vw")]
-    Vw(f32),
+    Vw(f32)
+    | "[0-9]+(?:\.[0-9]+)?)vw",
 
-    #[Pattern("([0-9]+(?:\.[0-9]+)?)vh")]
-    Vh(f32),
+    Vh(f32)
+    | "([0-9]+(?:\.[0-9]+)?)vh",
 
-    #[Pattern("([0-9]+(?:\.[0-9]+)?)vmin")]
-    VMin(f32),
+    VMin(f32)
+    | "([0-9]+(?:\.[0-9]+)?)vmin",
 
-    #[Pattern("([0-9]+(?:\.[0-9]+)?)vmax")]
-    VMax(f32),
+    VMax(f32)
+    | "([0-9]+(?:\.[0-9]+)?)vmax"
 }
 
 
-#[Path(bevy::prelude::AlignItems)]
+#[Path("bevy::prelude::AlignItems")]
 enum AlignItems {
     Default,
     Start,
@@ -83,7 +83,7 @@ enum AlignItems {
     Stretch,
 }
 
-#[Path(bevy::prelude::JustifyItems)]
+#[Path("bevy::prelude::JustifyItems")]
 enum JustifyItems {
     Default,
     Start,
@@ -93,7 +93,7 @@ enum JustifyItems {
     Stretch,
 }
 
-#[Path(bevy::prelude::AlignSelf)]
+#[Path("bevy::prelude::AlignSelf")]
 enum AlignSelf {
     Auto,
     Start,
@@ -105,7 +105,7 @@ enum AlignSelf {
     Stretch,
 }
 
-#[Path(bevy::prelude::JustifySelf)]
+#[Path("bevy::prelude::JustifySelf")]
 enum JustifySelf {
     Auto,
     Start,
@@ -115,7 +115,7 @@ enum JustifySelf {
     Stretch,
 }
 
-#[Path(bevy::prelude::AlignContent)]
+#[Path("bevy::prelude::AlignContent")]
 enum AlignContent {
     Default,
     Start,
@@ -129,7 +129,7 @@ enum AlignContent {
     SpaceAround,
 }
 
-#[Path(bevy::prelude::JustifyContent)]
+#[Path("bevy::prelude::JustifyContent")]
 enum JustifyContent {
     Default,
     Start,
@@ -143,7 +143,7 @@ enum JustifyContent {
     SpaceAround,
 }
 
-#[Path(bevy::prelude::UiRect)]
+#[Path("bevy::prelude::UiRect")]
 struct UiRect {
     left: Val,
     right: Val,
@@ -151,7 +151,7 @@ struct UiRect {
     bottom: Val,
 }
 
-#[Path(bevy::prelude::FlexDirection)]
+#[Path("bevy::prelude::FlexDirection")]
 enum FlexDirection {
     Row,
     Column,
@@ -159,16 +159,15 @@ enum FlexDirection {
     ColumnReverse,
 }
 
-#[Path(bevy::prelude::FlexWrap)]
+#[Path("bevy::prelude::FlexWrap")]
 enum FlexWrap {
     NoWrap,
     Wrap,
     WrapReverse,
 }
 
-#[Path(bevy::prelude::Node)]
-#[Group(base:Component)]
-element Node {
+#[Path("bevy::prelude::Node")]
+element Node -> base::Component {
     display: Display,
     box_sizing: BoxSizing,
     position_type: PositionType,
@@ -203,8 +202,7 @@ element Node {
     column_gap: Val,
 }
 
-#[Path(bevy::prelude::BackgroundColor)]
-#[Group(base:Component)]
-element BackgroundColor {
+#[Path("bevy::prelude::BackgroundColor")]
+element BackgroundColor -> base::Component {
     self: String,
 }

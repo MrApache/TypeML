@@ -9,7 +9,7 @@ pub struct Expression {
     pub fields: Vec<Field>,
 }
 
-impl<'s> ParserContext<'s, ExpressionToken> {
+impl ParserContext<'_, ExpressionToken> {
     pub fn parse(&mut self) -> Option<Expression> {
         self.consume_keyword();
         let name = self.consume_type_name()?;

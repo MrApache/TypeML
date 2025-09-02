@@ -42,7 +42,7 @@ mod tests {
     async fn test() {
         let path = concat!(env!("CARGO_WORKSPACE_DIR"), "examples/schema.rmlx");
         let content = std::fs::read_to_string(path).expect("Failed to read file");
-        let mut ast = SchemaAst::new(path, &content).unwrap();
+        let mut ast = SchemaAst::new(&content);
         SchemaModel::new(&mut ast).await;
         println!();
     }
