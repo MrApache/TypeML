@@ -10,22 +10,11 @@ pub struct Attribute {
 impl ParserContext<'_, AttributeToken> {
     pub fn parse(&mut self) -> Option<Vec<Attribute>> {
         self.consume_keyword_with_token_type(MACRO_TOKEN);
+        self.consume_left_square_bracket()?;
 
         let mut attrs = Vec::new();
 
-        {
-            // consume `[`
-            let t = next_or_none!(self)?;
-            self.tokens.push(t.to_semantic_token(MACRO_TOKEN));
-            match t.kind() {
-                AttributeToken::LeftSquareBracket => {} //continue
-                AttributeToken::SyntaxError => self.report_error(t, "Syntax error"),
-                kind => self.report_error(t, &format!("Expected '[', got {kind}")),
-            }
-        }
-
         loop {
-            // читаем идентификатор
             let name_token = next_or_none!(self)?;
             match name_token.kind() {
                 AttributeToken::Comma => {
@@ -57,9 +46,7 @@ impl ParserContext<'_, AttributeToken> {
                     .parse();
                     attrs.push(Attribute { name, content });
                 }
-                AttributeToken::Comma => {
-                    self.tokens.push(next.to_semantic_token(u32::MAX));
-                }
+                AttributeToken::Comma => self.tokens.push(next.to_semantic_token(u32::MAX)),
                 AttributeToken::RightSquareBracket => {
                     self.tokens.push(next.to_semantic_token(MACRO_TOKEN));
                     break;
@@ -72,6 +59,18 @@ impl ParserContext<'_, AttributeToken> {
         }
 
         Some(attrs)
+    }
+
+    fn consume_left_square_bracket(&mut self) -> Option<()> {
+        let left_square = next_or_none!(self)?;
+        self.tokens.push(left_square.to_semantic_token(MACRO_TOKEN));
+        match left_square.kind() {
+            AttributeToken::LeftSquareBracket => return Some(()),
+            AttributeToken::SyntaxError => self.report_error(left_square, "Syntax error"),
+            kind => self.report_error(left_square, &format!("Expected '[', got {kind}")),
+        }
+
+        None
     }
 }
 
@@ -107,6 +106,22 @@ impl ParserContext<'_, ContentToken> {
             kind => self.report_error(t, &format!("Expected ')', got {kind}")),
         }
 
+        self.consume_right_par()?;
+
         Some(result_text.to_string())
+    }
+
+    fn consume_right_par(&mut self) -> Option<()> {
+        let right_par = next_or_none!(self, "Expected ')'")?;
+        match right_par.kind() {
+            ContentToken::RightParenthesis => {
+                self.tokens.push(right_par.to_semantic_token(u32::MAX));
+                return Some(());
+            }
+            ContentToken::SyntaxError => self.report_error(right_par, "Syntax error"),
+            kind => self.report_error(right_par, &format!("Expected ')', got {kind}")),
+        }
+
+        None
     }
 }
