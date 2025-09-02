@@ -1,0 +1,8 @@
+[package]
+name = "lexer-core"
+version = "0.1.0"
+edition = "2024"
+
+[dependencies]
+logos.workspace = true
+tower-lsp.workspace = true

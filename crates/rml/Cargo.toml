@@ -1,0 +1,9 @@
+[package]
+name = "rml"
+version = "0.1.0"
+edition = "2024"
+
+[dependencies]
+tower-lsp.workspace = true
+logos.workspace = true
+lexer-core.workspace = true

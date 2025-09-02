@@ -1,7 +1,7 @@
 mod error;
 
-use lexer_utils::Token;
-use rml_lexer::{
+use lexer_core::Token;
+use rml::{
     context::DirectiveToken,
     logos::{Source, Span},
     MarkupTokens, RmlTokenStream
@@ -114,7 +114,7 @@ impl<'a> RmlParser<'a> {
 
 #[cfg(test)]
 mod tests {
-    use rml_lexer::RmlTokenStream;
+    use rml::RmlTokenStream;
     use crate::parser::RmlParser;
 
     #[test]

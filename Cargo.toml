@@ -3,9 +3,9 @@ members = ["crates/*"]
 resolver = "3"
 
 [workspace.dependencies]
-rml-lexer = { path = "crates/rml-lexer" }
-rmlx-lexer = { path = "crates/rmlx-lexer" }
-lexer-utils = { path = "crates/lexer-utils" }
+rml = { path = "crates/rml" }
+rmlx = { path = "crates/rmlx" }
+lexer-core = { path = "crates/lexer-core" }
 
 ron = "0.11.0"
 tokio = { version = "1.47.1", features = ["full", "rt", "macros"]}

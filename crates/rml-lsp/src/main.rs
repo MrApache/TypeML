@@ -1,8 +1,8 @@
 mod parser;
 mod schema;
 
-use rml_lexer::{MarkupTokens, RmlTokenStream};
-use rmlx_lexer::SchemaAst;
+use rml::{MarkupTokens, RmlTokenStream};
+use rmlx::SchemaAst;
 use std::collections::HashMap;
 use std::path::Path;
 use std::sync::{Arc, RwLock};

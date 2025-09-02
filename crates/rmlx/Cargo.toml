@@ -1,15 +1,14 @@
 [package]
-name = "rml-lsp"
+name = "rmlx"
 version = "0.1.0"
 edition = "2024"
 
 [dependencies]
-rml.workspace = true
-rmlx.workspace = true
 lexer-core.workspace = true
 
-ron.workspace = true
-tokio.workspace = true
 tower-lsp.workspace = true
-serde.workspace = true
 logos.workspace = true
+thiserror.workspace = true
+tokio.workspace = true
+url.workspace = true
+reqwest.workspace = true
