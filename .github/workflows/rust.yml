@@ -1,36 +1,57 @@
-name: Rust
+name: Coverage
 
 on:
   push:
-    branches: [ "main" ]
+    branches: [ main ]
   pull_request:
-    branches: [ "main" ]
-
-env:
-  CARGO_TERM_COLOR: always
 
 jobs:
-  build:
+  coverage:
     runs-on: ubuntu-latest
 
     steps:
       - uses: actions/checkout@v4
 
-      - name: Install Rust
+      - name: Install Rust (stable)
         uses: actions-rs/toolchain@v1
         with:
           toolchain: stable
           override: true
-          components: llvm-tools-preview
 
-      - name: Install cargo-llvm-cov
-        run: cargo install cargo-llvm-cov
+      - name: Install grcov
+        run: |
+          curl -L https://github.com/mozilla/grcov/releases/latest/download/grcov-x86_64-unknown-linux-gnu.tar.bz2 \
+            | tar jxf -
+          sudo mv grcov /usr/local/bin/
 
-      - name: Run tests with coverage
-        run: cargo llvm-cov --lcov --output-path lcov.info
+      - name: Build with coverage flags
+        env:
+          RUSTFLAGS: "-Cinstrument-coverage"
+          LLVM_PROFILE_FILE: "target/coverage/%p-%m.profraw"
+        run: |
+          cargo build --verbose
+          cargo test --verbose
 
-      - name: Upload coverage report
+      - name: Generate coverage report
+        run: |
+          mkdir -p target/coverage/html
+          grcov target/coverage \
+            --binary-path ./target/debug/ \
+            -s . \
+            -t html \
+            --branch \
+            --ignore-not-existing \
+            --ignore "/*" \
+            -o target/coverage/html
+
+      - name: Upload coverage artifact
         uses: actions/upload-artifact@v4
         with:
-          name: coverage-report
-          path: lcov.info
+          name: coverage-html
+          path: target/coverage/html
+
+      - name: Deploy to GitHub Pages
+        uses: peaceiris/actions-gh-pages@v4
+        with:
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+          publish_dir: ./target/coverage/html
