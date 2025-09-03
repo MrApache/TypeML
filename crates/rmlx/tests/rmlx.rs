@@ -1,8 +1,8 @@
-use rmlx::{Attribute, Count, Directive, Expression, Group, SchemaAst, Type, TypeDefinition};
+use rmlx::{Attribute, Count, Directive, Group, SchemaAst, Type, TypeDefinition};
 
 #[rustfmt::skip]
 fn assert_directive(directives: &[Directive], name: &str, value: &str) {
-    let found = directives.iter().any(|d| d.name == name && d.value == value);
+    let found = directives.iter().any(|d| d.name() == name && d.value() == value);
     assert!(found,"Directive not found: expected name = {name}, value = {value}. Found: {directives:#?}");
 }
 
@@ -58,17 +58,31 @@ fn assert_typedef(
         }
 
         fields.iter().zip(typedef.fields()).for_each(|((name, ty), field)| {
-            assert_eq!(field.name(), *name, "Field name mismatch: expected {name}, found {}", field.name());
-            assert_eq!(field.ty(), ty, "Field type mismatch: expected {ty:#?}, found {:#?}", field.ty());
+            assert_eq!(
+                field.name(),
+                *name,
+                "Field name mismatch: expected {name}, found {}",
+                field.name()
+            );
+            assert_eq!(
+                field.ty(),
+                ty,
+                "Field type mismatch: expected {ty:#?}, found {:#?}",
+                field.ty()
+            );
         });
 
-        assert!(match (bind, typedef.bind()) {
-            (None, None) => true,
-            (Some((ns_a, name_a)), Some(ref_type)) => {
-                ns_a == ref_type.namespace() && name_a == ref_type.name()
-            }
-            _ => false,
-        }, "element bind type mismatch: expected {bind:#?}, found {:#?}", typedef.bind());
+        assert!(
+            match (bind, typedef.bind()) {
+                (None, None) => true,
+                (Some((ns_a, name_a)), Some(ref_type)) => {
+                    ns_a == ref_type.namespace() && name_a == ref_type.name()
+                }
+                _ => false,
+            },
+            "element bind type mismatch: expected {bind:#?}, found {:#?}",
+            typedef.bind()
+        );
 
         for (name, content) in attributes {
             assert_attribute(typedef.attributes(), name, *content);
@@ -116,14 +130,7 @@ fn ast() {
         &[("Description", Some("Template"))],
     );
 
-    assert_typedef(
-        ast.types(),
-        "element",
-        "Layout",
-        &[],
-        Some((None, "Root")),
-        &[],
-    );
+    assert_typedef(ast.types(), "element", "Layout", &[], Some((None, "Root")), &[]);
 
     assert_typedef(
         ast.types(),
@@ -140,7 +147,7 @@ fn ast() {
         "Test",
         &[
             ("target", Type::Simple("String".into())),
-            ("path", Type::Simple("String".into()))
+            ("path", Type::Simple("String".into())),
         ],
         Some((None, "Template")),
         &[],
