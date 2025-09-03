@@ -3,8 +3,20 @@ use lexer_core::STRING_TOKEN;
 
 #[derive(Debug)]
 pub struct Directive {
-    pub name: String,
-    pub value: String,
+    name: String,
+    value: String,
+}
+
+impl Directive {
+    #[must_use]
+    pub fn name(&self) -> &str {
+        &self.name
+    }
+
+    #[must_use]
+    pub fn value(&self) -> &str {
+        &self.value
+    }
 }
 
 impl ParserContext<'_, DirectiveToken> {

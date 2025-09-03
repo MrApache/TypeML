@@ -6,17 +6,47 @@ use lexer_core::{Token, PARAMETER_TOKEN, STRING_TOKEN};
 
 #[derive(Debug)]
 pub struct Enum {
-    pub name: String,
-    pub variants: Vec<EnumVariant>,
-    pub attributes: Vec<Attribute>,
+    name: String,
+    variants: Vec<EnumVariant>,
+    attributes: Vec<Attribute>,
+}
+
+impl Enum {
+    #[must_use]
+    pub fn new(name: String, variants: Vec<EnumVariant>) -> Self {
+        Self {
+            name,
+            variants,
+            attributes: vec![],
+        }
+    }
+
+    pub(crate) fn set_attributes(&mut self, attributes: Vec<Attribute>) {
+        self.attributes = attributes;
+    }
+
+    #[must_use]
+    pub fn name(&self) -> &str {
+        &self.name
+    }
+
+    #[must_use]
+    pub fn variants(&self) -> &[EnumVariant] {
+        &self.variants
+    }
+
+    #[must_use]
+    pub fn attributes(&self) -> &[Attribute] {
+        &self.attributes
+    }
 }
 
 #[derive(Debug)]
 pub struct EnumVariant {
-    pub name: String,
-    pub ty: Option<String>,
-    pub pattern: Option<String>,
-    pub attributes: Vec<Attribute>,
+    name: String,
+    ty: Option<String>,
+    pattern: Option<String>,
+    attributes: Vec<Attribute>,
 }
 
 impl EnumVariant {
@@ -34,20 +64,25 @@ impl EnumVariant {
             attributes,
         }
     }
-}
 
-impl Enum {
     #[must_use]
-    pub fn new(name: String, variants: Vec<EnumVariant>) -> Self {
-        Self {
-            name,
-            variants,
-            attributes: vec![],
-        }
+    pub fn name(&self) -> &str {
+        &self.name
     }
 
-    pub(crate) fn set_attributes(&mut self, attributes: Vec<Attribute>) {
-        self.attributes = attributes;
+    #[must_use]
+    pub fn ty(&self) -> Option<&str> {
+        self.ty.as_deref()
+    }
+
+    #[must_use]
+    pub fn pattern(&self) -> Option<&str> {
+        self.pattern.as_deref()
+    }
+
+    #[must_use]
+    pub fn attributes(&self) -> &[Attribute] {
+        &self.attributes
     }
 }
 

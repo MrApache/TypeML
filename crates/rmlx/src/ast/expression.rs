@@ -1,12 +1,30 @@
 use crate::{
     ast::{Field, ParserContext},
-    next_or_none, peek_or_none, ExpressionToken,
+    next_or_none, peek_or_none, Attribute, ExpressionToken,
 };
 
 #[derive(Debug)]
 pub struct Expression {
-    pub name: String,
-    pub fields: Vec<Field>,
+    name: String,
+    fields: Vec<Field>,
+    attributes: Vec<Attribute>,
+}
+
+impl Expression {
+    #[must_use]
+    pub fn name(&self) -> &str {
+        &self.name
+    }
+
+    #[must_use]
+    pub fn fields(&self) -> &[Field] {
+        &self.fields
+    }
+
+    #[must_use]
+    pub fn attributes(&self) -> &[Attribute] {
+        &self.attributes
+    }
 }
 
 impl ParserContext<'_, ExpressionToken> {
@@ -45,6 +63,10 @@ impl ParserContext<'_, ExpressionToken> {
             }
         }
 
-        Some(Expression { name, fields })
+        Some(Expression {
+            name,
+            fields,
+            attributes: vec![],
+        })
     }
 }

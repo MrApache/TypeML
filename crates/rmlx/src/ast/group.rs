@@ -5,17 +5,40 @@ use crate::{
 use lexer_core::{KEYWORD_TOKEN, MACRO_TOKEN, TYPE_TOKEN};
 use std::ops::Range;
 
-#[derive(Debug)]
+#[derive(Debug, PartialEq)]
 pub enum Count {
     Range(Range<u32>),
     Single(u32),
 }
+
 #[derive(Debug)]
 pub struct RefGroup {
     namespace: Option<String>,
     name: String,
     count: Option<Count>,
     unique: bool,
+}
+
+impl RefGroup {
+    #[must_use]
+    pub fn namespace(&self) -> &Option<String> {
+        &self.namespace
+    }
+
+    #[must_use]
+    pub fn name(&self) -> &str {
+        &self.name
+    }
+    
+    #[must_use]
+    pub fn count(&self) -> &Option<Count> {
+        &self.count
+    }
+
+    #[must_use]
+    pub fn unique(&self) -> bool {
+        self.unique
+    }
 }
 
 #[derive(Debug)]
@@ -36,8 +59,28 @@ impl Group {
         }
     }
 
-    pub fn set_attributes(&mut self, attributes: Vec<Attribute>) {
+    pub(crate) fn set_attributes(&mut self, attributes: Vec<Attribute>) {
         self.attributes = attributes;
+    }
+
+    #[must_use]
+    pub fn name(&self) -> &str {
+        &self.name
+    }
+
+    #[must_use]
+    pub fn groups(&self) -> &[RefGroup] {
+        &self.groups
+    }
+
+    #[must_use]
+    pub fn count(&self) -> &Option<Count> {
+        &self.count
+    }
+
+    #[must_use]
+    pub fn attributes(&self) -> &[Attribute] {
+        &self.attributes
     }
 }
 

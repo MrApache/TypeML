@@ -10,15 +10,14 @@ pub use directive::*;
 pub use enumeration::*;
 pub use expression::*;
 pub use group::*;
+pub use r#type::*;
 
 use crate::{
-    NamedStatement, RmlxTokenStream, StatementTokens, TokenArrayProvider, TokenBodyStatement,
-    TokenSimpleTypeProvider,
+    NamedStatement, RmlxTokenStream, StatementTokens, TokenArrayProvider, TokenBodyStatement, TokenSimpleTypeProvider
 };
 use lexer_core::{Token, KEYWORD_TOKEN, OPERATOR_TOKEN, PARAMETER_TOKEN, TYPE_TOKEN};
 use std::{iter::Peekable, slice::Iter};
 use tower_lsp::lsp_types::{Diagnostic, DiagnosticSeverity, Range, SemanticToken};
-use url::Url;
 
 #[macro_export]
 macro_rules! next_or_none {
@@ -62,13 +61,25 @@ macro_rules! peek_or_none {
     }};
 }
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, PartialEq)]
 pub struct Field {
-    pub name: String,
-    pub ty: Type,
+    name: String,
+    ty: Type,
 }
 
-#[derive(Debug, Clone)]
+impl Field {
+    #[must_use]
+    pub fn name(&self) -> &str {
+        &self.name
+    }
+
+    #[must_use]
+    pub fn ty(&self) -> &Type {
+        &self.ty
+    }
+}
+
+#[derive(Debug, Clone, PartialEq)]
 pub enum Type {
     Simple(String),
     Generic(String, String),
@@ -117,8 +128,7 @@ impl<'s, T> ParserContext<'s, T> {
 
     pub fn consume_parameter(&mut self) -> Option<String> {
         let parameter = next_or_none!(self)?;
-        self.tokens
-            .push(parameter.to_semantic_token(PARAMETER_TOKEN));
+        self.tokens.push(parameter.to_semantic_token(PARAMETER_TOKEN));
         Some(parameter.slice(self.src).to_string())
     }
 
@@ -160,10 +170,7 @@ impl<T: StatementTokens + NamedStatement> ParserContext<'_, T> {
         if name.kind() == &T::identifier() {
             self.tokens.push(name.to_semantic_token(TYPE_TOKEN));
         } else {
-            self.report_error(
-                name,
-                &format!("Expected identifier, found '{}'", name.kind()),
-            );
+            self.report_error(name, &format!("Expected identifier, found '{}'", name.kind()));
         }
         Some(name.slice(self.src).to_string())
     }
@@ -203,8 +210,7 @@ impl<T: StatementTokens + TokenSimpleTypeProvider> ParserContext<'_, T> {
                 let inner_type_name = self.consume_type_name()?;
 
                 {
-                    let close =
-                        next_or_none!(self, "Unexpected end of token stream, expected '>'")?;
+                    let close = next_or_none!(self, "Unexpected end of token stream, expected '>'")?;
                     if close.kind() == &T::right_angle_bracket() {
                         self.tokens.push(close.to_semantic_token(OPERATOR_TOKEN));
                     } else {
@@ -302,19 +308,51 @@ where
 
 #[derive(Default, Debug)]
 pub struct SchemaAst {
-    pub(crate) directives: Vec<Directive>,
-    pub(crate) includes: Vec<Url>,
-    pub(crate) enums: Vec<Enum>,
-    pub(crate) groups: Vec<Group>,
-    pub(crate) extendable_groups: Vec<Group>,
-    pub(crate) types: Vec<r#type::Type>,
-    pub(crate) expressions: Vec<Expression>,
+    directives: Vec<Directive>,
+    enums: Vec<Enum>,
+    groups: Vec<Group>,
+    extendable_groups: Vec<Group>,
+    types: Vec<TypeDefinition>,
+    expressions: Vec<Expression>,
 
     pub tokens: Vec<SemanticToken>,
     pub diagnostics: Vec<Diagnostic>,
 }
 
 impl SchemaAst {
+    #[must_use]
+    pub fn directives(&self) -> &[Directive] {
+        &self.directives
+    }
+
+    #[must_use]
+    pub fn enumerations(&self) -> &[Enum] {
+        &self.enums
+    }
+
+    #[must_use]
+    pub fn groups(&self) -> &[Group] {
+        &self.groups
+    }
+
+    #[must_use]
+    pub fn extendable_groups(&self) -> &[Group] {
+        &self.extendable_groups
+    }
+
+    #[must_use]
+    pub fn types(&self) -> &[TypeDefinition] {
+        &self.types
+    }
+
+    #[must_use]
+    pub fn expressions(&self) -> &[Expression] {
+        &self.expressions
+    }
+}
+
+impl SchemaAst {
+    #[must_use]
     pub fn new(content: &str) -> Self {
         let mut schema = SchemaAst::default();
         let mut stream = RmlxTokenStream::new(content);
@@ -431,18 +469,5 @@ impl SchemaAst {
         }
 
         schema
-    }
-}
-
-#[cfg(test)]
-mod tests {
-    use crate::SchemaAst;
-
-    #[test]
-    fn test() {
-        let path = concat!(env!("CARGO_WORKSPACE_DIR"), "examples/base.rmlx");
-        let content = std::fs::read_to_string(path).expect("Failed to read file");
-        let _ast = SchemaAst::new(&content);
-        println!();
     }
 }

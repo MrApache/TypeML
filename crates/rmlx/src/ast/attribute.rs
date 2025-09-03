@@ -7,6 +7,18 @@ pub struct Attribute {
     content: Option<String>,
 }
 
+impl Attribute {
+    #[must_use]
+    pub fn name(&self) -> &str {
+        &self.name
+    }
+
+    #[must_use]
+    pub fn content(&self) -> &Option<String> {
+        &self.content
+    }
+}
+
 impl ParserContext<'_, AttributeToken> {
     pub fn parse(&mut self) -> Option<Vec<Attribute>> {
         self.consume_keyword_with_token_type(MACRO_TOKEN);

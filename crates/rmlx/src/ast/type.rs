@@ -7,17 +7,56 @@ pub struct RefType {
     name: String,
 }
 
+impl RefType {
+    #[must_use]
+    pub fn namespace(&self) -> Option<&str> {
+        self.namespace.as_deref()
+    }
+
+    #[must_use]
+    pub fn name(&self) -> &str {
+        &self.name
+    }
+}
+
 #[derive(Debug)]
-pub struct Type {
-    pub keyword: String,
-    pub name: String,
-    pub fields: Vec<Field>,
-    pub bind: Option<RefType>,
-    pub attributes: Vec<Attribute>,
+pub struct TypeDefinition {
+    keyword: String,
+    name: String,
+    fields: Vec<Field>,
+    bind: Option<RefType>,
+    pub(crate) attributes: Vec<Attribute>,
+}
+
+impl TypeDefinition {
+    #[must_use]
+    pub fn keyword(&self) -> &str {
+        &self.keyword
+    }
+
+    #[must_use]
+    pub fn name(&self) -> &str {
+        &self.name
+    }
+
+    #[must_use]
+    pub fn fields(&self) -> &[Field] {
+        &self.fields
+    }
+
+    #[must_use]
+    pub fn bind(&self) -> Option<&RefType> {
+        self.bind.as_ref()
+    }
+
+    #[must_use]
+    pub fn attributes(&self) -> &[Attribute] {
+        &self.attributes
+    }
 }
 
 impl ParserContext<'_, TypeDefinitionToken> {
-    pub fn parse(&mut self) -> Option<Type> {
+    pub fn parse(&mut self) -> Option<TypeDefinition> {
         let keyword = self.consume_keyword().to_string();
         let name = self.consume_type_name()?;
         let bind = self.try_parse_binding();
@@ -71,7 +110,7 @@ impl ParserContext<'_, TypeDefinitionToken> {
             _ => self.consume_error("Unexpected token in type definition body"),
         }
 
-        Some(Type {
+        Some(TypeDefinition {
             keyword,
             name,
             fields,
