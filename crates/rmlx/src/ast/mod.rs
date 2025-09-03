@@ -13,9 +13,9 @@ pub use group::*;
 pub use r#type::*;
 
 use crate::{
-    NamedStatement, RmlxTokenStream, StatementTokens, TokenArrayProvider, TokenBodyStatement, TokenSimpleTypeProvider
+    NamedStatement, RmlxTokenStream, StatementTokens, TokenArrayProvider, TokenBodyStatement, TokenSimpleTypeProvider,
 };
-use lexer_core::{Token, KEYWORD_TOKEN, OPERATOR_TOKEN, PARAMETER_TOKEN, TYPE_TOKEN};
+use lexer_core::{Token, COMMENT_TOKEN, KEYWORD_TOKEN, OPERATOR_TOKEN, PARAMETER_TOKEN, TYPE_TOKEN};
 use std::{iter::Peekable, slice::Iter};
 use tower_lsp::lsp_types::{Diagnostic, DiagnosticSeverity, Range, SemanticToken};
 
@@ -464,6 +464,11 @@ impl SchemaAst {
                     });
                     schema.tokens.push(token.to_semantic_token(u32::MAX));
                 }
+                crate::SchemaStatement::Comment(tokens) => {
+                    for token in &tokens {
+                        schema.tokens.push(token.to_semantic_token(COMMENT_TOKEN));
+                    }
+                },
                 crate::SchemaStatement::NewLine | crate::SchemaStatement::Whitespace => {}
             }
         }

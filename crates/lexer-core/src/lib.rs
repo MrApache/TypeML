@@ -1,5 +1,7 @@
 #![allow(clippy::cast_possible_truncation)]
 
+mod comment;
+pub use comment::*;
 use logos::{Lexer, Logos, Source, Span};
 use tower_lsp::lsp_types::{Position as LspPosition, Range, SemanticToken};
 
@@ -9,7 +11,7 @@ pub const STRING_TOKEN: u32 = 2;
 pub const TYPE_TOKEN: u32 = 3;
 pub const OPERATOR_TOKEN: u32 = 4;
 pub const NUMBER: u32 = 5;
-pub const COMMENT: u32 = 6;
+pub const COMMENT_TOKEN: u32 = 6;
 pub const MACRO_TOKEN: u32 = 7;
 pub const FUNCTION: u32 = 8;
 

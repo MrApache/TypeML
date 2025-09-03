@@ -13,7 +13,7 @@ pub use enumeration::*;
 pub use directive::*;
 pub use r#type::*;
 
-use lexer_core::{Position, Token};
+use lexer_core::{comment_callback, CommentToken, Position, Token};
 use logos::{Lexer, Logos};
 
 #[derive(Default, Debug, Clone, PartialEq, Eq)]
@@ -93,6 +93,9 @@ pub enum SchemaStatement {
 
     #[token("@", directive_callback)]
     Directive(Vec<Token<DirectiveToken>>),
+
+    #[token("/", comment_callback)]
+    Comment(Vec<Token<CommentToken>>),
 
     #[token("\n")]
     NewLine,

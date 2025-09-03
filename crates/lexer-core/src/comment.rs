@@ -1,10 +1,9 @@
-use crate::MarkupTokens;
-use lexer_core::*;
 use logos::{Lexer, Logos};
+use crate::{Position, Token};
 
 #[derive(Logos, Debug, PartialEq, Eq, Clone)]
 #[logos(extras = Position)]
-pub enum CommentContext {
+pub enum CommentToken {
     StartLine,
     EndLine,
 
@@ -14,29 +13,30 @@ pub enum CommentContext {
     Text,
 }
 
-pub(crate) fn comment_context_callback(
-    lex: &mut Lexer<MarkupTokens>,
-) -> Option<Vec<Token<CommentContext>>> {
+pub fn comment_callback<'source, T>(lex: &mut Lexer<'source, T>) -> Option<Vec<Token<CommentToken>>>
+where
+    T: Logos<'source, Extras = Position, Source = str>,
+    T: Clone,
+{
     let mut tokens = Vec::new();
-    let mut inner = lex.clone().morph::<CommentContext>();
+    let mut inner = lex.clone().morph::<CommentToken>();
     let mut iter = inner.remainder().chars().peekable();
 
     let mut bytes = 0;
     let mut last_token_pos = inner.span().start;
 
-    //Define comment kind
     let special_char = iter.next()?;
     bytes += special_char.encode_utf8(&mut [0; 2]).len();
     let is_line = match special_char {
         '*' => false,
         '/' => true,
-        _ => return None, // неожиданный токен
+        _ => return None,
     };
 
     let token_kind = if is_line {
-        CommentContext::StartLine
+        CommentToken::StartLine
     } else {
-        CommentContext::StartBlock
+        CommentToken::StartBlock
     };
 
     tokens.push(Token::new_with_span(
@@ -55,7 +55,7 @@ pub(crate) fn comment_context_callback(
             bytes += ch.encode_utf8(&mut [0; 2]).len();
             if ch == '\n' {
                 tokens.push(Token::new_with_span(
-                    CommentContext::Text,
+                    CommentToken::Text,
                     &mut inner,
                     last_token_pos..last_token_pos + chars,
                 ));
@@ -64,7 +64,7 @@ pub(crate) fn comment_context_callback(
                 last_token_pos += chars;
 
                 tokens.push(Token::new_with_span(
-                    CommentContext::EndLine,
+                    CommentToken::EndLine,
                     &mut inner,
                     last_token_pos..last_token_pos + 1,
                 ));
@@ -97,7 +97,7 @@ pub(crate) fn comment_context_callback(
                         bytes += '/'.encode_utf8(&mut [0; 2]).len();
 
                         tokens.push(Token::new_custom(
-                            CommentContext::Text,
+                            CommentToken::Text,
                             &mut inner,
                             last_token_pos..last_token_pos + chars,
                             delta_line_position,
@@ -107,7 +107,7 @@ pub(crate) fn comment_context_callback(
                         last_token_pos += chars;
 
                         tokens.push(Token::new_with_span(
-                            CommentContext::EndBlock,
+                            CommentToken::EndBlock,
                             &mut inner,
                             last_token_pos..last_token_pos + 2,
                         ));

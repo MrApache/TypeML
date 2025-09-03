@@ -1,3 +1,4 @@
+//Set file namespace
 @namespace <base>
 
 #[Description("Component")]

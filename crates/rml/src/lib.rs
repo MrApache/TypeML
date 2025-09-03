@@ -1,17 +1,19 @@
-mod errors;
 pub mod context;
-use lexer_core::*;
+mod errors;
+use lexer_core::{comment_callback, CommentToken, Position, Token};
 pub use logos;
 
 use logos::{Lexer, Logos};
 
-use crate::context::*;
+use crate::context::{
+    directive_callback, tag_context_callback, text_context_callback, DirectiveToken, TagContext, Text,
+};
 
 #[derive(Logos, Debug, PartialEq, Eq, Clone)]
 #[logos(extras = Position)]
 pub enum MarkupTokens {
-    #[token("/", comment_context_callback)]
-    Comment(Vec<Token<CommentContext>>),
+    #[token("/", comment_callback)]
+    Comment(Vec<Token<CommentToken>>),
 
     #[token("<", tag_context_callback)]
     Tag(Vec<Token<TagContext>>),
@@ -37,8 +39,7 @@ impl<'a> RmlTokenStream<'a> {
     pub fn next_token(&mut self) -> Result<MarkupTokens, ()> {
         if let Some(token_kind) = self.inner.next() {
             token_kind
-        }
-        else {
+        } else {
             Err(())
         }
     }
@@ -56,8 +57,8 @@ impl<'a> RmlTokenStream<'a> {
 
 #[cfg(test)]
 mod tests {
-    use logos::Logos;
     use crate::MarkupTokens;
+    use logos::Logos;
 
     #[test]
     fn test() {
@@ -82,7 +83,10 @@ mod tests {
 
         while let Some(token) = lexer.next() {
             let slice = lexer.slice().trim();
-            if let Ok(token) = &token && let MarkupTokens::Text(_token) = token && slice.is_empty() {
+            if let Ok(token) = &token
+                && let MarkupTokens::Text(_token) = token
+                && slice.is_empty()
+            {
                 continue;
             }
             println!("{token:?} => {slice:?}");
