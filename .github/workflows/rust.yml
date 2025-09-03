@@ -60,9 +60,14 @@ jobs:
             --ignore "/*" \
             -o target/coverage/html
 
+      - name: Move HTML report to root
+        run: |
+          mv target/coverage/html/* target/coverage/
+          rmdir target/coverage/html
+
       - name: Deploy to GitHub Pages
         uses: peaceiris/actions-gh-pages@v4
         with:
           github_token: ${{ secrets.GITHUB_TOKEN }}
-          publish_dir: ./target/coverage/html/
+          publish_dir: ./target/coverage
           publish_branch: gh-pages
