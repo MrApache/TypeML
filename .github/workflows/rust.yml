@@ -50,7 +50,7 @@ jobs:
 
       - name: Generate coverage report
         run: |
-          mkdir -p target/coverage/html
+          mkdir -p target/coverage
           grcov $(find . -name "grcov-*.profraw" -print) \
             --binary-path ./target/debug/ \
             -s . \
@@ -58,12 +58,12 @@ jobs:
             --branch \
             --ignore-not-existing \
             --ignore "/*" \
-            -o target/coverage/html
+            -o target/coverage
 
       - name: Move HTML report to root
         run: |
-          mv target/coverage/html/* target/coverage/
-          rm -rf target/coverage/html
+          mv ./target/coverage/html/* ./target/coverage/
+          rmdir ./target/coverage/html
 
       - name: Deploy to GitHub Pages
         uses: peaceiris/actions-gh-pages@v4
