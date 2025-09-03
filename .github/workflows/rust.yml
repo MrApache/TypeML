@@ -58,11 +58,11 @@ jobs:
             --branch \
             --ignore-not-existing \
             --ignore "/*" \
-            -o target/coverage/html
+            -o target/coverage
 
       - name: Deploy to GitHub Pages
         uses: peaceiris/actions-gh-pages@v4
         with:
           github_token: ${{ secrets.GITHUB_TOKEN }}
-          publish_dir: ./target/coverage/html
+          publish_dir: ./target/coverage
           publish_branch: gh-pages
