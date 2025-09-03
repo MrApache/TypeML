@@ -15,7 +15,7 @@
         <div>
             <p class="heading">Lines</p>
             <p class="title has-text-success">
-                <abbr title="26 / 26">100 %</abbr></p>
+                <abbr title="28 / 28">100 %</abbr></p>
         </div>
     </div>
 
@@ -53,7 +53,7 @@
             </div>
             <div class="column has-background-white p-0"
                  role="cell">
-                <pre class="has-background-white py-0 px-2">mod errors;</pre>
+                <pre class="has-background-white py-0 px-2">pub mod context;</pre>
             </div>
         </div><div class="columns p-0 m-0" role="row">
             <div
@@ -69,7 +69,7 @@
             </div>
             <div class="column has-background-white p-0"
                  role="cell">
-                <pre class="has-background-white py-0 px-2">pub mod context;</pre>
+                <pre class="has-background-white py-0 px-2">mod errors;</pre>
             </div>
         </div><div class="columns p-0 m-0" role="row">
             <div
@@ -85,7 +85,7 @@
             </div>
             <div class="column has-background-white p-0"
                  role="cell">
-                <pre class="has-background-white py-0 px-2">use lexer_core::*;</pre>
+                <pre class="has-background-white py-0 px-2">use lexer_core::{comment_callback, CommentToken, Position, Token};</pre>
             </div>
         </div><div class="columns p-0 m-0" role="row">
             <div
@@ -165,7 +165,7 @@
             </div>
             <div class="column has-background-white p-0"
                  role="cell">
-                <pre class="has-background-white py-0 px-2">use crate::context::*;</pre>
+                <pre class="has-background-white py-0 px-2">use crate::context::{</pre>
             </div>
         </div><div class="columns p-0 m-0" role="row">
             <div
@@ -181,7 +181,7 @@
             </div>
             <div class="column has-background-white p-0"
                  role="cell">
-                <pre class="has-background-white py-0 px-2"></pre>
+                <pre class="has-background-white py-0 px-2">    directive_callback, tag_context_callback, text_context_callback, DirectiveToken, TagContext, Text,</pre>
             </div>
         </div><div class="columns p-0 m-0" role="row">
             <div
@@ -197,7 +197,7 @@
             </div>
             <div class="column has-background-white p-0"
                  role="cell">
-                <pre class="has-background-white py-0 px-2">#[derive(Logos, Debug, PartialEq, Eq, Clone)]</pre>
+                <pre class="has-background-white py-0 px-2">};</pre>
             </div>
         </div><div class="columns p-0 m-0" role="row">
             <div
@@ -213,7 +213,7 @@
             </div>
             <div class="column has-background-white p-0"
                  role="cell">
-                <pre class="has-background-white py-0 px-2">#[logos(extras = Position)]</pre>
+                <pre class="has-background-white py-0 px-2"></pre>
             </div>
         </div><div class="columns p-0 m-0" role="row">
             <div
@@ -229,7 +229,7 @@
             </div>
             <div class="column has-background-white p-0"
                  role="cell">
-                <pre class="has-background-white py-0 px-2">pub enum MarkupTokens {</pre>
+                <pre class="has-background-white py-0 px-2">#[derive(Logos, Debug, PartialEq, Eq, Clone)]</pre>
             </div>
         </div><div class="columns p-0 m-0" role="row">
             <div
@@ -245,7 +245,7 @@
             </div>
             <div class="column has-background-white p-0"
                  role="cell">
-                <pre class="has-background-white py-0 px-2">    #[token(&quot;&#x2F;&quot;, comment_context_callback)]</pre>
+                <pre class="has-background-white py-0 px-2">#[logos(extras = Position)]</pre>
             </div>
         </div><div class="columns p-0 m-0" role="row">
             <div
@@ -261,7 +261,7 @@
             </div>
             <div class="column has-background-white p-0"
                  role="cell">
-                <pre class="has-background-white py-0 px-2">    Comment(Vec&lt;Token&lt;CommentContext&gt;&gt;),</pre>
+                <pre class="has-background-white py-0 px-2">pub enum MarkupTokens {</pre>
             </div>
         </div><div class="columns p-0 m-0" role="row">
             <div
@@ -277,7 +277,7 @@
             </div>
             <div class="column has-background-white p-0"
                  role="cell">
-                <pre class="has-background-white py-0 px-2"></pre>
+                <pre class="has-background-white py-0 px-2">    #[token(&quot;&#x2F;&quot;, comment_callback)]</pre>
             </div>
         </div><div class="columns p-0 m-0" role="row">
             <div
@@ -293,7 +293,7 @@
             </div>
             <div class="column has-background-white p-0"
                  role="cell">
-                <pre class="has-background-white py-0 px-2">    #[token(&quot;&lt;&quot;, tag_context_callback)]</pre>
+                <pre class="has-background-white py-0 px-2">    Comment(Vec&lt;Token&lt;CommentToken&gt;&gt;),</pre>
             </div>
         </div><div class="columns p-0 m-0" role="row">
             <div
@@ -309,7 +309,7 @@
             </div>
             <div class="column has-background-white p-0"
                  role="cell">
-                <pre class="has-background-white py-0 px-2">    Tag(Vec&lt;Token&lt;TagContext&gt;&gt;),</pre>
+                <pre class="has-background-white py-0 px-2"></pre>
             </div>
         </div><div class="columns p-0 m-0" role="row">
             <div
@@ -325,7 +325,7 @@
             </div>
             <div class="column has-background-white p-0"
                  role="cell">
-                <pre class="has-background-white py-0 px-2"></pre>
+                <pre class="has-background-white py-0 px-2">    #[token(&quot;&lt;&quot;, tag_context_callback)]</pre>
             </div>
         </div><div class="columns p-0 m-0" role="row">
             <div
@@ -341,7 +341,7 @@
             </div>
             <div class="column has-background-white p-0"
                  role="cell">
-                <pre class="has-background-white py-0 px-2">    #[token(&quot;#&quot;, directive_callback)]</pre>
+                <pre class="has-background-white py-0 px-2">    Tag(Vec&lt;Token&lt;TagContext&gt;&gt;),</pre>
             </div>
         </div><div class="columns p-0 m-0" role="row">
             <div
@@ -357,7 +357,7 @@
             </div>
             <div class="column has-background-white p-0"
                  role="cell">
-                <pre class="has-background-white py-0 px-2">    Directive(Vec&lt;Token&lt;DirectiveToken&gt;&gt;),</pre>
+                <pre class="has-background-white py-0 px-2"></pre>
             </div>
         </div><div class="columns p-0 m-0" role="row">
             <div
@@ -373,7 +373,7 @@
             </div>
             <div class="column has-background-white p-0"
                  role="cell">
-                <pre class="has-background-white py-0 px-2"></pre>
+                <pre class="has-background-white py-0 px-2">    #[token(&quot;#&quot;, directive_callback)]</pre>
             </div>
         </div><div class="columns p-0 m-0" role="row">
             <div
@@ -389,7 +389,7 @@
             </div>
             <div class="column has-background-white p-0"
                  role="cell">
-                <pre class="has-background-white py-0 px-2">    #[regex(r&quot;[^&#x2F;#&lt;]&quot;, text_context_callback)]</pre>
+                <pre class="has-background-white py-0 px-2">    Directive(Vec&lt;Token&lt;DirectiveToken&gt;&gt;),</pre>
             </div>
         </div><div class="columns p-0 m-0" role="row">
             <div
@@ -405,7 +405,7 @@
             </div>
             <div class="column has-background-white p-0"
                  role="cell">
-                <pre class="has-background-white py-0 px-2">    Text(Token&lt;Text&gt;),</pre>
+                <pre class="has-background-white py-0 px-2"></pre>
             </div>
         </div><div class="columns p-0 m-0" role="row">
             <div
@@ -421,7 +421,7 @@
             </div>
             <div class="column has-background-white p-0"
                  role="cell">
-                <pre class="has-background-white py-0 px-2">}</pre>
+                <pre class="has-background-white py-0 px-2">    #[regex(r&quot;[^&#x2F;#&lt;]&quot;, text_context_callback)]</pre>
             </div>
         </div><div class="columns p-0 m-0" role="row">
             <div
@@ -437,7 +437,7 @@
             </div>
             <div class="column has-background-white p-0"
                  role="cell">
-                <pre class="has-background-white py-0 px-2"></pre>
+                <pre class="has-background-white py-0 px-2">    Text(Token&lt;Text&gt;),</pre>
             </div>
         </div><div class="columns p-0 m-0" role="row">
             <div
@@ -453,7 +453,7 @@
             </div>
             <div class="column has-background-white p-0"
                  role="cell">
-                <pre class="has-background-white py-0 px-2">pub struct RmlTokenStream&lt;&#x27;a&gt; {</pre>
+                <pre class="has-background-white py-0 px-2">}</pre>
             </div>
         </div><div class="columns p-0 m-0" role="row">
             <div
@@ -469,7 +469,7 @@
             </div>
             <div class="column has-background-white p-0"
                  role="cell">
-                <pre class="has-background-white py-0 px-2">    inner: Lexer&lt;&#x27;a, MarkupTokens&gt;,</pre>
+                <pre class="has-background-white py-0 px-2"></pre>
             </div>
         </div><div class="columns p-0 m-0" role="row">
             <div
@@ -485,7 +485,7 @@
             </div>
             <div class="column has-background-white p-0"
                  role="cell">
-                <pre class="has-background-white py-0 px-2">}</pre>
+                <pre class="has-background-white py-0 px-2">pub struct RmlTokenStream&lt;&#x27;a&gt; {</pre>
             </div>
         </div><div class="columns p-0 m-0" role="row">
             <div
@@ -501,7 +501,7 @@
             </div>
             <div class="column has-background-white p-0"
                  role="cell">
-                <pre class="has-background-white py-0 px-2"></pre>
+                <pre class="has-background-white py-0 px-2">    inner: Lexer&lt;&#x27;a, MarkupTokens&gt;,</pre>
             </div>
         </div><div class="columns p-0 m-0" role="row">
             <div
@@ -517,7 +517,7 @@
             </div>
             <div class="column has-background-white p-0"
                  role="cell">
-                <pre class="has-background-white py-0 px-2">impl&lt;&#x27;a&gt; RmlTokenStream&lt;&#x27;a&gt; {</pre>
+                <pre class="has-background-white py-0 px-2">}</pre>
             </div>
         </div><div class="columns p-0 m-0" role="row">
             <div
@@ -527,13 +527,13 @@
                 <a href="#31">31</a>
             </div>
             <div
-                class="column is-1 is-narrow p-0 has-text-centered has-text-success-light has-background-success"
-                role="cell" aria-label="8">
-                8
+                class="column is-1 is-narrow p-0 has-text-centered has-text-white has-background-white"
+                role="cell" aria-label="no coverage">
+                
             </div>
-            <div class="column has-background-success-light p-0"
+            <div class="column has-background-white p-0"
                  role="cell">
-                <pre class="has-background-success-light py-0 px-2">    pub fn new(content: &amp;&#x27;a str) -&gt; Self {</pre>
+                <pre class="has-background-white py-0 px-2"></pre>
             </div>
         </div><div class="columns p-0 m-0" role="row">
             <div
@@ -543,13 +543,13 @@
                 <a href="#32">32</a>
             </div>
             <div
-                class="column is-1 is-narrow p-0 has-text-centered has-text-success-light has-background-success"
-                role="cell" aria-label="8">
-                8
+                class="column is-1 is-narrow p-0 has-text-centered has-text-white has-background-white"
+                role="cell" aria-label="no coverage">
+                
             </div>
-            <div class="column has-background-success-light p-0"
+            <div class="column has-background-white p-0"
                  role="cell">
-                <pre class="has-background-success-light py-0 px-2">        Self {</pre>
+                <pre class="has-background-white py-0 px-2">impl&lt;&#x27;a&gt; RmlTokenStream&lt;&#x27;a&gt; {</pre>
             </div>
         </div><div class="columns p-0 m-0" role="row">
             <div
@@ -565,7 +565,7 @@
             </div>
             <div class="column has-background-success-light p-0"
                  role="cell">
-                <pre class="has-background-success-light py-0 px-2">            inner: MarkupTokens::lexer(content),</pre>
+                <pre class="has-background-success-light py-0 px-2">    pub fn new(content: &amp;&#x27;a str) -&gt; Self {</pre>
             </div>
         </div><div class="columns p-0 m-0" role="row">
             <div
@@ -581,7 +581,7 @@
             </div>
             <div class="column has-background-success-light p-0"
                  role="cell">
-                <pre class="has-background-success-light py-0 px-2">        }</pre>
+                <pre class="has-background-success-light py-0 px-2">        Self {</pre>
             </div>
         </div><div class="columns p-0 m-0" role="row">
             <div
@@ -597,7 +597,7 @@
             </div>
             <div class="column has-background-success-light p-0"
                  role="cell">
-                <pre class="has-background-success-light py-0 px-2">    }</pre>
+                <pre class="has-background-success-light py-0 px-2">            inner: MarkupTokens::lexer(content),</pre>
             </div>
         </div><div class="columns p-0 m-0" role="row">
             <div
@@ -605,6 +605,38 @@
                 id="36"
                 role="cell">
                 <a href="#36">36</a>
+            </div>
+            <div
+                class="column is-1 is-narrow p-0 has-text-centered has-text-success-light has-background-success"
+                role="cell" aria-label="8">
+                8
+            </div>
+            <div class="column has-background-success-light p-0"
+                 role="cell">
+                <pre class="has-background-success-light py-0 px-2">        }</pre>
+            </div>
+        </div><div class="columns p-0 m-0" role="row">
+            <div
+                class="column is-1 is-narrow p-0 has-text-centered"
+                id="37"
+                role="cell">
+                <a href="#37">37</a>
+            </div>
+            <div
+                class="column is-1 is-narrow p-0 has-text-centered has-text-success-light has-background-success"
+                role="cell" aria-label="8">
+                8
+            </div>
+            <div class="column has-background-success-light p-0"
+                 role="cell">
+                <pre class="has-background-success-light py-0 px-2">    }</pre>
+            </div>
+        </div><div class="columns p-0 m-0" role="row">
+            <div
+                class="column is-1 is-narrow p-0 has-text-centered"
+                id="38"
+                role="cell">
+                <a href="#38">38</a>
             </div>
             <div
                 class="column is-1 is-narrow p-0 has-text-centered has-text-white has-background-white"
@@ -618,9 +650,9 @@
         </div><div class="columns p-0 m-0" role="row">
             <div
                 class="column is-1 is-narrow p-0 has-text-centered"
-                id="37"
+                id="39"
                 role="cell">
-                <a href="#37">37</a>
+                <a href="#39">39</a>
             </div>
             <div
                 class="column is-1 is-narrow p-0 has-text-centered has-text-success-light has-background-success"
@@ -634,9 +666,9 @@
         </div><div class="columns p-0 m-0" role="row">
             <div
                 class="column is-1 is-narrow p-0 has-text-centered"
-                id="38"
+                id="40"
                 role="cell">
-                <a href="#38">38</a>
+                <a href="#40">40</a>
             </div>
             <div
                 class="column is-1 is-narrow p-0 has-text-centered has-text-success-light has-background-success"
@@ -650,9 +682,9 @@
         </div><div class="columns p-0 m-0" role="row">
             <div
                 class="column is-1 is-narrow p-0 has-text-centered"
-                id="39"
+                id="41"
                 role="cell">
-                <a href="#39">39</a>
+                <a href="#41">41</a>
             </div>
             <div
                 class="column is-1 is-narrow p-0 has-text-centered has-text-success-light has-background-success"
@@ -666,41 +698,25 @@
         </div><div class="columns p-0 m-0" role="row">
             <div
                 class="column is-1 is-narrow p-0 has-text-centered"
-                id="40"
-                role="cell">
-                <a href="#40">40</a>
-            </div>
-            <div
-                class="column is-1 is-narrow p-0 has-text-centered has-text-white has-background-white"
-                role="cell" aria-label="no coverage">
-                
-            </div>
-            <div class="column has-background-white p-0"
-                 role="cell">
-                <pre class="has-background-white py-0 px-2">        }</pre>
-            </div>
-        </div><div class="columns p-0 m-0" role="row">
-            <div
-                class="column is-1 is-narrow p-0 has-text-centered"
-                id="41"
-                role="cell">
-                <a href="#41">41</a>
-            </div>
-            <div
-                class="column is-1 is-narrow p-0 has-text-centered has-text-white has-background-white"
-                role="cell" aria-label="no coverage">
-                
-            </div>
-            <div class="column has-background-white p-0"
-                 role="cell">
-                <pre class="has-background-white py-0 px-2">        else {</pre>
-            </div>
-        </div><div class="columns p-0 m-0" role="row">
-            <div
-                class="column is-1 is-narrow p-0 has-text-centered"
                 id="42"
                 role="cell">
                 <a href="#42">42</a>
+            </div>
+            <div
+                class="column is-1 is-narrow p-0 has-text-centered has-text-white has-background-white"
+                role="cell" aria-label="no coverage">
+                
+            </div>
+            <div class="column has-background-white p-0"
+                 role="cell">
+                <pre class="has-background-white py-0 px-2">        } else {</pre>
+            </div>
+        </div><div class="columns p-0 m-0" role="row">
+            <div
+                class="column is-1 is-narrow p-0 has-text-centered"
+                id="43"
+                role="cell">
+                <a href="#43">43</a>
             </div>
             <div
                 class="column is-1 is-narrow p-0 has-text-centered has-text-success-light has-background-success"
@@ -714,9 +730,9 @@
         </div><div class="columns p-0 m-0" role="row">
             <div
                 class="column is-1 is-narrow p-0 has-text-centered"
-                id="43"
+                id="44"
                 role="cell">
-                <a href="#43">43</a>
+                <a href="#44">44</a>
             </div>
             <div
                 class="column is-1 is-narrow p-0 has-text-centered has-text-white has-background-white"
@@ -730,9 +746,9 @@
         </div><div class="columns p-0 m-0" role="row">
             <div
                 class="column is-1 is-narrow p-0 has-text-centered"
-                id="44"
+                id="45"
                 role="cell">
-                <a href="#44">44</a>
+                <a href="#45">45</a>
             </div>
             <div
                 class="column is-1 is-narrow p-0 has-text-centered has-text-success-light has-background-success"
@@ -746,9 +762,9 @@
         </div><div class="columns p-0 m-0" role="row">
             <div
                 class="column is-1 is-narrow p-0 has-text-centered"
-                id="45"
+                id="46"
                 role="cell">
-                <a href="#45">45</a>
+                <a href="#46">46</a>
             </div>
             <div
                 class="column is-1 is-narrow p-0 has-text-centered has-text-white has-background-white"
@@ -758,22 +774,6 @@
             <div class="column has-background-white p-0"
                  role="cell">
                 <pre class="has-background-white py-0 px-2"></pre>
-            </div>
-        </div><div class="columns p-0 m-0" role="row">
-            <div
-                class="column is-1 is-narrow p-0 has-text-centered"
-                id="46"
-                role="cell">
-                <a href="#46">46</a>
-            </div>
-            <div
-                class="column is-1 is-narrow p-0 has-text-centered has-text-success-light has-background-success"
-                role="cell" aria-label="4">
-                4
-            </div>
-            <div class="column has-background-success-light p-0"
-                 role="cell">
-                <pre class="has-background-success-light py-0 px-2">    pub fn to_vec(mut self) -&gt; Vec&lt;MarkupTokens&gt; {</pre>
             </div>
         </div><div class="columns p-0 m-0" role="row">
             <div
@@ -789,7 +789,7 @@
             </div>
             <div class="column has-background-success-light p-0"
                  role="cell">
-                <pre class="has-background-success-light py-0 px-2">        let mut vec = vec![];</pre>
+                <pre class="has-background-success-light py-0 px-2">    pub fn to_vec(mut self) -&gt; Vec&lt;MarkupTokens&gt; {</pre>
             </div>
         </div><div class="columns p-0 m-0" role="row">
             <div
@@ -797,6 +797,22 @@
                 id="48"
                 role="cell">
                 <a href="#48">48</a>
+            </div>
+            <div
+                class="column is-1 is-narrow p-0 has-text-centered has-text-success-light has-background-success"
+                role="cell" aria-label="4">
+                4
+            </div>
+            <div class="column has-background-success-light p-0"
+                 role="cell">
+                <pre class="has-background-success-light py-0 px-2">        let mut vec = vec![];</pre>
+            </div>
+        </div><div class="columns p-0 m-0" role="row">
+            <div
+                class="column is-1 is-narrow p-0 has-text-centered"
+                id="49"
+                role="cell">
+                <a href="#49">49</a>
             </div>
             <div
                 class="column is-1 is-narrow p-0 has-text-centered has-text-white has-background-white"
@@ -810,9 +826,9 @@
         </div><div class="columns p-0 m-0" role="row">
             <div
                 class="column is-1 is-narrow p-0 has-text-centered"
-                id="49"
+                id="50"
                 role="cell">
-                <a href="#49">49</a>
+                <a href="#50">50</a>
             </div>
             <div
                 class="column is-1 is-narrow p-0 has-text-centered has-text-success-light has-background-success"
@@ -822,22 +838,6 @@
             <div class="column has-background-success-light p-0"
                  role="cell">
                 <pre class="has-background-success-light py-0 px-2">        while let Ok(token) = self.next_token() {</pre>
-            </div>
-        </div><div class="columns p-0 m-0" role="row">
-            <div
-                class="column is-1 is-narrow p-0 has-text-centered"
-                id="50"
-                role="cell">
-                <a href="#50">50</a>
-            </div>
-            <div
-                class="column is-1 is-narrow p-0 has-text-centered has-text-success-light has-background-success"
-                role="cell" aria-label="4">
-                4
-            </div>
-            <div class="column has-background-success-light p-0"
-                 role="cell">
-                <pre class="has-background-success-light py-0 px-2">            vec.push(token);</pre>
             </div>
         </div><div class="columns p-0 m-0" role="row">
             <div
@@ -853,7 +853,7 @@
             </div>
             <div class="column has-background-success-light p-0"
                  role="cell">
-                <pre class="has-background-success-light py-0 px-2">        }</pre>
+                <pre class="has-background-success-light py-0 px-2">            vec.push(token);</pre>
             </div>
         </div><div class="columns p-0 m-0" role="row">
             <div
@@ -863,13 +863,13 @@
                 <a href="#52">52</a>
             </div>
             <div
-                class="column is-1 is-narrow p-0 has-text-centered has-text-white has-background-white"
-                role="cell" aria-label="no coverage">
-                
+                class="column is-1 is-narrow p-0 has-text-centered has-text-success-light has-background-success"
+                role="cell" aria-label="4">
+                4
             </div>
-            <div class="column has-background-white p-0"
+            <div class="column has-background-success-light p-0"
                  role="cell">
-                <pre class="has-background-white py-0 px-2"></pre>
+                <pre class="has-background-success-light py-0 px-2">        }</pre>
             </div>
         </div><div class="columns p-0 m-0" role="row">
             <div
@@ -879,13 +879,13 @@
                 <a href="#53">53</a>
             </div>
             <div
-                class="column is-1 is-narrow p-0 has-text-centered has-text-success-light has-background-success"
-                role="cell" aria-label="4">
-                4
+                class="column is-1 is-narrow p-0 has-text-centered has-text-white has-background-white"
+                role="cell" aria-label="no coverage">
+                
             </div>
-            <div class="column has-background-success-light p-0"
+            <div class="column has-background-white p-0"
                  role="cell">
-                <pre class="has-background-success-light py-0 px-2">        vec</pre>
+                <pre class="has-background-white py-0 px-2"></pre>
             </div>
         </div><div class="columns p-0 m-0" role="row">
             <div
@@ -901,7 +901,7 @@
             </div>
             <div class="column has-background-success-light p-0"
                  role="cell">
-                <pre class="has-background-success-light py-0 px-2">    }</pre>
+                <pre class="has-background-success-light py-0 px-2">        vec</pre>
             </div>
         </div><div class="columns p-0 m-0" role="row">
             <div
@@ -911,13 +911,13 @@
                 <a href="#55">55</a>
             </div>
             <div
-                class="column is-1 is-narrow p-0 has-text-centered has-text-white has-background-white"
-                role="cell" aria-label="no coverage">
-                
+                class="column is-1 is-narrow p-0 has-text-centered has-text-success-light has-background-success"
+                role="cell" aria-label="4">
+                4
             </div>
-            <div class="column has-background-white p-0"
+            <div class="column has-background-success-light p-0"
                  role="cell">
-                <pre class="has-background-white py-0 px-2">}</pre>
+                <pre class="has-background-success-light py-0 px-2">    }</pre>
             </div>
         </div><div class="columns p-0 m-0" role="row">
             <div
@@ -933,7 +933,7 @@
             </div>
             <div class="column has-background-white p-0"
                  role="cell">
-                <pre class="has-background-white py-0 px-2"></pre>
+                <pre class="has-background-white py-0 px-2">}</pre>
             </div>
         </div><div class="columns p-0 m-0" role="row">
             <div
@@ -949,7 +949,7 @@
             </div>
             <div class="column has-background-white p-0"
                  role="cell">
-                <pre class="has-background-white py-0 px-2">#[cfg(test)]</pre>
+                <pre class="has-background-white py-0 px-2"></pre>
             </div>
         </div><div class="columns p-0 m-0" role="row">
             <div
@@ -965,7 +965,7 @@
             </div>
             <div class="column has-background-white p-0"
                  role="cell">
-                <pre class="has-background-white py-0 px-2">mod tests {</pre>
+                <pre class="has-background-white py-0 px-2">#[cfg(test)]</pre>
             </div>
         </div><div class="columns p-0 m-0" role="row">
             <div
@@ -981,7 +981,7 @@
             </div>
             <div class="column has-background-white p-0"
                  role="cell">
-                <pre class="has-background-white py-0 px-2">    use logos::Logos;</pre>
+                <pre class="has-background-white py-0 px-2">mod tests {</pre>
             </div>
         </div><div class="columns p-0 m-0" role="row">
             <div
@@ -1013,7 +1013,7 @@
             </div>
             <div class="column has-background-white p-0"
                  role="cell">
-                <pre class="has-background-white py-0 px-2"></pre>
+                <pre class="has-background-white py-0 px-2">    use logos::Logos;</pre>
             </div>
         </div><div class="columns p-0 m-0" role="row">
             <div
@@ -1029,7 +1029,7 @@
             </div>
             <div class="column has-background-white p-0"
                  role="cell">
-                <pre class="has-background-white py-0 px-2">    #[test]</pre>
+                <pre class="has-background-white py-0 px-2"></pre>
             </div>
         </div><div class="columns p-0 m-0" role="row">
             <div
@@ -1039,13 +1039,13 @@
                 <a href="#63">63</a>
             </div>
             <div
-                class="column is-1 is-narrow p-0 has-text-centered has-text-success-light has-background-success"
-                role="cell" aria-label="2">
-                2
+                class="column is-1 is-narrow p-0 has-text-centered has-text-white has-background-white"
+                role="cell" aria-label="no coverage">
+                
             </div>
-            <div class="column has-background-success-light p-0"
+            <div class="column has-background-white p-0"
                  role="cell">
-                <pre class="has-background-success-light py-0 px-2">    fn test() {</pre>
+                <pre class="has-background-white py-0 px-2">    #[test]</pre>
             </div>
         </div><div class="columns p-0 m-0" role="row">
             <div
@@ -1055,13 +1055,13 @@
                 <a href="#64">64</a>
             </div>
             <div
-                class="column is-1 is-narrow p-0 has-text-centered has-text-white has-background-white"
-                role="cell" aria-label="no coverage">
-                
+                class="column is-1 is-narrow p-0 has-text-centered has-text-success-light has-background-success"
+                role="cell" aria-label="2">
+                2
             </div>
-            <div class="column has-background-white p-0"
+            <div class="column has-background-success-light p-0"
                  role="cell">
-                <pre class="has-background-white py-0 px-2">        const CONTENT: &amp;str = r#&quot;</pre>
+                <pre class="has-background-success-light py-0 px-2">    fn test() {</pre>
             </div>
         </div><div class="columns p-0 m-0" role="row">
             <div
@@ -1077,7 +1077,7 @@
             </div>
             <div class="column has-background-white p-0"
                  role="cell">
-                <pre class="has-background-white py-0 px-2">#import &quot;..&#x2F;base.ron&quot;</pre>
+                <pre class="has-background-white py-0 px-2">        const CONTENT: &amp;str = r#&quot;</pre>
             </div>
         </div><div class="columns p-0 m-0" role="row">
             <div
@@ -1093,7 +1093,7 @@
             </div>
             <div class="column has-background-white p-0"
                  role="cell">
-                <pre class="has-background-white py-0 px-2">#import &quot;..&#x2F;schema.ron&quot;</pre>
+                <pre class="has-background-white py-0 px-2">#import &quot;..&#x2F;base.ron&quot;</pre>
             </div>
         </div><div class="columns p-0 m-0" role="row">
             <div
@@ -1109,7 +1109,7 @@
             </div>
             <div class="column has-background-white p-0"
                  role="cell">
-                <pre class="has-background-white py-0 px-2">#expressions &quot;..&#x2F;file.rmlx&quot; as expr</pre>
+                <pre class="has-background-white py-0 px-2">#import &quot;..&#x2F;schema.ron&quot;</pre>
             </div>
         </div><div class="columns p-0 m-0" role="row">
             <div
@@ -1125,7 +1125,7 @@
             </div>
             <div class="column has-background-white p-0"
                  role="cell">
-                <pre class="has-background-white py-0 px-2"></pre>
+                <pre class="has-background-white py-0 px-2">#expressions &quot;..&#x2F;file.rmlx&quot; as expr</pre>
             </div>
         </div><div class="columns p-0 m-0" role="row">
             <div
@@ -1141,7 +1141,7 @@
             </div>
             <div class="column has-background-white p-0"
                  role="cell">
-                <pre class="has-background-white py-0 px-2">&lt;Layout&gt;</pre>
+                <pre class="has-background-white py-0 px-2"></pre>
             </div>
         </div><div class="columns p-0 m-0" role="row">
             <div
@@ -1157,7 +1157,7 @@
             </div>
             <div class="column has-background-white p-0"
                  role="cell">
-                <pre class="has-background-white py-0 px-2">    &lt;Node width=&quot;60px&quot; height=&quot;100px&quot;&#x2F;&gt;</pre>
+                <pre class="has-background-white py-0 px-2">&lt;Layout&gt;</pre>
             </div>
         </div><div class="columns p-0 m-0" role="row">
             <div
@@ -1173,7 +1173,7 @@
             </div>
             <div class="column has-background-white p-0"
                  role="cell">
-                <pre class="has-background-white py-0 px-2">    &lt;Container id=&quot;Background&quot;&gt;</pre>
+                <pre class="has-background-white py-0 px-2">    &lt;Node width=&quot;60px&quot; height=&quot;100px&quot;&#x2F;&gt;</pre>
             </div>
         </div><div class="columns p-0 m-0" role="row">
             <div
@@ -1189,7 +1189,7 @@
             </div>
             <div class="column has-background-white p-0"
                  role="cell">
-                <pre class="has-background-white py-0 px-2">        &lt;Node&#x2F;&gt;</pre>
+                <pre class="has-background-white py-0 px-2">    &lt;Container id=&quot;Background&quot;&gt;</pre>
             </div>
         </div><div class="columns p-0 m-0" role="row">
             <div
@@ -1205,7 +1205,7 @@
             </div>
             <div class="column has-background-white p-0"
                  role="cell">
-                <pre class="has-background-white py-0 px-2">        &lt;Image path=&quot;{expr:LoadIcon}&quot;&gt;</pre>
+                <pre class="has-background-white py-0 px-2">        &lt;Node&#x2F;&gt;</pre>
             </div>
         </div><div class="columns p-0 m-0" role="row">
             <div
@@ -1221,7 +1221,7 @@
             </div>
             <div class="column has-background-white p-0"
                  role="cell">
-                <pre class="has-background-white py-0 px-2">        &lt;Container id=&quot;Text&quot;&gt;</pre>
+                <pre class="has-background-white py-0 px-2">        &lt;Image path=&quot;{expr:LoadIcon}&quot;&gt;</pre>
             </div>
         </div><div class="columns p-0 m-0" role="row">
             <div
@@ -1237,7 +1237,7 @@
             </div>
             <div class="column has-background-white p-0"
                  role="cell">
-                <pre class="has-background-white py-0 px-2">            &lt;Text self=&quot;{expr:Text}&quot;&gt;</pre>
+                <pre class="has-background-white py-0 px-2">        &lt;Container id=&quot;Text&quot;&gt;</pre>
             </div>
         </div><div class="columns p-0 m-0" role="row">
             <div
@@ -1253,7 +1253,7 @@
             </div>
             <div class="column has-background-white p-0"
                  role="cell">
-                <pre class="has-background-white py-0 px-2">            &lt;Tag attribute=&quot;{expr:Test}&quot;&gt;</pre>
+                <pre class="has-background-white py-0 px-2">            &lt;Text self=&quot;{expr:Text}&quot;&gt;</pre>
             </div>
         </div><div class="columns p-0 m-0" role="row">
             <div
@@ -1269,7 +1269,7 @@
             </div>
             <div class="column has-background-white p-0"
                  role="cell">
-                <pre class="has-background-white py-0 px-2">        &lt;&#x2F;Container&gt;</pre>
+                <pre class="has-background-white py-0 px-2">            &lt;Tag attribute=&quot;{expr:Test}&quot;&gt;</pre>
             </div>
         </div><div class="columns p-0 m-0" role="row">
             <div
@@ -1285,7 +1285,7 @@
             </div>
             <div class="column has-background-white p-0"
                  role="cell">
-                <pre class="has-background-white py-0 px-2">    &lt;&#x2F;Container&gt;</pre>
+                <pre class="has-background-white py-0 px-2">        &lt;&#x2F;Container&gt;</pre>
             </div>
         </div><div class="columns p-0 m-0" role="row">
             <div
@@ -1301,7 +1301,7 @@
             </div>
             <div class="column has-background-white p-0"
                  role="cell">
-                <pre class="has-background-white py-0 px-2">&lt;&#x2F;Layout&gt;</pre>
+                <pre class="has-background-white py-0 px-2">    &lt;&#x2F;Container&gt;</pre>
             </div>
         </div><div class="columns p-0 m-0" role="row">
             <div
@@ -1317,7 +1317,7 @@
             </div>
             <div class="column has-background-white p-0"
                  role="cell">
-                <pre class="has-background-white py-0 px-2">&quot;#;</pre>
+                <pre class="has-background-white py-0 px-2">&lt;&#x2F;Layout&gt;</pre>
             </div>
         </div><div class="columns p-0 m-0" role="row">
             <div
@@ -1325,6 +1325,22 @@
                 id="81"
                 role="cell">
                 <a href="#81">81</a>
+            </div>
+            <div
+                class="column is-1 is-narrow p-0 has-text-centered has-text-white has-background-white"
+                role="cell" aria-label="no coverage">
+                
+            </div>
+            <div class="column has-background-white p-0"
+                 role="cell">
+                <pre class="has-background-white py-0 px-2">&quot;#;</pre>
+            </div>
+        </div><div class="columns p-0 m-0" role="row">
+            <div
+                class="column is-1 is-narrow p-0 has-text-centered"
+                id="82"
+                role="cell">
+                <a href="#82">82</a>
             </div>
             <div
                 class="column is-1 is-narrow p-0 has-text-centered has-text-success-light has-background-success"
@@ -1338,9 +1354,9 @@
         </div><div class="columns p-0 m-0" role="row">
             <div
                 class="column is-1 is-narrow p-0 has-text-centered"
-                id="82"
+                id="83"
                 role="cell">
-                <a href="#82">82</a>
+                <a href="#83">83</a>
             </div>
             <div
                 class="column is-1 is-narrow p-0 has-text-centered has-text-white has-background-white"
@@ -1354,9 +1370,9 @@
         </div><div class="columns p-0 m-0" role="row">
             <div
                 class="column is-1 is-narrow p-0 has-text-centered"
-                id="83"
+                id="84"
                 role="cell">
-                <a href="#83">83</a>
+                <a href="#84">84</a>
             </div>
             <div
                 class="column is-1 is-narrow p-0 has-text-centered has-text-success-light has-background-success"
@@ -1366,22 +1382,6 @@
             <div class="column has-background-success-light p-0"
                  role="cell">
                 <pre class="has-background-success-light py-0 px-2">        while let Some(token) = lexer.next() {</pre>
-            </div>
-        </div><div class="columns p-0 m-0" role="row">
-            <div
-                class="column is-1 is-narrow p-0 has-text-centered"
-                id="84"
-                role="cell">
-                <a href="#84">84</a>
-            </div>
-            <div
-                class="column is-1 is-narrow p-0 has-text-centered has-text-success-light has-background-success"
-                role="cell" aria-label="54">
-                54
-            </div>
-            <div class="column has-background-success-light p-0"
-                 role="cell">
-                <pre class="has-background-success-light py-0 px-2">            let slice = lexer.slice().trim();</pre>
             </div>
         </div><div class="columns p-0 m-0" role="row">
             <div
@@ -1397,7 +1397,7 @@
             </div>
             <div class="column has-background-success-light p-0"
                  role="cell">
-                <pre class="has-background-success-light py-0 px-2">            if let Ok(token) = &amp;token &amp;&amp; let MarkupTokens::Text(_token) = token &amp;&amp; slice.is_empty() {</pre>
+                <pre class="has-background-success-light py-0 px-2">            let slice = lexer.slice().trim();</pre>
             </div>
         </div><div class="columns p-0 m-0" role="row">
             <div
@@ -1408,12 +1408,12 @@
             </div>
             <div
                 class="column is-1 is-narrow p-0 has-text-centered has-text-success-light has-background-success"
-                role="cell" aria-label="26">
-                26
+                role="cell" aria-label="54">
+                54
             </div>
             <div class="column has-background-success-light p-0"
                  role="cell">
-                <pre class="has-background-success-light py-0 px-2">                continue;</pre>
+                <pre class="has-background-success-light py-0 px-2">            if let Ok(token) = &amp;token</pre>
             </div>
         </div><div class="columns p-0 m-0" role="row">
             <div
@@ -1424,12 +1424,12 @@
             </div>
             <div
                 class="column is-1 is-narrow p-0 has-text-centered has-text-success-light has-background-success"
-                role="cell" aria-label="28">
-                28
+                role="cell" aria-label="54">
+                54
             </div>
             <div class="column has-background-success-light p-0"
                  role="cell">
-                <pre class="has-background-success-light py-0 px-2">            }</pre>
+                <pre class="has-background-success-light py-0 px-2">                &amp;&amp; let MarkupTokens::Text(_token) = token</pre>
             </div>
         </div><div class="columns p-0 m-0" role="row">
             <div
@@ -1440,12 +1440,12 @@
             </div>
             <div
                 class="column is-1 is-narrow p-0 has-text-centered has-text-success-light has-background-success"
-                role="cell" aria-label="28">
-                28
+                role="cell" aria-label="26">
+                26
             </div>
             <div class="column has-background-success-light p-0"
                  role="cell">
-                <pre class="has-background-success-light py-0 px-2">            println!(&quot;{token:?} =&gt; {slice:?}&quot;);</pre>
+                <pre class="has-background-success-light py-0 px-2">                &amp;&amp; slice.is_empty()</pre>
             </div>
         </div><div class="columns p-0 m-0" role="row">
             <div
@@ -1461,7 +1461,7 @@
             </div>
             <div class="column has-background-white p-0"
                  role="cell">
-                <pre class="has-background-white py-0 px-2">        }</pre>
+                <pre class="has-background-white py-0 px-2">            {</pre>
             </div>
         </div><div class="columns p-0 m-0" role="row">
             <div
@@ -1469,6 +1469,70 @@
                 id="90"
                 role="cell">
                 <a href="#90">90</a>
+            </div>
+            <div
+                class="column is-1 is-narrow p-0 has-text-centered has-text-success-light has-background-success"
+                role="cell" aria-label="26">
+                26
+            </div>
+            <div class="column has-background-success-light p-0"
+                 role="cell">
+                <pre class="has-background-success-light py-0 px-2">                continue;</pre>
+            </div>
+        </div><div class="columns p-0 m-0" role="row">
+            <div
+                class="column is-1 is-narrow p-0 has-text-centered"
+                id="91"
+                role="cell">
+                <a href="#91">91</a>
+            </div>
+            <div
+                class="column is-1 is-narrow p-0 has-text-centered has-text-success-light has-background-success"
+                role="cell" aria-label="28">
+                28
+            </div>
+            <div class="column has-background-success-light p-0"
+                 role="cell">
+                <pre class="has-background-success-light py-0 px-2">            }</pre>
+            </div>
+        </div><div class="columns p-0 m-0" role="row">
+            <div
+                class="column is-1 is-narrow p-0 has-text-centered"
+                id="92"
+                role="cell">
+                <a href="#92">92</a>
+            </div>
+            <div
+                class="column is-1 is-narrow p-0 has-text-centered has-text-success-light has-background-success"
+                role="cell" aria-label="28">
+                28
+            </div>
+            <div class="column has-background-success-light p-0"
+                 role="cell">
+                <pre class="has-background-success-light py-0 px-2">            println!(&quot;{token:?} =&gt; {slice:?}&quot;);</pre>
+            </div>
+        </div><div class="columns p-0 m-0" role="row">
+            <div
+                class="column is-1 is-narrow p-0 has-text-centered"
+                id="93"
+                role="cell">
+                <a href="#93">93</a>
+            </div>
+            <div
+                class="column is-1 is-narrow p-0 has-text-centered has-text-white has-background-white"
+                role="cell" aria-label="no coverage">
+                
+            </div>
+            <div class="column has-background-white p-0"
+                 role="cell">
+                <pre class="has-background-white py-0 px-2">        }</pre>
+            </div>
+        </div><div class="columns p-0 m-0" role="row">
+            <div
+                class="column is-1 is-narrow p-0 has-text-centered"
+                id="94"
+                role="cell">
+                <a href="#94">94</a>
             </div>
             <div
                 class="column is-1 is-narrow p-0 has-text-centered has-text-success-light has-background-success"
@@ -1482,9 +1546,9 @@
         </div><div class="columns p-0 m-0" role="row">
             <div
                 class="column is-1 is-narrow p-0 has-text-centered"
-                id="91"
+                id="95"
                 role="cell">
-                <a href="#91">91</a>
+                <a href="#95">95</a>
             </div>
             <div
                 class="column is-1 is-narrow p-0 has-text-centered has-text-white has-background-white"
@@ -1500,7 +1564,7 @@
         <footer class="footer">
             
                 <div class="content has-text-centered">
-                    <p class="heading">Date: 2025-09-03 12:50</p>
+                    <p class="heading">Date: 2025-09-03 13:06</p>
                 </div>
             
         </footer>
