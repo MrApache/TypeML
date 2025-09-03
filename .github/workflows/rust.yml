@@ -48,13 +48,13 @@ jobs:
             --branch \
             --ignore-not-existing \
             --ignore "/*" \
-            -o target/coverage/html
+            -o target/coverage
 
       - name: Upload coverage artifact
         uses: actions/upload-artifact@v4
         with:
           name: coverage-html
-          path: target/coverage/html
+          path: target/coverage
 
       - name: Deploy to GitHub Pages
         uses: peaceiris/actions-gh-pages@v4
