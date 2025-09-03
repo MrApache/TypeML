@@ -63,7 +63,7 @@ jobs:
       - name: Move HTML report to root
         run: |
           mv target/coverage/html/* target/coverage/
-          rmdir target/coverage/html
+          rm -rf target/coverage/html
 
       - name: Deploy to GitHub Pages
         uses: peaceiris/actions-gh-pages@v4
