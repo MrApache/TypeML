@@ -20,18 +20,27 @@ jobs:
         with:
           toolchain: nightly
           override: true
-      - uses: actions-rs/cargo@v1
-        with:
-          command: test
-          args: --all-features --no-fail-fast
-        env:
-          CARGO_INCREMENTAL: '0'
-          RUSTFLAGS: '-Zprofile -Ccodegen-units=1 -Cinline-threshold=0 -Clink-dead-code -Coverflow-checks=off -Cpanic=abort -Zpanic_abort_tests'
-          RUSTDOCFLAGS: '-Zprofile -Ccodegen-units=1 -Cinline-threshold=0 -Clink-dead-code -Coverflow-checks=off -Cpanic=abort -Zpanic_abort_tests'
-      - uses: actions-rs/grcov@v0.1
 
-      - name: Deploy to GitHub Pages
-        uses: peaceiris/actions-gh-pages@v4
-        with:
-          github_token: ${{ secrets.GITHUB_TOKEN }}
-          publish_dir: ${{ steps.coverage.outputs.report }}
+      - name: Install llvm-tools
+        run: rustup component add llvm-tools
+
+      - name: Build
+        env:
+          RUSTFLAGS: -Cinstrument-coverage
+        run: cargo build
+      - name: Test
+        env:
+          LLVM_PROFILE_FILE: grcov-%p-%m.profraw
+          RUSTFLAGS: -Cinstrument-coverage
+        run: cargo test
+
+      - name: Generate coverage
+        run: |
+          ./target/debug/grcov $(find . -name "grcov-*.profraw" -print) \
+            --branch \
+            --ignore-not-existing \
+            --binary-path ./target/debug/ \
+            -s . \
+            -t lcov \
+            --ignore "/*" \
+            -o lcov.info
