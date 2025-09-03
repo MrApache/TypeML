@@ -24,6 +24,9 @@ jobs:
       - name: Install llvm-tools
         run: rustup component add llvm-tools
 
+      - name: Install grcov
+        run: cargo install grcov --locked
+
       - name: Build
         env:
           RUSTFLAGS: -Cinstrument-coverage
@@ -34,13 +37,14 @@ jobs:
           RUSTFLAGS: -Cinstrument-coverage
         run: cargo test
 
-      - name: Generate coverage
+      - name: Generate coverage report
         run: |
-          ./target/debug/grcov $(find . -name "grcov-*.profraw" -print) \
-            --branch \
-            --ignore-not-existing \
+          mkdir -p target/coverage/html
+          grcov $(find . -name "grcov-*.profraw" -print) \
             --binary-path ./target/debug/ \
             -s . \
-            -t lcov \
+            -t html \
+            --branch \
+            --ignore-not-existing \
             --ignore "/*" \
-            -o lcov.info
+            -o target/coverage/html
