@@ -164,6 +164,9 @@ impl<T> Token<T> {
         self.span.clone()
     }
 
+    /// # Panics
+    ///
+    /// Panics if `self.span()` is out of bounds for the given `str`.
     pub fn slice<'a>(&self, str: &'a str) -> &'a str {
         str.slice(self.span()).unwrap()
     }

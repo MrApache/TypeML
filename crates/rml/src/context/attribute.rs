@@ -1,6 +1,5 @@
 use logos::{Lexer, Logos};
-use lexer_core::*;
-
+use lexer_core::{push_and_break, Token, Position};
 use crate::{
     context::{
         expression::ExpressionToken, expression_callback, struct_callback,

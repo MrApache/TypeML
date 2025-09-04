@@ -19,6 +19,7 @@ impl Directive {
     }
 }
 
+#[allow(clippy::missing_panics_doc)]
 impl ParserContext<'_, DirectiveToken> {
     pub fn parse(&mut self) -> Option<Directive> {
         self.consume_keyword();

@@ -1,20 +1,20 @@
-mod group;
 mod attribute;
-mod expression;
-mod enumeration;
 mod directive;
+mod enumeration;
+mod expression;
+mod group;
 mod r#type;
 
-use std::fmt::Display;
-pub use group::*;
 pub use attribute::*;
-pub use expression::*;
-pub use enumeration::*;
 pub use directive::*;
+pub use enumeration::*;
+pub use expression::*;
+pub use group::*;
 pub use r#type::*;
 
 use lexer_core::{comment_callback, CommentToken, Position, Token};
 use logos::{Lexer, Logos};
+use std::fmt::Display;
 
 #[derive(Default, Debug, Clone, PartialEq, Eq)]
 pub enum Error {
@@ -28,13 +28,13 @@ pub enum Error {
         expected: Vec<&'static str>,
         found: String,
     },
-    MissingToken { 
+    MissingToken {
         expected: Vec<&'static str>,
     },
 }
 
 impl Error {
-    pub(crate) fn from_lexer<'source, T>(lex: &mut Lexer<'source, T>) -> Self 
+    pub(crate) fn from_lexer<'source, T>(lex: &mut Lexer<'source, T>) -> Self
     where
         T: Logos<'source, Extras = Position, Source = str>,
     {
@@ -118,16 +118,21 @@ impl<'a> RmlxTokenStream<'a> {
         }
     }
 
+    /// # Panics
+    ///
+    /// This function is not expected to panic during normal operation.
+    /// A panic may only occur in unforeseen circumstances.
     pub fn next_token(&mut self) -> Option<SchemaStatement> {
         while let Some(token) = self.inner.next() {
             if token.is_err() {
                 let token = Token::new((), &mut self.inner);
                 return Some(SchemaStatement::SyntaxError(token));
             }
+
             match token.unwrap() {
                 SchemaStatement::NewLine => self.inner.extras.new_line(),
                 SchemaStatement::Whitespace => self.inner.extras.advance(self.inner.span().len() as u32),
-                kind => return Some(kind)
+                kind => return Some(kind),
             }
         }
         None
