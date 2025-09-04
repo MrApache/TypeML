@@ -2,7 +2,7 @@ use crate::{
     ast::{Attribute, ParserContext},
     next_or_none, EnumDefinitionToken, RuleToken,
 };
-use lexer_core::{Token, PARAMETER_TOKEN, STRING_TOKEN};
+use lexer_core::Token;
 
 #[derive(Debug)]
 pub struct Enum {
@@ -51,12 +51,7 @@ pub struct EnumVariant {
 
 impl EnumVariant {
     #[must_use]
-    pub fn new(
-        name: String,
-        ty: Option<String>,
-        pattern: Option<String>,
-        attributes: Vec<Attribute>,
-    ) -> Self {
+    pub fn new(name: String, ty: Option<String>, pattern: Option<String>, attributes: Vec<Attribute>) -> Self {
         Self {
             name,
             ty,
@@ -98,31 +93,19 @@ impl ParserContext<'_, EnumDefinitionToken> {
         loop {
             let token = next_or_none!(self, "Unexpected end of tokens while parsing enum")?;
             match token.kind() {
-                EnumDefinitionToken::Comma => {
-                    self.tokens.push(token.to_semantic_token(u32::MAX));
-                }
-
-                EnumDefinitionToken::RightCurlyBracket => {
-                    self.tokens.push(token.to_semantic_token(u32::MAX));
-                    break;
-                }
+                EnumDefinitionToken::Comma => {}
+                EnumDefinitionToken::RightCurlyBracket => break,
 
                 EnumDefinitionToken::Attribute(tokens) => {
-                    attributes = ParserContext::new(
-                        tokens.iter().peekable(),
-                        self.diagnostics,
-                        self.tokens,
-                        self.src,
-                    )
-                    .parse()
-                    .unwrap_or_default();
+                    attributes = ParserContext::new(tokens.iter().peekable(), self.diagnostics, self.src)
+                        .parse()
+                        .unwrap_or_default();
                 }
 
                 EnumDefinitionToken::Identifier => {
                     let mut inner_type = None;
 
                     let name = token.slice(self.src).to_string();
-                    self.tokens.push(token.to_semantic_token(PARAMETER_TOKEN));
 
                     if let Some(peek) = self.iter.peek() {
                         match peek.kind() {
@@ -133,7 +116,12 @@ impl ParserContext<'_, EnumDefinitionToken> {
                                 inner_type = Some(type_name);
                             }
                             EnumDefinitionToken::Rule(tokens) => {
-                                variants.push(EnumVariant::new(name.clone(), None, self.consume_rule(tokens), std::mem::take(&mut attributes)));
+                                variants.push(EnumVariant::new(
+                                    name.clone(),
+                                    None,
+                                    self.consume_rule(tokens),
+                                    std::mem::take(&mut attributes),
+                                ));
                             }
                             EnumDefinitionToken::RightCurlyBracket => {} // continue
                             EnumDefinitionToken::Comma => self.consume_comma(),
@@ -141,20 +129,36 @@ impl ParserContext<'_, EnumDefinitionToken> {
                             kind => self.consume_error(&format!("Expected ',' or '}}', got {kind}")),
                         }
                     } else {
-                        variants.push(EnumVariant::new(name.clone(), None, None, std::mem::take(&mut attributes)));
+                        variants.push(EnumVariant::new(
+                            name.clone(),
+                            None,
+                            None,
+                            std::mem::take(&mut attributes),
+                        ));
                     }
 
                     if let Some(peek) = self.iter.peek() {
-                        if inner_type.is_some() && let EnumDefinitionToken::Rule(tokens) = peek.kind() {
-                            variants.push(EnumVariant::new(name.clone(), inner_type, self.consume_rule(tokens), std::mem::take(&mut attributes)));
+                        if inner_type.is_some()
+                            && let EnumDefinitionToken::Rule(tokens) = peek.kind()
+                        {
+                            variants.push(EnumVariant::new(
+                                name.clone(),
+                                inner_type,
+                                self.consume_rule(tokens),
+                                std::mem::take(&mut attributes),
+                            ));
                         }
-                    }
-                    else {
-                        variants.push(EnumVariant::new(name, inner_type, None, std::mem::take(&mut attributes)));
+                    } else {
+                        variants.push(EnumVariant::new(
+                            name,
+                            inner_type,
+                            None,
+                            std::mem::take(&mut attributes),
+                        ));
                     }
                 }
-                EnumDefinitionToken::SyntaxError => self.report_error(token, "Syntax error"),
-                kind => self.report_error(token, &format!("Expected variant, got {kind}")),
+                EnumDefinitionToken::SyntaxError => self.report_error("Syntax error"),
+                kind => self.report_error(&format!("Expected variant, got {kind}")),
             }
         }
 
@@ -162,17 +166,15 @@ impl ParserContext<'_, EnumDefinitionToken> {
     }
 
     fn consume_left_par(&mut self) {
-        let left_par = next_or_none!(self).unwrap();
-        self.tokens.push(left_par.to_semantic_token(u32::MAX));
+        next_or_none!(self).unwrap();
     }
 
     fn consume_right_par(&mut self) -> Option<()> {
         let right_par = next_or_none!(self, "Expected ')' after type")?;
-        self.tokens.push(right_par.to_semantic_token(u32::MAX));
         match right_par.kind() {
             EnumDefinitionToken::RightParenthesis => return Some(()),
-            EnumDefinitionToken::SyntaxError => self.report_error_message("Syntax error"),
-            kind => self.report_error_message(&format!("Expected ')', got {kind}",)),
+            EnumDefinitionToken::SyntaxError => self.report_error("Syntax error"),
+            kind => self.report_error(&format!("Expected ')', got {kind}",)),
         }
 
         None
@@ -180,12 +182,11 @@ impl ParserContext<'_, EnumDefinitionToken> {
 
     fn consume_rule(&mut self, tokens: &[Token<RuleToken>]) -> Option<String> {
         next_or_none!(self).unwrap();
-        ParserContext::new(tokens.iter().peekable(), self.diagnostics, self.tokens, self.src).parse()
+        ParserContext::new(tokens.iter().peekable(), self.diagnostics, self.src).parse()
     }
 
     fn consume_comma(&mut self) {
-        let comma = next_or_none!(self).unwrap();
-        self.tokens.push(comma.to_semantic_token(u32::MAX));
+        next_or_none!(self).unwrap();
     }
 }
 
@@ -196,17 +197,14 @@ impl ParserContext<'_, RuleToken> {
     }
 
     fn consume_pipe(&mut self) {
-        let pipe = next_or_none!(self).unwrap();
-        self.tokens.push(pipe.to_semantic_token(u32::MAX));
+        next_or_none!(self).unwrap();
     }
 
     fn consume_string(&mut self) -> Option<String> {
         let string = next_or_none!(self)?;
         if string.kind() != &RuleToken::String {
-            self.tokens.push(string.to_semantic_token(u32::MAX));
             return None;
         }
-        self.tokens.push(string.to_semantic_token(STRING_TOKEN));
         Some(string.slice(self.src).to_string())
     }
 }

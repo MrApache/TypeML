@@ -15,9 +15,9 @@ pub use r#type::*;
 use crate::{
     NamedStatement, RmlxTokenStream, StatementTokens, TokenArrayProvider, TokenBodyStatement, TokenSimpleTypeProvider,
 };
-use lexer_core::{Token, COMMENT_TOKEN, KEYWORD_TOKEN, OPERATOR_TOKEN, PARAMETER_TOKEN, TYPE_TOKEN};
+use lexer_core::{Token, KEYWORD_TOKEN, TYPE_TOKEN};
 use std::{iter::Peekable, slice::Iter};
-use tower_lsp::lsp_types::{Diagnostic, DiagnosticSeverity, Range, SemanticToken};
+use tower_lsp::lsp_types::{Diagnostic, DiagnosticSeverity, Range};
 
 #[macro_export]
 macro_rules! next_or_none {
@@ -90,7 +90,6 @@ pub enum Type {
 pub struct ParserContext<'s, T> {
     iter: Peekable<Iter<'s, Token<T>>>,
     diagnostics: &'s mut Vec<Diagnostic>,
-    tokens: &'s mut Vec<SemanticToken>,
     src: &'s str,
 
     statement_range: Range,
@@ -98,16 +97,10 @@ pub struct ParserContext<'s, T> {
 }
 
 impl<'s, T> ParserContext<'s, T> {
-    pub fn new(
-        iter: Peekable<Iter<'s, Token<T>>>,
-        diagnostics: &'s mut Vec<Diagnostic>,
-        tokens: &'s mut Vec<SemanticToken>,
-        src: &'s str,
-    ) -> Self {
+    pub fn new(iter: Peekable<Iter<'s, Token<T>>>, diagnostics: &'s mut Vec<Diagnostic>, src: &'s str) -> Self {
         Self {
             iter,
             diagnostics,
-            tokens,
             src,
             statement_range: Range::default(),
             previous_token_range: Range::default(),
@@ -115,12 +108,7 @@ impl<'s, T> ParserContext<'s, T> {
     }
 
     pub fn consume_keyword(&mut self) -> &str {
-        self.consume_keyword_with_token_type(KEYWORD_TOKEN)
-    }
-
-    pub fn consume_keyword_with_token_type(&mut self, token_type: u32) -> &str {
         let keyword = self.iter.next().unwrap();
-        self.tokens.push(keyword.to_semantic_token(token_type));
         self.statement_range = keyword.range();
         self.previous_token_range = self.statement_range;
         keyword.slice(self.src)
@@ -128,21 +116,15 @@ impl<'s, T> ParserContext<'s, T> {
 
     pub fn consume_parameter(&mut self) -> Option<String> {
         let parameter = next_or_none!(self)?;
-        self.tokens.push(parameter.to_semantic_token(PARAMETER_TOKEN));
         Some(parameter.slice(self.src).to_string())
     }
 
     fn consume_error(&mut self, message: &str) {
-        let error_token = next_or_none!(self).unwrap();
-        self.report_error(error_token, message);
+        next_or_none!(self).unwrap();
+        self.report_error(message);
     }
 
-    fn report_error(&mut self, token: &Token<T>, message: &str) {
-        self.tokens.push(token.to_semantic_token(u32::MAX));
-        self.report_error_message(message);
-    }
-
-    fn report_error_message(&mut self, message: &str) {
+    fn report_error(&mut self, message: &str) {
         self.diagnostics.push(Diagnostic {
             range: self.previous_token_range,
             severity: Some(DiagnosticSeverity::ERROR),
@@ -156,9 +138,8 @@ impl<T: StatementTokens + TokenBodyStatement> ParserContext<'_, T> {
     pub fn consume_left_curve_brace(&mut self) -> Option<()> {
         let brace = next_or_none!(self, "Unexpected end of token stream, expected '{'")?;
         if brace.kind() == &T::left_curly_bracket() {
-            self.tokens.push(brace.to_semantic_token(u32::MAX));
         } else {
-            self.report_error(brace, &format!("Expected `{{`, found '{}'", brace.kind()));
+            self.report_error(&format!("Expected `{{`, found '{}'", brace.kind()));
         }
         Some(())
     }
@@ -168,9 +149,8 @@ impl<T: StatementTokens + NamedStatement> ParserContext<'_, T> {
     pub fn consume_type_name(&mut self) -> Option<String> {
         let name = next_or_none!(self, "Unexpected end of token stream, expected identifier")?;
         if name.kind() == &T::identifier() {
-            self.tokens.push(name.to_semantic_token(TYPE_TOKEN));
         } else {
-            self.report_error(name, &format!("Expected identifier, found '{}'", name.kind()));
+            self.report_error(&format!("Expected identifier, found '{}'", name.kind()));
         }
         Some(name.slice(self.src).to_string())
     }
@@ -180,9 +160,8 @@ impl<T: StatementTokens + TokenSimpleTypeProvider> ParserContext<'_, T> {
     pub fn consume_colon(&mut self) -> Option<()> {
         let colon = next_or_none!(self, "Unexpected end of token stream, expected ':'")?;
         if colon.kind() == &T::colon() {
-            self.tokens.push(colon.to_semantic_token(u32::MAX));
         } else {
-            self.report_error(colon, &format!("Expected ':', found '{}'", colon.kind()));
+            self.report_error(&format!("Expected ':', found '{}'", colon.kind()));
         }
         Some(())
     }
@@ -203,8 +182,7 @@ impl<T: StatementTokens + TokenSimpleTypeProvider> ParserContext<'_, T> {
             if token.kind() == &T::left_angle_bracket() {
                 // съедаем <
                 {
-                    let t = next_or_none!(self).unwrap();
-                    self.tokens.push(t.to_semantic_token(OPERATOR_TOKEN));
+                    next_or_none!(self).unwrap();
                 }
 
                 let inner_type_name = self.consume_type_name()?;
@@ -212,9 +190,8 @@ impl<T: StatementTokens + TokenSimpleTypeProvider> ParserContext<'_, T> {
                 {
                     let close = next_or_none!(self, "Unexpected end of token stream, expected '>'")?;
                     if close.kind() == &T::right_angle_bracket() {
-                        self.tokens.push(close.to_semantic_token(OPERATOR_TOKEN));
                     } else {
-                        self.report_error(close, "Expected '>' after generic type");
+                        self.report_error("Expected '>' after generic type");
                     }
                 }
 
@@ -231,26 +208,22 @@ impl<T: StatementTokens + TokenSimpleTypeProvider> ParserContext<'_, T> {
 impl<T: StatementTokens + TokenArrayProvider> ParserContext<'_, T> {
     pub fn consume_array(&mut self) -> Option<Vec<String>> {
         let lsb_token = next_or_none!(self).expect("Call this method after peeking");
-        self.tokens.push(lsb_token.to_semantic_token(u32::MAX));
 
         let mut arr = Vec::new();
         loop {
             let type_token = next_or_none!(self)?;
 
             if type_token.kind() == &T::right_square_bracket() {
-                self.tokens.push(type_token.to_semantic_token(u32::MAX));
                 break;
             } else if type_token.kind() == &T::identifier() {
-                self.tokens.push(type_token.to_semantic_token(TYPE_TOKEN));
                 arr.push(type_token.slice(self.src).to_string());
             } else {
-                self.report_error(type_token, "Expected identifier inside array");
+                self.report_error("Expected identifier inside array");
             }
 
             if let Some(tok) = self.iter.peek_mut() {
                 if tok.kind() == &T::comma() {
                     let tok = next_or_none!(self).unwrap();
-                    self.tokens.push(tok.to_semantic_token(u32::MAX));
                 } else if tok.kind() != &T::right_square_bracket() {
                     self.consume_error("Expected ',' or ']' in array");
                 }
@@ -283,18 +256,15 @@ where
 
     pub fn consume_block(&mut self) -> Option<Type> {
         let lcb_token = next_or_none!(self).expect("Call this method after peeking");
-        self.tokens.push(lcb_token.to_semantic_token(u32::MAX));
 
         let mut block = Vec::new();
         loop {
             let token = peek_or_none!(self)?;
             if token.kind() == &T::right_curly_bracket() {
                 let tok = next_or_none!(self).unwrap();
-                self.tokens.push(tok.to_semantic_token(u32::MAX));
                 break;
             } else if token.kind() == &T::comma() {
                 let tok = next_or_none!(self).unwrap();
-                self.tokens.push(tok.to_semantic_token(u32::MAX));
             } else if token.kind() == &T::identifier() {
                 block.push(self.consume_typed_field()?);
             } else {
@@ -315,7 +285,6 @@ pub struct SchemaAst {
     types: Vec<TypeDefinition>,
     expressions: Vec<Expression>,
 
-    pub tokens: Vec<SemanticToken>,
     pub diagnostics: Vec<Diagnostic>,
 }
 
@@ -361,26 +330,14 @@ impl SchemaAst {
         while let Some(token) = stream.next_token() {
             match token {
                 crate::SchemaStatement::Attribute(tokens) => {
-                    let attrs = ParserContext::new(
-                        tokens.iter().peekable(),
-                        &mut schema.diagnostics,
-                        &mut schema.tokens,
-                        content,
-                    )
-                    .parse();
+                    let attrs = ParserContext::new(tokens.iter().peekable(), &mut schema.diagnostics, content).parse();
 
                     if let Some(attrs) = attrs {
                         attributes = attrs;
                     }
                 }
                 crate::SchemaStatement::Group(tokens) => {
-                    let group = ParserContext::new(
-                        tokens.iter().peekable(),
-                        &mut schema.diagnostics,
-                        &mut schema.tokens,
-                        content,
-                    )
-                    .parse();
+                    let group = ParserContext::new(tokens.iter().peekable(), &mut schema.diagnostics, content).parse();
 
                     if let Some(mut group) = group {
                         group.set_attributes(std::mem::take(&mut attributes));
@@ -388,13 +345,7 @@ impl SchemaAst {
                     }
                 }
                 crate::SchemaStatement::ExtendGroup(tokens) => {
-                    let group = ParserContext::new(
-                        tokens.iter().peekable(),
-                        &mut schema.diagnostics,
-                        &mut schema.tokens,
-                        content,
-                    )
-                    .parse();
+                    let group = ParserContext::new(tokens.iter().peekable(), &mut schema.diagnostics, content).parse();
 
                     if let Some(mut group) = group {
                         group.set_attributes(std::mem::take(&mut attributes));
@@ -402,26 +353,16 @@ impl SchemaAst {
                     }
                 }
                 crate::SchemaStatement::Expression(tokens) => {
-                    let expression = ParserContext::new(
-                        tokens.iter().peekable(),
-                        &mut schema.diagnostics,
-                        &mut schema.tokens,
-                        content,
-                    )
-                    .parse();
+                    let expression =
+                        ParserContext::new(tokens.iter().peekable(), &mut schema.diagnostics, content).parse();
 
                     if let Some(expression) = expression {
                         schema.expressions.push(expression);
                     }
                 }
                 crate::SchemaStatement::Enum(tokens) => {
-                    let enumeration = ParserContext::new(
-                        tokens.iter().peekable(),
-                        &mut schema.diagnostics,
-                        &mut schema.tokens,
-                        content,
-                    )
-                    .parse();
+                    let enumeration =
+                        ParserContext::new(tokens.iter().peekable(), &mut schema.diagnostics, content).parse();
 
                     if let Some(mut enumeration) = enumeration {
                         enumeration.set_attributes(std::mem::take(&mut attributes));
@@ -429,26 +370,15 @@ impl SchemaAst {
                     }
                 }
                 crate::SchemaStatement::Directive(tokens) => {
-                    let directive = ParserContext::new(
-                        tokens.iter().peekable(),
-                        &mut schema.diagnostics,
-                        &mut schema.tokens,
-                        content,
-                    )
-                    .parse();
+                    let directive =
+                        ParserContext::new(tokens.iter().peekable(), &mut schema.diagnostics, content).parse();
 
                     if let Some(directive) = directive {
                         schema.directives.push(directive);
                     }
                 }
                 crate::SchemaStatement::Type(tokens) => {
-                    let r#type = ParserContext::new(
-                        tokens.iter().peekable(),
-                        &mut schema.diagnostics,
-                        &mut schema.tokens,
-                        content,
-                    )
-                    .parse();
+                    let r#type = ParserContext::new(tokens.iter().peekable(), &mut schema.diagnostics, content).parse();
 
                     if let Some(mut r#type) = r#type {
                         r#type.attributes = std::mem::take(&mut attributes);
@@ -462,14 +392,10 @@ impl SchemaAst {
                         message: "Syntax error".to_string(),
                         ..Default::default()
                     });
-                    schema.tokens.push(token.to_semantic_token(u32::MAX));
                 }
-                crate::SchemaStatement::Comment(tokens) => {
-                    for token in &tokens {
-                        schema.tokens.push(token.to_semantic_token(COMMENT_TOKEN));
-                    }
-                },
-                crate::SchemaStatement::NewLine | crate::SchemaStatement::Whitespace => {}
+                crate::SchemaStatement::Comment(_)
+                | crate::SchemaStatement::NewLine
+                | crate::SchemaStatement::Whitespace => {}
             }
         }
 

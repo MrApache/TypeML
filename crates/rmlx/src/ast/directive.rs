@@ -1,5 +1,4 @@
 use crate::{ast::ParserContext, next_or_none, DirectiveToken};
-use lexer_core::STRING_TOKEN;
 
 #[derive(Debug)]
 pub struct Directive {
@@ -28,7 +27,6 @@ impl ParserContext<'_, DirectiveToken> {
         let t = next_or_none!(self, "Expected <...> value")?;
         match t.kind() {
             DirectiveToken::Value => {
-                self.tokens.push(t.to_semantic_token(STRING_TOKEN));
                 let value = self
                     .src
                     .get(t.span())
@@ -39,11 +37,11 @@ impl ParserContext<'_, DirectiveToken> {
                 Some(Directive { name, value })
             }
             DirectiveToken::SyntaxError => {
-                self.report_error(t, "Syntax error");
+                self.report_error("Syntax error");
                 None
             }
             kind => {
-                self.report_error(t, &format!("Expected value, found {kind}"));
+                self.report_error(&format!("Expected value, found {kind}"));
                 None
             }
         }

@@ -209,66 +209,23 @@ impl LanguageServer for Backend {
             .log_message(MessageType::INFO, "Send semantic tokens")
             .await;
 
-        let extension = Path::new(params.text_document.uri.path())
+        let _extension = Path::new(params.text_document.uri.path())
             .extension()
             .and_then(|e| e.to_str())
             .unwrap();
 
+        /*
         let tokens = match extension {
             "rml" => self.markup_semantic_tokens(params.text_document.uri),
             "rmlx" => self.schema_semantic_tokens(params.text_document.uri),
             _ => unreachable!(),
         };
+        */
 
         Ok(Some(SemanticTokensResult::Tokens(SemanticTokens {
             result_id: None,
-            data: tokens,
+            data: vec![],
         })))
-    }
-}
-
-impl Backend {
-    fn schema_semantic_tokens(&self, uri: Url) -> Vec<SemanticToken> {
-        let read = self.schemas.read().unwrap();
-        let file = read.get(&uri).unwrap();
-        file.tokens.clone()
-    }
-
-    fn markup_semantic_tokens(&self, _uri: Url) -> Vec<SemanticToken> {
-        /*
-        let read = self.workspaces.read().unwrap();
-        let file = read.get(&uri).unwrap();
-        file.tokens
-            .iter()
-            .flat_map(|token| match token {
-                MarkupTokens::Directive(inner_tokens) => Self::to_semantic_tokens(inner_tokens),
-                MarkupTokens::Text(token) => Self::to_semantic_token(token),
-                MarkupTokens::Tag(inner_tokens) => inner_tokens
-                    .iter()
-                    .flat_map(|t| {
-                        if let TagContext::Attribute(inner_tokens) = t.kind() {
-                            inner_tokens
-                                .iter()
-                                .flat_map(|t| match t.kind() {
-                                    AttributeContext::Struct(inner_tokens) => {
-                                        Self::to_semantic_tokens(inner_tokens)
-                                    }
-                                    AttributeContext::Expression(inner_tokens) => {
-                                        Self::to_semantic_tokens(inner_tokens)
-                                    }
-                                    _ => Self::to_semantic_token(t),
-                                })
-                                .collect()
-                        } else {
-                            Self::to_semantic_token(t)
-                        }
-                    })
-                    .collect(),
-                MarkupTokens::Comment(inner_tokens) => Self::to_semantic_tokens(inner_tokens),
-            })
-            .collect()
-         */
-        vec![]
     }
 }
 
