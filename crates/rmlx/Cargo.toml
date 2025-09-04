@@ -3,6 +3,10 @@ name = "rmlx"
 version = "0.1.0"
 edition = "2024"
 
+[[bench]]
+name = "benchmark"
+harness = false
+
 [dependencies]
 lexer-core.workspace = true
 
@@ -12,3 +16,6 @@ thiserror.workspace = true
 tokio.workspace = true
 url.workspace = true
 reqwest.workspace = true
+
+[dev-dependencies]
+divan = { package = "codspeed-divan-compat", version = "*" }
