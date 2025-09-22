@@ -16,6 +16,7 @@ thiserror.workspace = true
 tokio.workspace = true
 url.workspace = true
 reqwest.workspace = true
+enum_dispatch.workspace = true
 
 [dev-dependencies]
 divan = { package = "codspeed-divan-compat", version = "*" }

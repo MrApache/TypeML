@@ -1,0 +1,7 @@
+@use <test1.rmlx>
+
+#[Path("bevy::prelude::Overflow")]
+struct Overflow {
+    x: OverflowAxis,
+    y: OverflowAxis,
+}

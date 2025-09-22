@@ -1,166 +1,104 @@
+use std::collections::HashMap;
+
 use crate::{
-    semantic::TypeResolver, AttributeNode, GroupNode, Namespace, RefNode, SymbolRef, TypeTable,
-    Workspace,
+    semantic::{symbol::{Symbol, SymbolRef}, TypeResolver}, Count, UnresolvedType, Workspace
 };
 
-pub struct Group {
-    id: usize,
-    name: String,
-    config: GroupConfig,
-    groups: Vec<SymbolRef>,
-}
-
-#[derive(Default)]
-pub struct GroupConfig {
-    min: Option<u32>,
-    max: Option<u32>,
+pub struct GroupSymbol {
+    identifier: String,
     extend: bool,
+    groups: Vec<GroupConfig>,
 }
 
-pub struct UnresolvedGroup {
-    id: usize,
-    name: String,
-    config: GroupConfig,
-    namespace: Namespace,
-    resolved_groups: Vec<SymbolRef>,
-    unresolved_groups: Vec<RefNode>,
+#[derive(Clone)]
+pub struct GroupConfig {
+    symbol: SymbolRef,
+    unique: bool,
+    count: Option<Count>,
 }
 
-impl TypeResolver for UnresolvedGroup {
-    type Resolved = Group;
+pub struct UnresolvedGroupConfig {
+    symbol: UnresolvedType,
+    unique: bool,
+    count: Option<Count>,
+}
 
-    fn try_resolve(&mut self, table: &TypeTable) {
-        self.unresolved_groups.retain(|r| {
-            let namespace = if let Some(ns) = &r.namespace {
-                Namespace::Custom(ns.clone())
-            } else {
-                Namespace::Global
-            };
+pub struct UnresolvedGroupSymbol {
+    identifier: String,
+    extend: bool,
+    unresolved: Vec<UnresolvedGroupConfig>,
+    resolved: Vec<GroupConfig>,
+}
 
-            if let Some(ref_type) = table.get_type(&namespace, &r.identifier) {
-                self.resolved_groups.push(ref_type.clone());
+impl UnresolvedGroupSymbol {
+    pub fn new(g: &crate::ast::Group) -> Self {
+        Self::new_group(g, false)
+    }
+
+    pub fn new_extendable(g: &crate::ast::Group) -> Self {
+        Self::new_group(g, true)
+    }
+
+    fn new_group(g: &crate::ast::Group, extend: bool) -> Self {
+        let identifier = g.name().to_string();
+        let mut metadata = HashMap::new();
+
+        g.attributes().iter().for_each(|a| {
+            metadata.insert(a.name().to_string(), a.content().clone());
+        });
+
+        let unresolved = g.groups().iter().map(|g| {
+            let identifier = g.name().to_string();
+            let count = g.count().clone();
+            let unique = g.unique();
+            UnresolvedGroupConfig {
+                symbol: UnresolvedType {
+                    namespace: None,
+                    identifier,
+                },
+                unique,
+                count,
+            }
+        }).collect::<Vec<_>>();
+
+        UnresolvedGroupSymbol {
+            identifier,
+            extend,
+            unresolved,
+            resolved: vec![],
+        }
+    }
+}
+
+impl TypeResolver<GroupSymbol> for UnresolvedGroupSymbol {
+    fn resolve(&mut self, workspace: &Workspace) -> bool {
+        self.unresolved.retain(|f| {
+            if let Some(symbol) = workspace.get_type(f.symbol.namespace.as_deref(), &f.symbol.identifier) {
+                self.resolved.push(GroupConfig {
+                    symbol,
+                    unique: f.unique,
+                    count: f.count.clone(),
+                });
                 return false;
             }
 
             true
         });
+
+        self.unresolved.is_empty()
     }
 
-    fn is_resolved(&self) -> bool {
-        self.unresolved_groups.is_empty()
-    }
-
-    fn to_resolved_type(self) -> Self::Resolved {
-        debug_assert!(self.unresolved_groups.is_empty());
-        Self::Resolved {
-            id: self.id,
-            name: self.name,
-            config: self.config,
-            groups: self.resolved_groups,
+    fn as_resolved_type(&self) -> GroupSymbol {
+        GroupSymbol {
+            identifier: self.identifier.clone(),
+            extend: self.extend,
+            groups: self.resolved.clone(),
         }
     }
 }
 
-impl Workspace {
-    pub fn new_group(&mut self, id: usize, namespace: Namespace, node: &GroupNode) -> UnresolvedGroup {
-        let config = resolve_group_attributes(&node.attributes);
-        UnresolvedGroup {
-            id,
-            name: node.name.clone(),
-            config,
-            resolved_groups: vec![],
-            unresolved_groups: node.groups.clone(),
-            namespace,
-        }
+impl Symbol for GroupSymbol {
+    fn identifier(&self) ->  &str {
+        &self.identifier
     }
-/*
-    fn resolve_ref_groups(&self, refs: &[RefNode]) -> Vec<SymbolRef> {
-        let mut groups = vec![];
-        refs.iter().for_each(|r| {
-            let namespace = if let Some(ns) = &r.namespace {
-                Namespace::Custom(ns.clone())
-            } else {
-                Namespace::Global
-            };
-
-            if let Some(types) = self.type_table.get(&namespace) {
-                if let Some(ref_type) = types.get(&r.identifier) {
-                    groups.push(ref_type.clone());
-                } else {
-                    //TODO report diagnostic 'type 'a' is not defined in the namespace 'b'
-                }
-            } else {
-                //TODO report diagnostic 'the namespace 'a' is not declared'
-            }
-        });
-
-        groups
-    }
-*/
-}
-
-fn resolve_group_attributes(attributes: &[AttributeNode]) -> GroupConfig {
-    let mut config = GroupConfig::default();
-
-    let mut seen_min = false;
-    let mut seen_max = false;
-    let mut seen_extend = false;
-
-    for attr in attributes {
-        match attr.name.as_str() {
-            "Min" => {
-                if seen_min {
-                    // TODO report diagnostic: duplicate Min
-                }
-                seen_min = true;
-
-                match &attr.value {
-                    Some(v) => match v.parse::<u32>() {
-                        Ok(num) => config.min = Some(num),
-                        Err(_) => {
-                            // TODO report diagnostic: invalid number
-                        }
-                    },
-                    None => {
-                        // TODO report diagnostic: Min requires value
-                    }
-                }
-            }
-            "Max" => {
-                if seen_max {
-                    // TODO report diagnostic: duplicate Max
-                }
-                seen_max = true;
-
-                match &attr.value {
-                    Some(v) => match v.parse::<u32>() {
-                        Ok(num) => config.max = Some(num),
-                        Err(_) => {
-                            // TODO report diagnostic: invalid number
-                        }
-                    },
-                    None => {
-                        // TODO report diagnostic: Max requires value
-                    }
-                }
-            }
-            "Extend" => {
-                if seen_extend {
-                    // TODO report diagnostic: duplicate Extend
-                }
-                seen_extend = true;
-
-                if attr.value.is_some() {
-                    // TODO report diagnostic: Extend must not have a value
-                } else {
-                    config.extend = true;
-                }
-            }
-            _ => {
-                // TODO report diagnostic: unknown attribute
-            }
-        }
-    }
-
-    config
 }

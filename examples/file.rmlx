@@ -19,3 +19,18 @@ expr Test -> Component {
 expr LoadIcon -> Asset {
     Path: "images/icon.png"
 }
+
+
+Component -> Group {
+    extend: true
+}
+
+Container -> Group {
+    Component {
+        count: *
+    }
+
+    Container {
+        count: +
+    }
+}

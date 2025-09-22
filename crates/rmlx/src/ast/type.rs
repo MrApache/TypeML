@@ -1,7 +1,7 @@
 use crate::{next_or_none, peek_or_none, Attribute, Field, ParserContext, TypeDefinitionToken};
 use lexer_core::{OPERATOR_TOKEN, TYPE_TOKEN};
 
-#[derive(Debug)]
+#[derive(Debug, PartialEq)]
 pub struct RefType {
     namespace: Option<String>,
     name: String,

@@ -1,6 +1,18 @@
 //Set file namespace
 @namespace <base>
 
+@groups   [Component]
+@restrict [Template]
+expression Item {
+    required: {
+        Path: String,
+    },
+    additional: {
+        Converter: String,
+        Fallback:  String,
+    }
+}
+
 #[Description("Component")]
 extend group Component;
 

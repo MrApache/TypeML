@@ -1,0 +1,27 @@
+#[Path("bevy::prelude::Display")]
+enum Display {
+    Flex,
+    Grid,
+    Block,
+    None,
+}
+
+#[Path("bevy::prelude::BoxSizing")]
+enum BoxSizing {
+    BorderBox,
+    ContentBox
+}
+
+#[Path("bevy::prelude::PositionType")]
+enum PositionType {
+    Relative,
+    Absolute
+}
+
+#[Path("bevy::prelude::OverflowAxis")]
+enum OverflowAxis {
+    Visible,
+    Clip,
+    Hidden,
+    Scroll,
+}

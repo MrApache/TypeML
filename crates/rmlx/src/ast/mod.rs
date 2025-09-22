@@ -87,6 +87,25 @@ pub enum Type {
     Block(Vec<Field>),
 }
 
+impl Type {
+    #[must_use]
+    pub fn take_simple(&self) -> String {
+        match self {
+            Type::Simple(value) => value.to_string(),
+            _ => panic!("Only simple type is allowed"),
+        }
+    }
+
+    #[must_use]
+    pub fn as_simple_or_generic(&self) -> Type {
+        match self {
+            Type::Simple(_) => self.clone(),
+            Type::Generic(_, _) => self.clone(),
+            _ => panic!("Only simple or generic type is allowed"),
+        }
+    }
+}
+
 pub struct ParserContext<'s, T> {
     iter: Peekable<Iter<'s, Token<T>>>,
     diagnostics: &'s mut Vec<Diagnostic>,
@@ -468,7 +487,7 @@ impl SchemaAst {
                     for token in &tokens {
                         schema.tokens.push(token.to_semantic_token(COMMENT_TOKEN));
                     }
-                },
+                }
                 crate::SchemaStatement::NewLine | crate::SchemaStatement::Whitespace => {}
             }
         }

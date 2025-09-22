@@ -136,7 +136,10 @@ impl ParserContext<'_, EnumDefinitionToken> {
                                 variants.push(EnumVariant::new(name.clone(), None, self.consume_rule(tokens), std::mem::take(&mut attributes)));
                             }
                             EnumDefinitionToken::RightCurlyBracket => {} // continue
-                            EnumDefinitionToken::Comma => self.consume_comma(),
+                            EnumDefinitionToken::Comma => {
+                                variants.push(EnumVariant::new(name.clone(), None, None, std::mem::take(&mut attributes)));
+                                self.consume_comma();
+                            },
                             EnumDefinitionToken::SyntaxError => self.consume_error("Syntax error"),
                             kind => self.consume_error(&format!("Expected ',' or '}}', got {kind}")),
                         }

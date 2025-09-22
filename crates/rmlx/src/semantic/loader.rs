@@ -28,22 +28,22 @@ pub enum LoadError {
 ///  - "http://..." и "https://..."
 ///  - "file:///abs/path/to/file.rmlx"
 ///  - "/local/path/to/file.rmlx" или "relative/path.rmlx"
-pub async fn load_rmlx(url: &Url) -> Result<String, LoadError> {
+pub fn load_rmlx(url: &Url) -> Result<String, LoadError> {
     match url.scheme() {
-        "http" | "https" => load_remote_rmlx(url).await,
+        //"http" | "https" => load_remote_rmlx(url).await,
         "file" => match url.to_file_path() {
-            Ok(path_buf) => load_local_path(&path_buf).await,
+            Ok(path_buf) => load_local_path(&path_buf),
             Err(()) => Err(LoadError::InvalidUrl(url.to_string())),
         },
         _ => {
             // трактуем как локальный путь (например, "C:\..." на Windows без схемы невалиден)
             let path = Path::new(url.as_str());
-            load_local_path(path).await
+            load_local_path(path)
         }
     }
 }
 
-async fn load_local_path(path: &Path) -> Result<String, LoadError> {
+fn load_local_path(path: &Path) -> Result<String, LoadError> {
     if !path.exists() || !path.is_file() {
         return Err(LoadError::LocalNotFound(path.display().to_string()));
     }
@@ -51,7 +51,8 @@ async fn load_local_path(path: &Path) -> Result<String, LoadError> {
     match path.extension().and_then(|s| s.to_str()) {
         Some(ext) if ext.eq_ignore_ascii_case("rmlx") => {
             // читаем файл (асинхронно)
-            let s = tokio::fs::read_to_string(path).await?;
+            //let s = tokio::fs::read_to_string(path).await?;
+            let s = std::fs::read_to_string(path)?;
             Ok(s)
         }
         _ => Err(LoadError::WrongExtension),

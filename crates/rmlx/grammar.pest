@@ -1,0 +1,76 @@
+WHITESPACE    = _{ " " | "\t" | "\r" | "\n" | COMMENT_MULTI | LINE_COMMENT }
+COMMENT_MULTI = _{ "/*" ~ (!"*/" ~ ANY)* ~ "*/" }
+LINE_COMMENT  = _{ "//" ~ (!"\n" ~ ANY)* ~ ("\n" | EOI) }
+
+file = { SOI ~ directive* ~ custom_types* ~ EOI }
+
+ident    = @{ ASCII_ALPHANUMERIC+ }
+ns_ident =  { ident ~ ("::" ~ ident)* }
+
+string     = @{ "\"" ~ (!"\"" ~ ANY)* ~ "\"" }
+number     = @{ ASCII_DIGIT+ }
+boolean    =  { "true" | "false" }
+array      =  { open_square ~ ns_ident ~ (comma ~ ns_ident)* ~ close_square }
+base_types =  { (number | boolean | ident | string) }
+
+open_par     = _{ "(" }
+close_par    = _{ ")" }
+left_angle   = _{ "<" }
+right_angle  = _{ ">" }
+open_square  = _{ "[" }
+close_square = _{ "]" }
+open_curl    = _{ "{" }
+close_curl   = _{ "}" }
+hash         = _{ "#" }
+comma        = _{ "," }
+colon        = _{ ":" }
+semicolon    = _{ ";" }
+plus         = _{ "+" }
+asterisk     = _{ "*" }
+q_mark       = _{ "?" }
+dash         = _{ "-" }
+
+generic_identifier = @{ ASCII_ALPHANUMERIC+ }
+generic_type       =  { ident ~ "<" ~ generic_identifier ~ ">" }
+
+directive_content = { (!">" ~ ANY)* }
+directive         = { hash ~ ident ~ (left_angle ~ directive_content ~ right_angle)? }
+
+annotation_symbol = _{ "@" }
+annotation_ident  = @{ ASCII_ALPHANUMERIC+ }
+annotation_value  =  { (string | array)? }
+annotation        =  { annotation_symbol ~ annotation_ident ~ annotation_value }
+
+attr_ident     = @{ ASCII_ALPHANUMERIC+ }
+attribute      =  { attr_ident ~ (open_par ~ base_types ~ close_par)? }
+attribute_list =  { hash ~ open_square ~ attribute ~ (comma ~ attribute)* ~ close_square }
+
+simple_field  = { annotation* ~ ident ~ colon ~ (generic_type | ns_ident) }
+simple_fields = { simple_field ~ (comma ~ simple_field?)* }
+block         = { open_curl ~ simple_fields ~ close_curl }
+
+enum_variant = { annotation* ~ ((ident ~ open_par ~ ns_ident ~ close_par) | ident) }
+enum_keyword = { "enum" }
+enum         = { attribute_list* ~ enum_keyword ~ ident ~ open_curl ~ enum_variant ~ (comma ~ enum_variant)* ~ close_curl }
+
+struct_keyword = { "struct" }
+struct         = { attribute_list* ~ struct_keyword ~ (generic_type | ident) ~ block }
+
+bind_op         = { "->" }
+element_keyword = { "element" }
+element         = { attribute_list* ~ element_keyword ~ ident ~ bind_op ~ ns_ident ~ block }
+
+group_keyword  = { "group" }
+extend_keyword = { "extend" }
+unique_keyword = { "unique" }
+count          = { open_par ~ ((number ~ dash ~ number) | number | asterisk | q_mark | plus) ~ close_par }
+group_entry    = { plus ~ unique_keyword? ~ ns_ident ~ count }
+group_content  = { open_curl ~ group_entry* ~ close_curl }
+group          = { attribute_list* ~ group_keyword ~ ident ~ count* ~ (group_content | semicolon) }
+extend_group   = { attribute_list* ~ extend_keyword ~ group_keyword ~ ident ~ (group_content | semicolon) }
+
+expression_keyword = { "expression" }
+expression         = { (attribute_list | annotation)* ~ expression_keyword ~ ident ~ block }
+
+custom_types = { enum | struct | element | extend_group | group | expression }
+

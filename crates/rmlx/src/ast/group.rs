@@ -5,7 +5,7 @@ use crate::{
 use lexer_core::{KEYWORD_TOKEN, MACRO_TOKEN, TYPE_TOKEN};
 use std::ops::Range;
 
-#[derive(Debug, PartialEq)]
+#[derive(Debug, Clone, PartialEq)]
 pub enum Count {
     Range(Range<u32>),
     Single(u32),
