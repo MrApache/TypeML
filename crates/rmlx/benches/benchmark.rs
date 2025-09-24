@@ -1,5 +1,5 @@
 use divan::Bencher;
-use rmlx::{RmlxParser, Workspace};
+use rmlx::{build_schema_ast, RmlxParser, Workspace};
 use url::Url;
 
 fn main() {
@@ -7,9 +7,11 @@ fn main() {
 }
 
 #[divan::bench]
-fn parse_ast() {
-    const CONTENT: &str = include_str!(concat!(env!("CARGO_WORKSPACE_DIR"), "examples/schema.rmlx"));
-    let _ast = RmlxParser::build_ast(CONTENT);
+fn parse_ast(bench: Bencher) {
+    bench.with_inputs(|| {
+        const CONTENT: &str = include_str!(concat!(env!("CARGO_WORKSPACE_DIR"), "examples/schema.rmlx"));
+        RmlxParser::build_cst(CONTENT)
+    }).bench_values(|cst| build_schema_ast(&cst))
 }
 
 #[divan::bench]
@@ -19,11 +21,11 @@ fn parse_cst() {
 }
 
 #[divan::bench]
-fn semantic_analyzis(bench: Bencher) {
+fn semantic_analysis(bench: Bencher) {
     const PATH: &str = concat!(env!("CARGO_WORKSPACE_DIR"), "examples/schema.rmlx");
     bench.with_inputs(|| {
         let w = Workspace::default();
-        let url: Url = Url::parse(PATH).unwrap();
+        let url: Url = Url::from_file_path(PATH).unwrap();
         (w, url)
     }).bench_values(|(mut w, url)| {
         w.load_single_model(&url);

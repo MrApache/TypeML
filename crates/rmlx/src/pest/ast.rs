@@ -629,7 +629,7 @@ where
 }
 
 #[must_use]
-pub fn build_file_ast(cst: &CstNode) -> SchemaAst {
+pub fn build_schema_ast(cst: &CstNode) -> SchemaAst {
     let mut annotations = Vec::new();
     let mut directives = Vec::new();
     let mut custom_types = Vec::new();

@@ -24,7 +24,7 @@ impl RmlxParser {
     #[must_use]
     pub fn build_ast(content: &str) -> SchemaAst {
         let cst = Self::build_cst(content);
-        build_file_ast(&cst)
+        build_schema_ast(&cst)
     }
 }
 
