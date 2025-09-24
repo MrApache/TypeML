@@ -157,13 +157,13 @@ impl LanguageServer for Backend {
                 );
             }
             "rmlx" => {
-                let mut model = SchemaAst::new(&params.text_document.text);
-                self.client.publish_diagnostics(uri.clone(), std::mem::take(&mut model.diagnostics), None).await;
-                let mut schemas = self.schemas.write().unwrap();
-                schemas.insert(
-                    uri,
-                    model
-                );
+                //let mut model = SchemaAst::new(&params.text_document.text);
+                //self.client.publish_diagnostics(uri.clone(), std::mem::take(&mut model.diagnostics), None).await;
+                //let mut schemas = self.schemas.write().unwrap();
+                //schemas.insert(
+                //    uri,
+                //    model
+                //);
             }
             _ => unreachable!("Unsupported file type '{extension}'"),
         }
@@ -191,11 +191,11 @@ impl LanguageServer for Backend {
                 file.content = text;
             }
             "rmlx" => {
-                let text = params.content_changes.last().unwrap().text.clone(); //TODO fix
-                let mut schema = SchemaAst::new(&text);
-                self.client.publish_diagnostics(uri.clone(), std::mem::take(&mut schema.diagnostics), None).await;
-                let mut write = self.schemas.write().unwrap();
-                write.insert(uri, schema).unwrap();
+                //let text = params.content_changes.last().unwrap().text.clone(); //TODO fix
+                //let mut schema = SchemaAst::new(&text);
+                //self.client.publish_diagnostics(uri.clone(), std::mem::take(&mut schema.diagnostics), None).await;
+                //let mut write = self.schemas.write().unwrap();
+                //write.insert(uri, schema).unwrap();
             }
             _ => unreachable!(),
         }
@@ -231,7 +231,8 @@ impl Backend {
     fn schema_semantic_tokens(&self, uri: Url) -> Vec<SemanticToken> {
         let read = self.schemas.read().unwrap();
         let file = read.get(&uri).unwrap();
-        file.tokens.clone()
+        vec![]
+        //file.tokens.clone()
     }
 
     fn markup_semantic_tokens(&self, _uri: Url) -> Vec<SemanticToken> {
