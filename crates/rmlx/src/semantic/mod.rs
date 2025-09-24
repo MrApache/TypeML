@@ -47,7 +47,7 @@ impl Default for Workspace {
 }
 
 impl Workspace {
-    fn load_single_model(&mut self, path: &Url) {
+    pub fn load_single_model(&mut self, path: &Url) {
         let content = load_rmlx(path).unwrap();
         let ast = RmlxParser::build_ast(&content);
         if self.unresolved.contains_key(&content) {
