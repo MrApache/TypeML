@@ -1,13 +1,13 @@
 use crate::{
-    semantic::symbol::{Symbol, SymbolRef},
-    TypeResolver, UnresolvedType,
+    semantic::symbol::{Symbol, TypeRef},
+    BaseType, Enum, TypeResolver, UnresolvedType, Workspace,
 };
 use std::collections::HashMap;
 
 pub struct UnresolvedEnumSymbol {
     identifier: String,
     variants: Vec<UnresolvedVariant>,
-    metadata: HashMap<String, Option<String>>,
+    metadata: HashMap<String, Option<BaseType>>,
     resolved: Vec<EnumVariant>,
 }
 
@@ -18,31 +18,26 @@ pub struct UnresolvedVariant {
 }
 
 impl UnresolvedEnumSymbol {
-    pub fn new(e: &crate::ast::Enum) -> Self {
-        let identifier = e.name().to_string();
+    pub fn new(e: &Enum) -> Self {
+        let identifier = e.name.clone();
         let mut variants = vec![];
         let mut metadata = HashMap::new();
 
-        e.variants().iter().for_each(|v| {
-            let identifier = v.name().to_string();
-            let ty = if let Some(ty) = v.ty() {
-                Some(UnresolvedType {
-                    namespace: None,
-                    identifier: ty.to_string(),
-                })
-            } else {
-                None
-            };
+        e.variants.iter().for_each(|v| {
+            let identifier = v.name.clone();
+            let ty = v.value.as_ref().map(|ty| ty.clone().into());
 
+            //TODO annotations
             variants.push(UnresolvedVariant {
                 identifier,
                 ty,
-                pattern: v.pattern().map(str::to_string),
+                pattern: None,
+                //pattern: v.pattern().map(str::to_string),
             });
         });
 
-        e.attributes().iter().for_each(|a| {
-            metadata.insert(a.name().to_string(), a.content().clone());
+        e.attributes.iter().for_each(|a| {
+            metadata.insert(a.name.to_string(), a.value.clone());
         });
 
         Self {
@@ -54,16 +49,17 @@ impl UnresolvedEnumSymbol {
     }
 }
 
+#[derive(Debug, Clone)]
 pub struct EnumSymbol {
     pub identifier: String,
     pub variants: Vec<EnumVariant>,
-    pub metadata: HashMap<String, Option<String>>,
+    pub metadata: HashMap<String, Option<BaseType>>,
 }
 
-#[derive(Clone)]
+#[derive(Debug, Clone)]
 pub struct EnumVariant {
     pub identifier: String,
-    pub ty: Option<SymbolRef>,
+    pub ty: Option<TypeRef>,
     pub pattern: Option<String>,
 }
 
@@ -77,13 +73,13 @@ impl TypeResolver<EnumSymbol> for UnresolvedEnumSymbol {
         }
     }
 
-    fn resolve(&mut self, workspace: &super::Workspace) -> bool {
+    fn resolve(&mut self, workspace: &mut Workspace) -> bool {
         self.variants.retain(|v| {
             if let Some(ty) = &v.ty {
-                if let Some(ty) = workspace.get_type(ty.namespace.as_deref(), &ty.identifier) {
+                if let Some(ty) = workspace.get_type(ty) {
                     self.resolved.push(EnumVariant {
                         identifier: v.identifier.clone(),
-                        ty: Some(ty),
+                        ty: Some(TypeRef::Concrete(ty)),
                         pattern: v.pattern.clone(),
                     });
                     return false;

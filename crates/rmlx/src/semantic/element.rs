@@ -1,14 +1,18 @@
+use crate::{
+    semantic::symbol::{Symbol, SymbolRef},
+    BaseType, Element, Field, TypeResolver, UnresolvedType, Workspace,
+};
 use std::collections::HashMap;
-use crate::{semantic::symbol::{Symbol, SymbolRef}, TypeResolver, UnresolvedType, Workspace};
 
+#[derive(Debug, Clone)]
 pub struct ElementSymbol {
     identifier: String,
     fields: Vec<ResolvedField>,
     bind: SymbolRef,
-    metadata: HashMap<String, Option<String>>,
+    metadata: HashMap<String, Option<BaseType>>,
 }
 
-#[derive(Clone)]
+#[derive(Debug, Clone)]
 pub struct ResolvedField {
     identifier: String,
     ty: SymbolRef,
@@ -16,17 +20,14 @@ pub struct ResolvedField {
 
 pub struct UnresolvedElementField {
     identifier: String,
-    ty: crate::ast::Type,
+    ty: UnresolvedType,
 }
 
 impl UnresolvedElementField {
-    pub fn new(f: &crate::ast::Field) -> UnresolvedElementField {
-        let identifier = f.name().to_string();
-        let ty = f.ty().as_simple_or_generic();
-        UnresolvedElementField {
-            identifier,
-            ty
-        }
+    pub fn new(f: &Field) -> UnresolvedElementField {
+        let identifier = f.name.to_string();
+        let ty = f.ty.clone().into();
+        UnresolvedElementField { identifier, ty }
     }
 }
 
@@ -35,26 +36,19 @@ pub struct UnresolvedElementSymbol {
     pub bind: UnresolvedType,
     pub resolved_bind: Option<SymbolRef>,
     pub fields: Vec<UnresolvedElementField>,
-    pub metadata: HashMap<String, Option<String>>,
+    pub metadata: HashMap<String, Option<BaseType>>,
     pub resolved: Vec<ResolvedField>,
 }
 
 impl UnresolvedElementSymbol {
-    pub fn new(s: &crate::ast::TypeDefinition) -> UnresolvedElementSymbol {
-        assert_eq!(s.keyword(), "element");
-        assert_ne!(s.bind(), None, "Missing binding specifier");
-
-        let identifier = s.name().to_string();
-        let bind = s.bind().unwrap();
-        let bind = UnresolvedType {
-            namespace: None,
-            identifier: bind.name().to_string(),
-        };
-        let fields = s.fields().iter().map(UnresolvedElementField::new).collect::<Vec<_>>();
+    pub fn new(s: &Element) -> UnresolvedElementSymbol {
+        let identifier = s.name.to_string();
+        let bind = s.bind.clone().into();
+        let fields = s.fields.iter().map(UnresolvedElementField::new).collect::<Vec<_>>();
         let mut metadata = HashMap::new();
 
-        s.attributes().iter().for_each(|a| {
-            metadata.insert(a.name().to_string(), a.content().clone());
+        s.attributes.iter().for_each(|a| {
+            metadata.insert(a.name.clone(), a.value.clone());
         });
 
         UnresolvedElementSymbol {
@@ -69,37 +63,20 @@ impl UnresolvedElementSymbol {
 }
 
 impl TypeResolver<ElementSymbol> for UnresolvedElementSymbol {
-    fn resolve(&mut self, workspace: &Workspace) -> bool {
+    fn resolve(&mut self, workspace: &mut Workspace) -> bool {
         self.fields.retain(|f| {
-            match &f.ty {
-                crate::Type::Simple(value) => {
-                    if let Some(ty) = workspace.get_type(None, &value) {
-                        self.resolved.push(ResolvedField {
-                            identifier: f.identifier.clone(),
-                            ty
-                        });
-                        return false;
-                    }
-                },
-                crate::Type::Generic(base, value) => {
-                    if let Some(ty) = workspace.get_type(None, &value) {
-                        self.resolved.push(ResolvedField {
-                            identifier: f.identifier.clone(),
-                            ty
-                        });
-                        return false;
-                    }
-                },
-                _ => unreachable!(),
+            if let Some(ty) = workspace.get_type(&f.ty) {
+                self.resolved.push(ResolvedField {
+                    identifier: f.identifier.clone(),
+                    ty,
+                });
+                return false;
             }
-
             true
         });
 
-        if self.resolved_bind.is_none() {
-            if let Some(ty) = workspace.get_type(self.bind.namespace.as_deref(), &self.bind.identifier) {
-                self.resolved_bind = Some(ty);
-            }
+        if self.resolved_bind.is_none() && let Some(ty) = workspace.get_type(&self.bind) {
+            self.resolved_bind = Some(ty);
         }
 
         self.fields.is_empty() && self.resolved_bind.is_some()

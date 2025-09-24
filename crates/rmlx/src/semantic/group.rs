@@ -1,16 +1,18 @@
 use std::collections::HashMap;
-
 use crate::{
-    semantic::{symbol::{Symbol, SymbolRef}, TypeResolver}, Count, UnresolvedType, Workspace
-};
+    semantic::{
+        symbol::{Symbol, SymbolKind, SymbolRef},
+        TypeResolver,
+    }, BaseType, Count, Group, UnresolvedType, Workspace };
 
+#[derive(Debug, Clone)]
 pub struct GroupSymbol {
     identifier: String,
     extend: bool,
     groups: Vec<GroupConfig>,
 }
 
-#[derive(Clone)]
+#[derive(Debug, Clone)]
 pub struct GroupConfig {
     symbol: SymbolRef,
     unique: bool,
@@ -28,42 +30,41 @@ pub struct UnresolvedGroupSymbol {
     extend: bool,
     unresolved: Vec<UnresolvedGroupConfig>,
     resolved: Vec<GroupConfig>,
+    metadata: HashMap<String, Option<BaseType>>,
 }
 
 impl UnresolvedGroupSymbol {
-    pub fn new(g: &crate::ast::Group) -> Self {
-        Self::new_group(g, false)
-    }
-
-    pub fn new_extendable(g: &crate::ast::Group) -> Self {
-        Self::new_group(g, true)
-    }
-
-    fn new_group(g: &crate::ast::Group, extend: bool) -> Self {
-        let identifier = g.name().to_string();
+    pub fn new(g: &Group) -> Self {
+        let identifier = g.name.clone();
+        let extend = g.extend;
         let mut metadata = HashMap::new();
 
-        g.attributes().iter().for_each(|a| {
-            metadata.insert(a.name().to_string(), a.content().clone());
+        g.attributes.iter().for_each(|a| {
+            metadata.insert(a.name.clone(), a.value.clone());
         });
 
-        let unresolved = g.groups().iter().map(|g| {
-            let identifier = g.name().to_string();
-            let count = g.count().clone();
-            let unique = g.unique();
-            UnresolvedGroupConfig {
-                symbol: UnresolvedType {
-                    namespace: None,
-                    identifier,
-                },
-                unique,
-                count,
-            }
-        }).collect::<Vec<_>>();
+        let unresolved = g
+            .entries
+            .iter()
+            .map(|g| {
+                let identifier = g.name.to_string();
+                let unique = g.unique;
+                UnresolvedGroupConfig {
+                    symbol: UnresolvedType {
+                        generic_base: None,
+                        namespace: None,
+                        identifier,
+                    },
+                    unique: g.unique,
+                    count: g.count,
+                }
+            })
+            .collect::<Vec<_>>();
 
         UnresolvedGroupSymbol {
             identifier,
             extend,
+            metadata,
             unresolved,
             resolved: vec![],
         }
@@ -71,13 +72,22 @@ impl UnresolvedGroupSymbol {
 }
 
 impl TypeResolver<GroupSymbol> for UnresolvedGroupSymbol {
-    fn resolve(&mut self, workspace: &Workspace) -> bool {
+    fn resolve(&mut self, workspace: &mut Workspace) -> bool {
         self.unresolved.retain(|f| {
-            if let Some(symbol) = workspace.get_type(f.symbol.namespace.as_deref(), &f.symbol.identifier) {
+            if f.symbol.identifier == self.identifier {
+                let symbol = workspace.create_self_reference(&f.symbol);
                 self.resolved.push(GroupConfig {
                     symbol,
                     unique: f.unique,
-                    count: f.count.clone(),
+                    count: f.count,
+                });
+                return false;
+            }
+            else if let Some(symbol) = workspace.get_type(&f.symbol) {
+                self.resolved.push(GroupConfig {
+                    symbol,
+                    unique: f.unique,
+                    count: f.count,
                 });
                 return false;
             }
@@ -98,7 +108,18 @@ impl TypeResolver<GroupSymbol> for UnresolvedGroupSymbol {
 }
 
 impl Symbol for GroupSymbol {
-    fn identifier(&self) ->  &str {
+    fn identifier(&self) -> &str {
         &self.identifier
+    }
+
+    fn try_get_self_reference(&self) -> Option<&SymbolRef> {
+        for group in &self.groups {
+            let model = group.symbol.model.read().unwrap();
+            let ty = model.get_type_by_id(group.symbol.namespace.as_deref(), group.symbol.id).unwrap();
+            if matches!(ty, SymbolKind::Lazy(_)) {
+                return Some(&group.symbol);
+            }
+        }
+        None
     }
 }

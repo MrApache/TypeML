@@ -18,5 +18,8 @@ url.workspace = true
 reqwest.workspace = true
 enum_dispatch.workspace = true
 
+pest = "2.8.2"
+pest_derive = "2.8.2"
+
 [dev-dependencies]
 divan = { package = "codspeed-divan-compat", version = "*" }

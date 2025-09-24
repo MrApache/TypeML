@@ -1,12 +1,13 @@
 use crate::{
     semantic::{
-        element::UnresolvedElementSymbol, enumeration::UnresolvedEnumSymbol, group::UnresolvedGroupSymbol, structure::UnresolvedStructSymbol, symbol::SymbolKind
+        element::UnresolvedElementSymbol, enumeration::UnresolvedEnumSymbol, group::UnresolvedGroupSymbol,
+        structure::UnresolvedStructSymbol, symbol::SymbolKind,
     },
     utils::to_url,
-    SchemaAst, TypeResolver, Workspace,
+    CustomType, SchemaAst, TypeResolver, Workspace,
 };
 
-pub struct UnresolvedSchemaModel {
+pub struct UnresolvedSchema {
     namespace: Option<String>,
     structs: Vec<UnresolvedStructSymbol>,
     enums: Vec<UnresolvedEnumSymbol>,
@@ -14,21 +15,46 @@ pub struct UnresolvedSchemaModel {
     elements: Vec<UnresolvedElementSymbol>,
 }
 
-impl UnresolvedSchemaModel {
-    pub fn new(ast: SchemaAst, path: &str, workspace: &mut Workspace) -> Self {
-        let directive_result = process_directives(&ast); //TODO errors
+impl UnresolvedSchema {
+    pub fn new(ast: &SchemaAst, path: &str, workspace: &mut Workspace) -> Self {
+        let directive_result = process_directives(ast);
         directive_result.uses.iter().for_each(|u| {
-            let url = to_url(path, u).unwrap();
-            workspace.load_single_model(url);
+            workspace.load_single_model(&to_url(path, u).unwrap());
         });
 
-        let enums = ast.enumerations().iter().map(UnresolvedEnumSymbol::new).collect::<Vec<_>>();
-        let structs = ast.types().iter().filter(|f| f.keyword() == "struct").map(UnresolvedStructSymbol::new).collect::<Vec<_>>();
-        let mut groups = ast.groups().iter().map(UnresolvedGroupSymbol::new).collect::<Vec<_>>();
-        groups.extend(ast.extendable_groups().iter().map(UnresolvedGroupSymbol::new_extendable));
-        let elements = ast.types().iter().filter(|f| f.keyword() == "element").map(UnresolvedElementSymbol::new).collect::<Vec<_>>();
+        let enums = ast
+            .custom_types
+            .iter()
+            .filter(|t| t.is_enum())
+            .map(CustomType::unwrap_enum)
+            .map(UnresolvedEnumSymbol::new)
+            .collect::<Vec<_>>();
 
-        UnresolvedSchemaModel {
+        let structs = ast
+            .custom_types
+            .iter()
+            .filter(|t| t.is_struct())
+            .map(CustomType::unwrap_struct)
+            .map(UnresolvedStructSymbol::new)
+            .collect::<Vec<_>>();
+
+        let groups = ast
+            .custom_types
+            .iter()
+            .filter(|t| t.is_group())
+            .map(CustomType::unwrap_group)
+            .map(UnresolvedGroupSymbol::new)
+            .collect::<Vec<_>>();
+
+        let elements = ast
+            .custom_types
+            .iter()
+            .filter(|t| t.is_element())
+            .map(CustomType::unwrap_element)
+            .map(UnresolvedElementSymbol::new)
+            .collect::<Vec<_>>();
+
+        UnresolvedSchema {
             namespace: directive_result.namespace,
             structs,
             enums,
@@ -37,7 +63,7 @@ impl UnresolvedSchemaModel {
         }
     }
 
-    pub fn resolve(&mut self, workspace: &Workspace) -> Vec<SymbolKind> {
+    pub fn resolve(&mut self, workspace: &mut Workspace) -> Vec<SymbolKind> {
         let mut symbols = vec![];
         self.structs.retain_mut(|s| {
             let result = s.resolve(workspace);
@@ -75,10 +101,7 @@ impl UnresolvedSchemaModel {
     }
 
     pub fn is_empty(&self) -> bool {
-        self.enums.is_empty()
-            && self.structs.is_empty()
-            && self.groups.is_empty()
-            && self.elements.is_empty()
+        self.enums.is_empty() && self.structs.is_empty() && self.groups.is_empty() && self.elements.is_empty()
     }
 
     pub fn namespace(&self) -> Option<&str> {
@@ -86,9 +109,9 @@ impl UnresolvedSchemaModel {
     }
 }
 
-struct DirectiveResult<'s> {
+struct DirectiveResult {
     namespace: Option<String>,
-    uses: Vec<&'s str>,
+    uses: Vec<String>,
     errors: Vec<String>,
 }
 
@@ -97,15 +120,18 @@ fn process_directives(ast: &SchemaAst) -> DirectiveResult {
     let mut uses = Vec::new();
     let mut errors = Vec::new();
 
-    ast.directives().iter().for_each(|d| match d.name() {
+    ast.directives.iter().for_each(|d| match d.name.as_str() {
         "namespace" => {
-            if namespace.is_some() {
-                errors.push(format!("Duplicate namespace directive found: {}", d.value()));
+            if let Some(ns) = &namespace {
+                errors.push(format!("Duplicate namespace directive found: {ns}"));
             } else {
-                namespace = Some(d.value().to_string());
+                namespace.clone_from(&d.value);
             }
         }
-        "use" => uses.push(d.value()),
+        "use" => {
+            let value = d.value.clone().unwrap();
+            uses.push(value);
+        }
         other => errors.push(format!("Unknown directive: {other}")),
     });
 

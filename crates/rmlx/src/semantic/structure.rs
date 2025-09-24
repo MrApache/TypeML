@@ -1,16 +1,17 @@
 use crate::{
     semantic::symbol::{Symbol, SymbolRef},
-    TypeResolver, UnresolvedType, Workspace,
+    BaseType, Field, Struct, TypeResolver, UnresolvedType, Workspace,
 };
 use std::collections::HashMap;
 
+#[derive(Debug, Clone)]
 pub struct StructSymbol {
-    identifier: String,
-    fields: Vec<ResolvedField>,
-    metadata: HashMap<String, Option<String>>,
+    pub identifier: String,
+    pub fields: Vec<ResolvedField>,
+    pub metadata: HashMap<String, Option<BaseType>>,
 }
 
-#[derive(Clone)]
+#[derive(Debug, Clone)]
 pub struct ResolvedField {
     identifier: String,
     ty: SymbolRef,
@@ -21,16 +22,30 @@ pub struct UnresolvedStructField {
     ty: UnresolvedType,
 }
 
+impl From<crate::pest::TypeRef> for UnresolvedType {
+    fn from(value: crate::pest::TypeRef) -> Self {
+        match value.ident {
+            crate::TypeIdent::Simple(ident) => Self {
+                generic_base: None,
+                namespace: value.namespace,
+                identifier: ident,
+            },
+            crate::TypeIdent::Generic(ident, inner) => Self {
+                generic_base: Some(ident),
+                namespace: value.namespace,
+                identifier: inner.to_string(), //TODO
+            }
+        }
+    }
+}
+
 impl UnresolvedStructField {
-    pub fn new(f: &crate::ast::Field) -> UnresolvedStructField {
-        let identifier = f.name().to_string();
-        let simple_type = f.ty().take_simple();
+    pub fn new(f: &Field) -> UnresolvedStructField {
+        let identifier = f.name.to_string();
+        let ty = f.ty.clone().into();
         UnresolvedStructField {
             identifier,
-            ty: UnresolvedType {
-                namespace: None,
-                identifier: simple_type,
-            },
+            ty
         }
     }
 }
@@ -38,21 +53,18 @@ impl UnresolvedStructField {
 pub struct UnresolvedStructSymbol {
     pub identifier: String,
     pub fields: Vec<UnresolvedStructField>,
-    pub metadata: HashMap<String, Option<String>>,
+    pub metadata: HashMap<String, Option<BaseType>>,
     pub resolved: Vec<ResolvedField>,
 }
 
 impl UnresolvedStructSymbol {
-    pub fn new(s: &crate::ast::TypeDefinition) -> UnresolvedStructSymbol {
-        assert_eq!(s.keyword(), "struct");
-        assert_eq!(s.bind(), None, "Bindings is not allowed in the structs");
-
-        let identifier = s.name().to_string();
-        let fields = s.fields().iter().map(UnresolvedStructField::new).collect::<Vec<_>>();
+    pub fn new(s: &Struct) -> UnresolvedStructSymbol {
+        let identifier = s.name.clone();
+        let fields = s.fields.iter().map(UnresolvedStructField::new).collect::<Vec<_>>();
         let mut metadata = HashMap::new();
 
-        s.attributes().iter().for_each(|a| {
-            metadata.insert(a.name().to_string(), a.content().clone());
+        s.attributes.iter().for_each(|a| {
+            metadata.insert(a.name.clone(), a.value.clone());
         });
 
         UnresolvedStructSymbol {
@@ -65,12 +77,12 @@ impl UnresolvedStructSymbol {
 }
 
 impl TypeResolver<StructSymbol> for UnresolvedStructSymbol {
-    fn resolve(&mut self, workspace: &Workspace) -> bool {
+    fn resolve(&mut self, workspace: &mut Workspace) -> bool {
         self.fields.retain(|f| {
-            if let Some(ty) = workspace.get_type(f.ty.namespace.as_deref(), &f.ty.identifier) {
+            if let Some(ty) = workspace.get_type(&f.ty) {
                 self.resolved.push(ResolvedField {
                     identifier: f.identifier.clone(),
-                    ty
+                    ty,
                 });
                 return false;
             }
