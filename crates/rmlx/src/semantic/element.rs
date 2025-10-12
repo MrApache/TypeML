@@ -1,6 +1,6 @@
 use crate::{
     semantic::symbol::{Symbol, SymbolRef},
-    BaseType, Element, Field, TypeResolver, UnresolvedType, Workspace,
+    BaseType, Element, Field, TypeResolver, UnresolvedType, AnalysisWorkspace,
 };
 use std::collections::HashMap;
 
@@ -10,6 +10,12 @@ pub struct ElementSymbol {
     fields: Vec<ResolvedField>,
     bind: SymbolRef,
     metadata: HashMap<String, Option<BaseType>>,
+}
+
+impl ElementSymbol {
+    pub fn group(&self) -> &SymbolRef {
+        &self.bind
+    }
 }
 
 #[derive(Debug, Clone)]
@@ -63,7 +69,7 @@ impl UnresolvedElementSymbol {
 }
 
 impl TypeResolver<ElementSymbol> for UnresolvedElementSymbol {
-    fn resolve(&mut self, workspace: &mut Workspace) -> bool {
+    fn resolve(&mut self, workspace: &mut AnalysisWorkspace) -> bool {
         self.fields.retain(|f| {
             if let Some(ty) = workspace.get_type(&f.ty) {
                 self.resolved.push(ResolvedField {

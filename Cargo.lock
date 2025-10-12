@@ -1332,6 +1332,7 @@ name = "rml-lsp"
 version = "0.1.0"
 dependencies = [
  "lexer-core",
+ "log",
  "logos",
  "rml",
  "rmlx",

@@ -41,8 +41,7 @@ EXTEND     = { "extend" }
 EXPRESSION = { "expression" }
 UNIQUE     = { "unique" }
 
-generic_identifier = @{ ASCII_ALPHANUMERIC+ }
-generic_type       = { ident ~ LT ~ generic_identifier ~ GT }
+generic_type       = { ident ~ LT ~ ns_ident ~ GT }
 
 directive_content = @{ (!">" ~ ANY)* }
 directive         = { HASH ~ ident ~ (LT ~ directive_content ~ GT)? }

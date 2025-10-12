@@ -1,11 +1,7 @@
-use crate::{
-    semantic::{
-        element::UnresolvedElementSymbol, enumeration::UnresolvedEnumSymbol, group::UnresolvedGroupSymbol,
-        structure::UnresolvedStructSymbol, symbol::SymbolKind,
-    },
-    utils::to_url,
-    CustomType, SchemaAst, TypeResolver, Workspace,
-};
+use crate::{semantic::{
+    element::UnresolvedElementSymbol, enumeration::UnresolvedEnumSymbol, group::UnresolvedGroupSymbol,
+    structure::UnresolvedStructSymbol, symbol::SymbolKind,
+}, utils::to_url, CustomType, SchemaAst, TypeResolver, AnalysisWorkspace, RmlxParser};
 
 pub struct UnresolvedSchema {
     namespace: Option<String>,
@@ -16,8 +12,9 @@ pub struct UnresolvedSchema {
 }
 
 impl UnresolvedSchema {
-    pub fn new(ast: &SchemaAst, path: &str, workspace: &mut Workspace) -> Self {
-        let directive_result = process_directives(ast);
+    pub fn new(source: &str, path: &str, workspace: &mut AnalysisWorkspace) -> Self {
+        let ast = RmlxParser::build_ast(source);
+        let directive_result = process_directives(&ast);
         directive_result.uses.iter().for_each(|u| {
             workspace.load_single_model(&to_url(path, u).unwrap());
         });
@@ -63,7 +60,7 @@ impl UnresolvedSchema {
         }
     }
 
-    pub fn resolve(&mut self, workspace: &mut Workspace) -> Vec<SymbolKind> {
+    pub fn resolve(&mut self, workspace: &mut AnalysisWorkspace) -> Vec<SymbolKind> {
         let mut symbols = vec![];
         self.structs.retain_mut(|s| {
             let result = s.resolve(workspace);

@@ -1,7 +1,9 @@
 #namespace <base>
 
-#[Description("Component")]
+
+
 extend group Component;
+
 
 #[Description("Entity")]
 group Container {
@@ -49,3 +51,4 @@ expression Item {
     @optional converter: String,
     @optional fallback:  String,
 }
+

@@ -1,6 +1,6 @@
 use crate::{
     semantic::symbol::{Symbol, TypeRef},
-    BaseType, Enum, TypeResolver, UnresolvedType, Workspace,
+    BaseType, Enum, TypeResolver, UnresolvedType, AnalysisWorkspace,
 };
 use std::collections::HashMap;
 
@@ -73,7 +73,7 @@ impl TypeResolver<EnumSymbol> for UnresolvedEnumSymbol {
         }
     }
 
-    fn resolve(&mut self, workspace: &mut Workspace) -> bool {
+    fn resolve(&mut self, workspace: &mut AnalysisWorkspace) -> bool {
         self.variants.retain(|v| {
             if let Some(ty) = &v.ty {
                 if let Some(ty) = workspace.get_type(ty) {

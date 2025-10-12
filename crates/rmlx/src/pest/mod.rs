@@ -16,9 +16,12 @@ impl RmlxParser {
     pub fn build_cst(content: &str) -> CstNode{
         let mut prev_line = 1;
         let mut prev_col = 1;
-
-        let mut parse_tree = RmlxParser::parse(Rule::file, content).unwrap();
-        build_cst(&parse_tree.next().unwrap(), &mut prev_line, &mut prev_col)
+        let mut result = RmlxParser::parse(Rule::file, content);
+        if let Ok(mut tree) = result {
+            build_cst(&tree.next().unwrap(), content, &mut prev_line, &mut prev_col)
+        } else {
+            panic!("Error: {result:#?}");
+        }
     }
 
     #[must_use]
@@ -41,6 +44,8 @@ group Root(1) {
 ";
     #[test]
     fn test() {
+        let content = std::fs::read_to_string("D:\\Projects\\rml\\examples\\base.rmlx").unwrap();
+        let cst = RmlxParser::build_cst(&content);
         let ast = RmlxParser::build_ast(CONTENT);
         dbg!(ast);
     }

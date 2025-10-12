@@ -44,6 +44,7 @@ impl<'a> RmlTokenStream<'a> {
         }
     }
 
+    #[must_use]
     pub fn to_vec(mut self) -> Vec<MarkupTokens> {
         let mut vec = vec![];
 

@@ -1,6 +1,6 @@
 use crate::{
     semantic::symbol::{Symbol, SymbolRef},
-    BaseType, Field, Struct, TypeResolver, UnresolvedType, Workspace,
+    BaseType, Field, Struct, TypeResolver, UnresolvedType, AnalysisWorkspace,
 };
 use std::collections::HashMap;
 
@@ -77,7 +77,7 @@ impl UnresolvedStructSymbol {
 }
 
 impl TypeResolver<StructSymbol> for UnresolvedStructSymbol {
-    fn resolve(&mut self, workspace: &mut Workspace) -> bool {
+    fn resolve(&mut self, workspace: &mut AnalysisWorkspace) -> bool {
         self.fields.retain(|f| {
             if let Some(ty) = workspace.get_type(&f.ty) {
                 self.resolved.push(ResolvedField {

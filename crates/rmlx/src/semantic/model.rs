@@ -1,8 +1,12 @@
-use crate::semantic::symbol::{
-    GenericSymbol, Str, Symbol, SymbolKind, SymbolRef, F32, F64, I16, I32, I64, I8, U16, U32, U64, U8,
+use crate::{
+    semantic::symbol::{
+        GenericSymbol, Str, Symbol, SymbolKind, SymbolRef, F32, F64, I16, I32, I64, I8, U16, U32, U64, U8,
+    },
+    CstNode,
 };
 use std::collections::HashMap;
 
+#[derive(Debug)]
 pub struct SchemaModel {
     pub namespaces: HashMap<String, Vec<SymbolKind>>,
     pub global: Vec<SymbolKind>,
@@ -32,13 +36,7 @@ impl Default for SchemaModel {
 }
 
 impl SchemaModel {
-    pub fn empty() -> Self {
-        Self {
-            namespaces: HashMap::default(),
-            global: vec![],
-        }
-    }
-
+    #[must_use]
     pub fn get_type_table(&self, namespace: Option<&str>) -> &[SymbolKind] {
         if let Some(ns) = namespace {
             self.namespaces
@@ -59,6 +57,7 @@ impl SchemaModel {
         }
     }
 
+    #[must_use]
     pub fn get_type_id(&self, namespace: Option<&str>, name: &str) -> Option<usize> {
         let type_table = self.get_type_table(namespace);
         if let Some(id) = type_table.iter().position(|t| t.identifier() == name) {
@@ -70,11 +69,13 @@ impl SchemaModel {
         }
     }
 
+    #[must_use]
     pub fn get_type_by_id(&self, namespace: Option<&str>, id: usize) -> Option<&SymbolKind> {
         let type_table = self.get_type_table(namespace);
         type_table.get(id)
     }
 
+    #[must_use]
     pub fn get_type_by_name(&self, namespace: Option<&str>, name: &str) -> Option<&SymbolKind> {
         let type_table = self.get_type_table(namespace);
         type_table.iter().find(|t| t.identifier() == name)
@@ -88,5 +89,25 @@ impl SchemaModel {
     pub fn replace_type(&mut self, symbol_ref: &SymbolRef, kind: SymbolKind) {
         let type_table = self.get_mut_type_table(symbol_ref.namespace.as_deref());
         type_table[symbol_ref.id] = kind;
+    }
+
+    #[must_use]
+    pub fn get_root_group_ref(&self) -> (usize, Option<String>) {
+        let root = self.namespaces.iter()  // (&String, &Vec<Kind>)
+            .flat_map(|(key, kinds)| {
+                kinds.iter()
+                    .enumerate()
+                    .map(move |(idx, kind)| (idx, Some(key.clone()), kind))
+            })
+            .chain(
+                self.global.iter()
+                    .enumerate()
+                    .map(|(idx, kind)| (idx, None, kind))
+            )
+            .find(|(_, _, t)| t.identifier() == "Root")
+            .map(|(index, namespace, _)| (index, namespace))
+            .unwrap();
+
+        root
     }
 }

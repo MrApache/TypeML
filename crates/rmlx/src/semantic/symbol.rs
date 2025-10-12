@@ -181,4 +181,19 @@ impl SymbolKind {
             _ => panic!("Not a group symbol"),
         }
     }
+
+    pub fn is_group_symbol(&self) -> bool {
+        matches!(self, SymbolKind::Group(_))
+    }
+
+    pub fn is_element_symbol(&self) -> bool {
+        matches!(self, SymbolKind::Element(_))
+    }
+
+    pub fn as_element_symbol(&self) -> &ElementSymbol {
+        match self {
+            SymbolKind::Element(symbol) => symbol,
+            _ => panic!("Not a element symbol"),
+        }
+    }
 }

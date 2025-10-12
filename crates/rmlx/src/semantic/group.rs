@@ -3,7 +3,7 @@ use crate::{
     semantic::{
         symbol::{Symbol, SymbolKind, SymbolRef},
         TypeResolver,
-    }, BaseType, Count, Group, UnresolvedType, Workspace };
+    }, BaseType, Count, Group, UnresolvedType, AnalysisWorkspace };
 
 #[derive(Debug, Clone)]
 pub struct GroupSymbol {
@@ -12,11 +12,23 @@ pub struct GroupSymbol {
     groups: Vec<GroupConfig>,
 }
 
+impl GroupSymbol {
+    pub fn groups(&self) -> &[GroupConfig] {
+        &self.groups
+    }
+}
+
 #[derive(Debug, Clone)]
 pub struct GroupConfig {
     symbol: SymbolRef,
     unique: bool,
     count: Option<Count>,
+}
+
+impl GroupConfig {
+    pub fn symbol(&self) -> &SymbolRef {
+        &self.symbol
+    }
 }
 
 pub struct UnresolvedGroupConfig {
@@ -72,7 +84,7 @@ impl UnresolvedGroupSymbol {
 }
 
 impl TypeResolver<GroupSymbol> for UnresolvedGroupSymbol {
-    fn resolve(&mut self, workspace: &mut Workspace) -> bool {
+    fn resolve(&mut self, workspace: &mut AnalysisWorkspace) -> bool {
         self.unresolved.retain(|f| {
             if f.symbol.identifier == self.identifier {
                 let symbol = workspace.create_self_reference(&f.symbol);

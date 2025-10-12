@@ -270,12 +270,7 @@ fn build_directive(node: &CstNode) -> Directive {
     for child in &node.children {
         match child.kind {
             CstKind::Ident => name.clone_from(&child.text),
-            CstKind::String => value = Some(child.text.clone()),
-            CstKind::Symbol => {
-                if child.text != "<" && child.text != ">" {
-                    value = Some(child.text.clone());
-                }
-            }
+            CstKind::String | CstKind::DirectiveContent => value = Some(child.text.clone()),
             _ => {}
         }
     }
@@ -317,7 +312,7 @@ fn build_attributes(node: &CstNode) -> Vec<Attribute> {
     let mut attributes = Vec::new();
 
     let mut iter = node.children.iter();
-    consume_token(&mut iter, &CstKind::Symbol, Some("#"));
+    consume_token(&mut iter, &CstKind::Hash, Some("#"));
     consume_token(&mut iter, &CstKind::Symbol, Some("["));
 
     for child in iter {
@@ -557,7 +552,7 @@ fn build_group_entry(node: &CstNode) -> GroupEntry {
     let mut count = None;
 
     let mut iter = node.children.iter();
-    consume_token(&mut iter, &CstKind::Symbol, Some("+"));
+    consume_token(&mut iter, &CstKind::Plus, Some("+"));
 
     for child in iter {
         match child.kind {
