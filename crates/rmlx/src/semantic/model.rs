@@ -169,7 +169,7 @@ pub struct TypeQuery<'a> {
 
 impl<'a> TypeQuery<'a> {
     pub fn is_element_symbol(&self) -> bool {
-        self.kind.map_or(false, SymbolKind::is_element_symbol)
+        self.kind.is_some_and(SymbolKind::is_element_symbol)
     }
 
     pub fn as_element_symbol(&self) -> Option<&'a ElementSymbol> {
@@ -183,7 +183,7 @@ impl<'a> TypeQuery<'a> {
     }
 
     pub fn is_group_symbol(&self) -> bool {
-        self.kind.map_or(false, SymbolKind::is_group_symbol)
+        self.kind.is_some_and(SymbolKind::is_group_symbol)
     }
 
     pub fn as_group_symbol(&self) -> Option<&'a GroupSymbol> {
