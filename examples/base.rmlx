@@ -1,72 +1,47 @@
-//Set file namespace
-@namespace <base>
+#namespace <base>
 
-@groups   [Component]
-@restrict [Template]
-expression Item {
-    required: {
-        Path: String,
-    },
-    additional: {
-        Converter: String,
-        Fallback:  String,
-    }
-}
-
-#[Description("Component")]
 extend group Component;
 
 #[Description("Entity")]
-group Container
-| unique Component*
-| Container?
-| Template?;
+group Container {
+    + unique Component(*)
+    + Container(?)
+    + Template(?)
+}
 
 #[Description("Main group")]
-group Root[1]
-| unique Component*
-| Container?;
+group Root(1) {
+    + unique Component(*)
+    + Container(?)
+}
 
 #[Description("Template")]
-group Template
-| Container[1];
+group Template {
+    + Container(1)
+}
 
 element Layout -> Root;
+element Container -> Container;
 element ItemTemplate -> Template;
-element Test -> Template {
+
+@groups   [Component]
+expression Resource {
     target: String,
     path:   String,
 }
 
-expression Resource {
-    groups: [Component],
-    required: {
-        Target: String,
-        Path:   String,
-    }
-}
-
+@groups   [Component]
 expression Component {
-    groups: [Component],
-    required: {
-        Target: String,
-        Path:   String,
-    },
-    additional: {
-        With:    Array<String>,
-        Without: Array<String>,
-    }
+    target: String,
+    path:   String,
+    @optional with:    Array<String>,
+    @optional without: Array<String>,
 }
 
-
+@groups   [Component]
+@restrict [Template]
 expression Item {
-    groups: [Component],
-    available_in: [Template],
-    required: {
-        Path: String,
-    },
-    additional: {
-        Converter: String,
-        Fallback:  String,
-    }
+    path: String,
+    @optional converter: String,
+    @optional fallback:  String,
 }

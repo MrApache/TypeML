@@ -1,0 +1,74 @@
+WHITESPACE = _{ " " | "\t" | "\r" | "\n" }
+
+COMMENT_MULTI = { "/*" ~ (!"*/" ~ ANY)* ~ "*/" }
+COMMENT_LINE  = { "//" ~ (!"\n" ~ ANY)* ~ ("\n" | EOI) }
+
+file = { SOI ~ (directive | custom_types | COMMENT_MULTI | COMMENT_LINE)* ~ EOI }
+
+ident = @{ (ASCII_ALPHA | "_") ~ (ASCII_ALPHANUMERIC | "_")* }
+ns_ident = { ident ~ ("::" ~ ident)* }
+
+string     = @{ "\"" ~ (!"\"" ~ ANY)* ~ "\"" }
+number     = @{ ASCII_DIGIT+ }
+boolean    = { "true" | "false" }
+array      = { LBRACK ~ ns_ident ~ (COMMA ~ ns_ident)* ~ RBRACK }
+base_types = { number | boolean | ident | string }
+
+LPAREN  = { "(" }
+RPAREN  = { ")" }
+LT      = { "<" }
+GT      = { ">" }
+LBRACK  = { "[" }
+RBRACK  = { "]" }
+LBRACE  = { "{" }
+RBRACE  = { "}" }
+HASH    = { "#" }
+COMMA   = { "," }
+COLON   = { ":" }
+SEMI    = { ";" }
+PLUS    = { "+" }
+STAR    = { "*" }
+QMARK   = { "?" }
+DASH    = { "-" }
+ARROW   = { "->" }
+AT      = { "@" }
+
+ENUM       = { "enum" }
+STRUCT     = { "struct" }
+ELEMENT    = { "element" }
+GROUP      = { "group" }
+EXTEND     = { "extend" }
+EXPRESSION = { "expression" }
+UNIQUE     = { "unique" }
+
+generic_type       = { ident ~ LT ~ ns_ident ~ GT }
+
+directive_content = @{ (!">" ~ ANY)* }
+directive         = { HASH ~ ident ~ (LT ~ directive_content ~ GT)? }
+
+annotation_value  = { string | array }
+annotation        = { AT ~ ident ~ annotation_value? }
+
+attribute      = { ident ~ (LPAREN ~ base_types ~ RPAREN)? }
+attribute_list = { HASH ~ LBRACK ~ attribute ~ (COMMA ~ attribute)* ~ RBRACK }
+
+simple_field  = { annotation* ~ ident ~ COLON ~ (generic_type | ns_ident) }
+simple_fields = { simple_field ~ (COMMA ~ simple_field?)* ~ COMMA? }
+block         = { LBRACE ~ simple_fields ~ RBRACE }
+
+enum_variant = { annotation* ~ ((ident ~ LPAREN ~ ns_ident ~ RPAREN) | ident) }
+enum         = { attribute_list* ~ ENUM ~ ident ~ LBRACE ~ enum_variant ~ (COMMA ~ enum_variant)* ~ COMMA? ~ RBRACE }
+
+struct = { attribute_list* ~ STRUCT ~ (generic_type | ident) ~ block }
+
+element = { attribute_list* ~ ELEMENT ~ ident ~ ARROW ~ ns_ident ~ (block | SEMI) }
+
+count        = { LPAREN ~ ((number ~ DASH ~ number) | number | STAR | QMARK | PLUS) ~ RPAREN }
+group_entry  = { PLUS ~ UNIQUE? ~ ns_ident ~ count }
+group_content = { LBRACE ~ group_entry* ~ RBRACE }
+group        = { attribute_list* ~ GROUP ~ ident ~ count* ~ (group_content | SEMI) }
+extend_group = { attribute_list* ~ EXTEND ~ GROUP ~ ident ~ (group_content | SEMI) }
+
+expression = { (attribute_list | annotation)* ~ EXPRESSION ~ ident ~ block }
+
+custom_types = { enum | struct | element | extend_group | group | expression }

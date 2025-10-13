@@ -1,13 +1,14 @@
 use crate::{
-    semantic::symbol::{Symbol, SymbolRef},
-    TypeResolver, UnresolvedType,
+    AnalysisWorkspace, AnnotationValue, BaseType, Enum, SchemaModel, TypeResolver, UnresolvedType,
+    semantic::symbol::{Symbol, TypeRef},
 };
+use regex::Regex;
 use std::collections::HashMap;
 
 pub struct UnresolvedEnumSymbol {
     identifier: String,
     variants: Vec<UnresolvedVariant>,
-    metadata: HashMap<String, Option<String>>,
+    metadata: HashMap<String, Option<BaseType>>,
     resolved: Vec<EnumVariant>,
 }
 
@@ -18,31 +19,38 @@ pub struct UnresolvedVariant {
 }
 
 impl UnresolvedEnumSymbol {
-    pub fn new(e: &crate::ast::Enum) -> Self {
-        let identifier = e.name().to_string();
+    pub fn new(e: &Enum) -> Self {
+        let identifier = e.name.clone();
         let mut variants = vec![];
         let mut metadata = HashMap::new();
 
-        e.variants().iter().for_each(|v| {
-            let identifier = v.name().to_string();
-            let ty = if let Some(ty) = v.ty() {
-                Some(UnresolvedType {
-                    namespace: None,
-                    identifier: ty.to_string(),
-                })
+        e.variants.iter().for_each(|v| {
+            let identifier = v.name.clone();
+            let ty = v.value.as_ref().map(|ty| ty.clone().into());
+            let pattern = v.annotations.try_take("pattern");
+            let pattern = if let Some(annotation) = pattern {
+                if let Some(value) = annotation.value {
+                    match value {
+                        AnnotationValue::String(string) => Some(string),
+                        AnnotationValue::Array(_) => panic!("The value should be a string"),
+                    }
+                } else {
+                    None
+                }
             } else {
                 None
             };
 
+            //TODO Annotations
             variants.push(UnresolvedVariant {
                 identifier,
                 ty,
-                pattern: v.pattern().map(str::to_string),
+                pattern,
             });
         });
 
-        e.attributes().iter().for_each(|a| {
-            metadata.insert(a.name().to_string(), a.content().clone());
+        e.attributes.iter().for_each(|a| {
+            metadata.insert(a.name.to_string(), a.value.clone());
         });
 
         Self {
@@ -54,36 +62,28 @@ impl UnresolvedEnumSymbol {
     }
 }
 
+#[derive(Debug, Clone)]
 pub struct EnumSymbol {
     pub identifier: String,
     pub variants: Vec<EnumVariant>,
-    pub metadata: HashMap<String, Option<String>>,
+    pub metadata: HashMap<String, Option<BaseType>>,
 }
 
-#[derive(Clone)]
+#[derive(Debug, Clone)]
 pub struct EnumVariant {
     pub identifier: String,
-    pub ty: Option<SymbolRef>,
+    pub ty: Option<TypeRef>,
     pub pattern: Option<String>,
 }
 
 impl TypeResolver<EnumSymbol> for UnresolvedEnumSymbol {
-    fn as_resolved_type(&self) -> EnumSymbol {
-        assert!(self.variants.is_empty());
-        EnumSymbol {
-            identifier: self.identifier.clone(),
-            variants: self.resolved.clone(),
-            metadata: self.metadata.clone(),
-        }
-    }
-
-    fn resolve(&mut self, workspace: &super::Workspace) -> bool {
+    fn resolve(&mut self, workspace: &mut AnalysisWorkspace) -> bool {
         self.variants.retain(|v| {
             if let Some(ty) = &v.ty {
-                if let Some(ty) = workspace.get_type(ty.namespace.as_deref(), &ty.identifier) {
+                if let Some(ty) = workspace.get_type(ty) {
                     self.resolved.push(EnumVariant {
                         identifier: v.identifier.clone(),
-                        ty: Some(ty),
+                        ty: Some(TypeRef::Concrete(ty)),
                         pattern: v.pattern.clone(),
                     });
                     return false;
@@ -100,10 +100,47 @@ impl TypeResolver<EnumSymbol> for UnresolvedEnumSymbol {
         });
         self.variants.is_empty()
     }
+
+    fn as_resolved_type(&self) -> EnumSymbol {
+        assert!(self.variants.is_empty());
+        EnumSymbol {
+            identifier: self.identifier.clone(),
+            variants: self.resolved.clone(),
+            metadata: self.metadata.clone(),
+        }
+    }
 }
 
 impl Symbol for EnumSymbol {
     fn identifier(&self) -> &str {
         &self.identifier
+    }
+
+    fn can_parse(&self, value: &str, model: &SchemaModel) -> bool {
+        let default_inner_regex = Regex::new(r"([a-zA-Z][a-zA-Z0-9_]*)\((.*)\)").unwrap();
+
+        self.variants.iter().any(|v| {
+            let mut result = false;
+            if let Some(pattern) = &v.pattern {
+                let regex = Regex::new(pattern).unwrap();
+                result = regex.is_match(value);
+            }
+
+            if !result
+                && default_inner_regex.is_match(value)
+                && let Some(ty) = &v.ty
+                && let Some(cap) = default_inner_regex.captures(value)
+            {
+                let value = cap.get(2).unwrap().as_str();
+                let ty = model.get_type_by_ref(ty.as_concrete()).unwrap().unwrap();
+                result = v.identifier == cap.get(1).unwrap().as_str() && ty.can_parse(value, model);
+            }
+
+            if !result {
+                result = v.identifier == value;
+            }
+
+            result
+        })
     }
 }

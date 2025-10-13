@@ -17,6 +17,9 @@ tokio.workspace = true
 url.workspace = true
 reqwest.workspace = true
 enum_dispatch.workspace = true
+regex.workspace = true
+pest.workspace = true
+pest_derive.workspace = true
 
 [dev-dependencies]
 divan = { package = "codspeed-divan-compat", version = "*" }

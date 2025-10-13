@@ -10,7 +10,7 @@ pub const PARAMETER_TOKEN: u32 = 1;
 pub const STRING_TOKEN: u32 = 2;
 pub const TYPE_TOKEN: u32 = 3;
 pub const OPERATOR_TOKEN: u32 = 4;
-pub const NUMBER: u32 = 5;
+pub const NUMBER_TOKEN: u32 = 5;
 pub const COMMENT_TOKEN: u32 = 6;
 pub const MACRO_TOKEN: u32 = 7;
 pub const FUNCTION: u32 = 8;
@@ -106,7 +106,7 @@ pub struct Token<T> {
 impl<T> Token<T> {
     pub fn new<'source, Token>(kind: T, lexer: &mut Lexer<'source, Token>) -> Self
     where
-        Token: Logos<'source, Extras = Position>,
+        Token: Logos<'source, Extras=Position>,
     {
         let delta_line = lexer.extras.get_delta_line();
         let delta_start = lexer.extras.get_delta_start();
@@ -119,7 +119,7 @@ impl<T> Token<T> {
         span: Span,
     ) -> Self
     where
-        Token: Logos<'source, Extras = Position>,
+        Token: Logos<'source, Extras=Position>,
     {
         let delta_line = lexer.extras.get_delta_line();
         let delta_start = lexer.extras.get_delta_start();
@@ -134,7 +134,7 @@ impl<T> Token<T> {
         delta_start: u32,
     ) -> Self
     where
-        Token: Logos<'source, Extras = Position>,
+        Token: Logos<'source, Extras=Position>,
     {
         Self {
             kind,
@@ -170,7 +170,7 @@ impl<T> Token<T> {
     pub fn slice<'a>(&self, str: &'a str) -> &'a str {
         str.slice(self.span()).unwrap()
     }
- 
+
     pub const fn delta_line(&self) -> u32 {
         self.delta_line
     }
@@ -208,7 +208,7 @@ impl<T> Token<T> {
         }
     }
 
-    pub fn push_with_advance<'s, Tok: Logos<'s, Extras = Position>>(
+    pub fn push_with_advance<'s, Tok: Logos<'s, Extras=Position>>(
         tokens: &mut Vec<Self>,
         kind: impl Into<T>,
         lex: &mut Lexer<'s, Tok>,

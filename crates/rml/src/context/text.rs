@@ -1,6 +1,6 @@
-use logos::{Lexer, Logos};
-use lexer_core::*;
 use crate::MarkupTokens;
+use lexer_core::*;
+use logos::{Lexer, Logos};
 
 #[derive(Logos, Debug, PartialEq, Eq, Clone)]
 #[logos(extras = Position)]
@@ -46,12 +46,12 @@ pub(crate) fn text_context_callback(
                 chars += 1;
                 bytes += '\n'.encode_utf8(&mut [0; 2]).len();
                 inner.extras.new_line();
-            },
+            }
             _ => {
                 chars += 1;
                 inner.extras.advance(1);
                 bytes += ch.encode_utf8(&mut [0; 2]).len();
-            },
+            }
         }
     }
 

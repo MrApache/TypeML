@@ -1,4 +1,4 @@
-@use <base.rmlx>
+#use <base.rmlx>
 
 #[Path("bevy::prelude::Display")]
 enum Display {
@@ -51,23 +51,23 @@ struct OverflowClipMargin {
 enum Val {
     Auto,
 
-    Px(f32)
-    | "([0-9]+(?:\.[0-9]+)?)px"
+    @pattern "([0-9]+(?:\.[0-9]+)?)px"
+    Px(f32),
 
-    Percent(f32)
-    | "([0-9]+(?:\.[0-9]+)?)%",
+    @pattern "([0-9]+(?:\.[0-9]+)?)%"
+    Percent(f32),
 
-    Vw(f32)
-    | "[0-9]+(?:\.[0-9]+)?)vw",
+    @pattern "([0-9]+(?:\.[0-9]+)?)vw"
+    Vw(f32),
 
-    Vh(f32)
-    | "([0-9]+(?:\.[0-9]+)?)vh",
+    @pattern "([0-9]+(?:\.[0-9]+)?)vh"
+    Vh(f32),
 
-    VMin(f32)
-    | "([0-9]+(?:\.[0-9]+)?)vmin",
+    @pattern "([0-9]+(?:\.[0-9]+)?)vmin"
+    VMin(f32),
 
-    VMax(f32)
-    | "([0-9]+(?:\.[0-9]+)?)vmax"
+    @pattern "([0-9]+(?:\.[0-9]+)?)vmax"
+    VMax(f32),
 }
 
 
@@ -167,7 +167,7 @@ enum FlexWrap {
 }
 
 #[Path("bevy::prelude::Node")]
-element Node -> Component {
+element Node -> base::Component {
     display: Display,
     box_sizing: BoxSizing,
     position_type: PositionType,
@@ -203,6 +203,6 @@ element Node -> Component {
 }
 
 #[Path("bevy::prelude::BackgroundColor")]
-element BackgroundColor -> Component {
+element BackgroundColor -> base::Component {
     self: String,
 }

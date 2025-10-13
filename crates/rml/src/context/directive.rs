@@ -1,6 +1,6 @@
-use logos::{Lexer, Logos};
-use lexer_core::*;
 use crate::MarkupTokens;
+use lexer_core::*;
+use logos::{Lexer, Logos};
 
 #[derive(Logos, Debug, PartialEq, Eq, Clone)]
 #[logos(extras = Position)]
