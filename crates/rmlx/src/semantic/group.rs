@@ -1,7 +1,10 @@
-use crate::{semantic::{
-    symbol::{Symbol, SymbolKind, SymbolRef},
-    TypeResolver,
-}, AnalysisWorkspace, BaseType, Count, Group, SchemaModel, UnresolvedType};
+use crate::{
+    AnalysisWorkspace, BaseType, Count, Group, SchemaModel, UnresolvedType,
+    semantic::{
+        TypeResolver,
+        symbol::{Symbol, SymbolKind, SymbolRef},
+    },
+};
 use std::collections::HashMap;
 
 #[derive(Debug, Clone)]
@@ -25,8 +28,8 @@ pub struct GroupConfig {
 }
 
 impl GroupConfig {
-    pub fn symbol(&self) -> &SymbolRef {
-        &self.symbol
+    pub fn symbol(&self) -> SymbolRef {
+        self.symbol
     }
 }
 
@@ -128,7 +131,7 @@ impl Symbol for GroupSymbol {
 
     fn try_get_self_reference(&self, model: &SchemaModel) -> Option<&SymbolRef> {
         for group in &self.groups {
-            let ty = model.get_type_by_id(group.symbol.namespace.as_deref(), group.symbol.id).unwrap();
+            let ty = model.get_type_by_ref(group.symbol()).unwrap().unwrap();
             match ty {
                 SymbolKind::Lazy(lazy) => {
                     if lazy.identifier == self.identifier {

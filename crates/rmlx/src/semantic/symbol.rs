@@ -8,10 +8,9 @@ use crate::semantic::{
 use enum_dispatch::enum_dispatch;
 use std::{collections::HashMap, fmt::Debug};
 
-//TODO make copyable
-#[derive(Default, Debug, Clone, Hash, PartialEq, Eq)]
+#[derive(Default, Debug, Copy, Clone, Hash, PartialEq, Eq)]
 pub struct SymbolRef {
-    pub namespace: Option<String>,
+    pub namespace: usize,
     pub id: usize,
 }
 
@@ -22,9 +21,9 @@ pub enum TypeRef {
 }
 
 impl TypeRef {
-    pub fn as_concrete(&self) -> &SymbolRef {
+    pub fn as_concrete(&self) -> SymbolRef {
         match self {
-            TypeRef::Concrete(symbol_ref) => symbol_ref,
+            TypeRef::Concrete(symbol_ref) => *symbol_ref,
             TypeRef::Generic(_) => unreachable!(),
         }
     }
@@ -115,8 +114,8 @@ impl GenericSymbol {
                     .iter()
                     .map(|var| {
                         let ty = var.ty.as_ref().map(|ty| match ty {
-                            TypeRef::Concrete(concrete) => TypeRef::Concrete(concrete.clone()),
-                            TypeRef::Generic(generic) => TypeRef::Concrete(other_ref.clone()),
+                            TypeRef::Concrete(concrete) => TypeRef::Concrete(*concrete),
+                            TypeRef::Generic(generic) => TypeRef::Concrete(*other_ref),
                         });
                         EnumVariant {
                             identifier: var.identifier.clone(),

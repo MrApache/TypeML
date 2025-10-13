@@ -10,6 +10,7 @@ mod unresolved_schema;
 
 pub use model::SchemaModel;
 
+use crate::semantic::group::GroupConfig;
 use crate::semantic::symbol::{LazySymbol, SymbolKind};
 use crate::{
     RmlxParser,
@@ -39,7 +40,7 @@ pub struct AnalysisWorkspace {
     path: Url,
     model: Arc<RwLock<SchemaModel>>,
 
-    namespace_stack: Vec<Option<String>>,
+    namespace_stack: Vec<usize>,
     unresolved: HashMap<String, UnresolvedSchema>,
 }
 
@@ -89,16 +90,10 @@ impl AnalysisWorkspace {
         }
 
         let mut unresolved_module = UnresolvedSchema::new(source, path.to_file_path().unwrap().to_str().unwrap(), self);
-        let namespace = unresolved_module.namespace().map(str::to_string);
+        let namespace = unresolved_module.namespace();
+        let namespace_id = self.get_or_add_namespace_id(namespace);
 
-        {
-            let mut model = self.model.write().unwrap();
-            if let Some(ns) = &namespace {
-                model.namespaces.entry(ns.clone()).or_default();
-            }
-        }
-
-        self.namespace_stack.push(namespace);
+        self.namespace_stack.push(namespace_id);
         loop {
             let mut symbols = unresolved_module.resolve(self);
             if symbols.is_empty() {
@@ -120,12 +115,8 @@ impl AnalysisWorkspace {
             });
 
             let mut write = self.model.write().unwrap();
-            if let Some(ns) = unresolved_module.namespace() {
-                let vec = write.namespaces.get_mut(ns).unwrap();
-                vec.extend(symbols);
-            } else {
-                write.global.extend(symbols);
-            }
+            let vec = write.modules.get_mut(namespace_id).unwrap();
+            vec.extend(symbols);
         }
         self.namespace_stack.pop();
     }
@@ -135,19 +126,31 @@ impl AnalysisWorkspace {
         self.load_model_internal(&content, path);
     }
 
-    fn get_target_or_local_namespace<'s>(&'s self, namespace: Option<&'s str>) -> Option<&'s str> {
+    fn get_or_add_namespace_id(&mut self, namespace: Option<&str>) -> usize {
+        let mut model = self.model.write().unwrap();
+
         if let Some(ns) = namespace {
-            Some(ns)
-        } else if let Some(namespace) = self.namespace_stack.last() {
-            namespace.as_deref()
-        } else {
-            None
+            if let Some(id) = model.try_get_namespace_id(namespace) {
+                return id;
+            }
+
+            let id = model.namespaces.len();
+            model.namespaces.push(ns.to_string());
+            model.modules.push(Vec::new());
+            return id;
         }
+
+        if let Some(id) = self.namespace_stack.last() {
+            return *id;
+        }
+
+        0 //Return global namespace
     }
 
     fn get_type(&mut self, ty: &UnresolvedType) -> Option<SymbolRef> {
+        let namespace = self.get_or_add_namespace_id(ty.namespace.as_deref());
+
         let mut model = self.model.write().unwrap();
-        let namespace = self.get_target_or_local_namespace(ty.namespace.as_deref());
         let identifier = if let Some(generic) = &ty.generic_base {
             format!("{generic}_{}", ty.identifier)
         } else {
@@ -155,17 +158,14 @@ impl AnalysisWorkspace {
         };
 
         if let Some(id) = model.get_type_id(namespace, &identifier) {
-            return Some(SymbolRef {
-                id,
-                namespace: namespace.map(str::to_string),
-            });
+            return Some(SymbolRef { namespace, id });
         } else if let Some(generic) = &ty.generic_base
-            && let Some(generic) = model.get_type_by_name(ty.namespace.as_deref(), generic).unwrap()
-            && let Some((target_ref, target)) = model.get_type_by_name(None, &ty.identifier).unwrap_with_ref()
+            && let Some(generic) = model.get_type_by_name(namespace, generic).unwrap()
+            && let Some((target_ref, target)) = model.get_type_by_name(0, &ty.identifier).unwrap_with_ref()
         {
             let generic = generic.as_generic_symbol();
             let ct = generic.construct_type(target, &target_ref);
-            model.add_symbol(ty.namespace.as_deref(), ct);
+            model.add_symbol(namespace, ct);
         }
         //Base type does not found
 
@@ -173,18 +173,15 @@ impl AnalysisWorkspace {
     }
 
     fn create_self_reference(&mut self, ty: &UnresolvedType) -> SymbolRef {
-        let namespace = self.get_target_or_local_namespace(ty.namespace.as_deref());
+        let namespace = self.get_or_add_namespace_id(ty.namespace.as_deref());
         let mut model = self.model.write().unwrap();
-        let type_table = model.get_mut_type_table(namespace);
+        let type_table = model.get_mut_type_table_by_namespace_id(namespace);
         let id = type_table.len();
         type_table.push(SymbolKind::Lazy(LazySymbol {
             source: id,
             identifier: ty.identifier.clone(),
         }));
-        SymbolRef {
-            id,
-            namespace: namespace.map(str::to_string),
-        }
+        SymbolRef { namespace, id }
     }
 }
 
@@ -212,10 +209,10 @@ pub struct RmlAnalyzer {
 }
 
 impl RmlAnalyzer {
-    fn build_states(root: &SymbolRef, model: &SchemaModel) -> Vec<AnalyzerState> {
+    fn build_states(root: SymbolRef, model: &SchemaModel) -> Vec<AnalyzerState> {
         let mut states = Vec::new();
         let mut visited = HashSet::new();
-        let mut to_process = vec![root.clone()];
+        let mut to_process = vec![root];
 
         // Build a mapping from SymbolRef to state index
         let mut state_indices = HashMap::new();
@@ -224,37 +221,36 @@ impl RmlAnalyzer {
             if visited.contains(&current_symbol) {
                 continue;
             }
-            visited.insert(current_symbol.clone());
+            visited.insert(current_symbol);
 
-            if let Some(ty) = model.get_type_by_id(current_symbol.namespace.as_deref(), current_symbol.id) {
+            if let Some(ty) = model.get_type_by_ref(current_symbol).unwrap() {
                 let group = ty.as_group_symbol();
 
                 // Get all reachable groups from this state
-                let reachable_groups: Vec<SymbolRef> = group.groups().iter().map(|g| g.symbol().clone()).collect();
+                let reachable_groups: Vec<SymbolRef> = group.groups().iter().map(GroupConfig::symbol).collect();
 
                 // Add new symbols to processing queue
-                for symbol in &reachable_groups {
-                    if !visited.contains(symbol) && !to_process.contains(symbol) {
-                        to_process.push(symbol.clone());
+                for symbol in reachable_groups {
+                    if !visited.contains(&symbol) && !to_process.contains(&symbol) {
+                        to_process.push(symbol);
                     }
                 }
                 // Create state with placeholder allowed indices (will be filled later)
                 let state = AnalyzerState {
-                    group: current_symbol.clone(),
+                    group: current_symbol,
                     allowed: Vec::new(), // will populate after all states are created
                 };
 
-                state_indices.insert(current_symbol.clone(), states.len());
+                state_indices.insert(current_symbol, states.len());
                 states.push(state);
             }
         }
 
         // Now populate the allowed transitions
         for state in &mut states {
-            let current_symbol = &state.group;
-            if let Some(ty) = model.get_type_by_id(current_symbol.namespace.as_deref(), current_symbol.id) {
+            if let Some(ty) = model.get_type_by_ref(state.group).unwrap() {
                 let group = ty.as_group_symbol();
-                let reachable_groups: Vec<SymbolRef> = group.groups().iter().map(|g| g.symbol().clone()).collect();
+                let reachable_groups: Vec<SymbolRef> = group.groups().iter().map(GroupConfig::symbol).collect();
 
                 state.allowed = reachable_groups
                     .iter()
@@ -270,10 +266,9 @@ impl RmlAnalyzer {
     #[must_use]
     pub fn new(model: Arc<RwLock<SchemaModel>>) -> Self {
         let read_model = model.read().unwrap();
-        let (id, namespace) = read_model.get_root_group_ref();
-        let group = SymbolRef { namespace, id };
+        let group = read_model.get_root_group_ref();
 
-        let states = Self::build_states(&group, &read_model);
+        let states = Self::build_states(group, &read_model);
         drop(read_model);
 
         Self {
@@ -287,13 +282,12 @@ impl RmlAnalyzer {
     #[must_use]
     pub fn is_allowed_element(&self, namespace: Option<&str>, name: &str) -> bool {
         let model = self.model.read().unwrap();
-        let element = model.get_type_by_name(namespace, name).as_element_symbol().unwrap();
+        let namespace_id = model.get_namespace_id(namespace);
+        let element = model.get_type_by_name(namespace_id, name).as_element_symbol().unwrap();
         let bind_group = element.group();
 
-        let group_ref = &self.states[self.active].group;
-        let ty = model
-            .get_type_by_id(group_ref.namespace.as_deref(), group_ref.id)
-            .unwrap();
+        let group_ref = self.states[self.active].group;
+        let ty = model.get_type_by_ref(group_ref).unwrap().unwrap();
         let group = ty.as_group_symbol();
         let groups = group.groups();
         groups.iter().any(|g| {
@@ -306,12 +300,11 @@ impl RmlAnalyzer {
         debug_assert!(self.is_allowed_element(namespace, name));
 
         let model = self.model.read().unwrap();
-        let element = model.get_type_by_name(namespace, name).as_element_symbol().unwrap();
+        let namespace_id = model.get_namespace_id(namespace);
+        let element = model.get_type_by_name(namespace_id, name).as_element_symbol().unwrap();
         let bind_group = element.group();
 
-        let ty = model
-            .get_type_by_id(bind_group.namespace.as_deref(), bind_group.id)
-            .unwrap();
+        let ty = model.get_type_by_ref(bind_group).unwrap().unwrap();
         let group = ty.as_group_symbol();
         if group.groups().is_empty() {
             self.depth.push(PreviousElement {
@@ -328,7 +321,7 @@ impl RmlAnalyzer {
             .iter()
             .find(|allowed| {
                 let state = &self.states[**allowed];
-                state.group.id == bind_group.id && state.group.namespace == bind_group.namespace
+                state.group == bind_group
             })
             .unwrap();
 
@@ -349,8 +342,9 @@ impl RmlAnalyzer {
     fn is_valid_attribute(&self, name: &str, value: &str) -> bool {
         let model = self.model.read().unwrap();
         let last_element = self.depth.last().unwrap();
+        let element_namespace = model.get_namespace_id(last_element.namespace.as_deref());
         let element = model
-            .get_type_by_name(last_element.namespace.as_deref(), &last_element.name)
+            .get_type_by_name(element_namespace, &last_element.name)
             .as_element_symbol()
             .unwrap();
         let field = element.field(name).unwrap();
@@ -374,7 +368,7 @@ mod tests {
         let _allowed = rml.is_allowed_element(None, "Node");
         rml.next_state(None, "Node");
         let _allowed_attribute = rml.is_valid_attribute("left", "10px");
-        let _allowed_generic = rml.is_valid_attribute("aspect_ratio", "10");
+        let _allowed_generic = rml.is_valid_attribute("aspect_ratio", "Some(10)");
         println!();
     }
 }

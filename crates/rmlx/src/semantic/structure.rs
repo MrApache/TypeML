@@ -112,7 +112,7 @@ impl Symbol for StructSymbol {
             let name = parts.next().unwrap().trim();
             let value = parts.next().unwrap().trim();
             if let Some(field) = self.field(name) {
-                let ty = model.get_type_by_ref(&field.ty).unwrap().unwrap();
+                let ty = model.get_type_by_ref(field.ty).unwrap().unwrap();
                 result &= ty.can_parse(value, model);
             } else {
                 result = false;

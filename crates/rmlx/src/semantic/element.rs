@@ -1,4 +1,7 @@
-use crate::{semantic::symbol::{Symbol, SymbolRef}, AnalysisWorkspace, BaseType, Element, Field, SchemaModel, TypeResolver, UnresolvedType};
+use crate::{
+    AnalysisWorkspace, BaseType, Element, Field, SchemaModel, TypeResolver, UnresolvedType,
+    semantic::symbol::{Symbol, SymbolRef},
+};
 use std::collections::HashMap;
 
 #[derive(Debug, Clone)]
@@ -10,8 +13,8 @@ pub struct ElementSymbol {
 }
 
 impl ElementSymbol {
-    pub fn group(&self) -> &SymbolRef {
-        &self.bind
+    pub fn group(&self) -> SymbolRef {
+        self.bind
     }
 
     pub fn fields(&self) -> &[ResolvedField] {
@@ -30,8 +33,8 @@ impl ResolvedField {
         &self.identifier
     }
 
-    pub fn ty(&self) -> &SymbolRef {
-        &self.ty
+    pub fn ty(&self) -> SymbolRef {
+        self.ty
     }
 }
 
@@ -92,7 +95,9 @@ impl TypeResolver<ElementSymbol> for UnresolvedElementSymbol {
             true
         });
 
-        if self.resolved_bind.is_none() && let Some(ty) = workspace.get_type(&self.bind) {
+        if self.resolved_bind.is_none()
+            && let Some(ty) = workspace.get_type(&self.bind)
+        {
             self.resolved_bind = Some(ty);
         }
 
@@ -106,7 +111,7 @@ impl TypeResolver<ElementSymbol> for UnresolvedElementSymbol {
             identifier: self.identifier.clone(),
             fields: self.resolved.clone(),
             metadata: self.metadata.clone(),
-            bind: self.resolved_bind.clone().unwrap(),
+            bind: self.resolved_bind.unwrap(),
         }
     }
 }
