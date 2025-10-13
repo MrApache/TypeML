@@ -1,5 +1,5 @@
-use logos::{Lexer, Logos};
 use crate::{Position, Token};
+use logos::{Lexer, Logos};
 
 #[derive(Logos, Debug, PartialEq, Eq, Clone)]
 #[logos(extras = Position)]
@@ -15,7 +15,7 @@ pub enum CommentToken {
 
 pub fn comment_callback<'source, T>(lex: &mut Lexer<'source, T>) -> Option<Vec<Token<CommentToken>>>
 where
-    T: Logos<'source, Extras = Position, Source = str>,
+    T: Logos<'source, Extras=Position, Source=str>,
     T: Clone,
 {
     let mut tokens = Vec::new();

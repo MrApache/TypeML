@@ -2,11 +2,12 @@
 
 mod tokens;
 
+use crate::tokens::get_tokens;
 use rml::{MarkupTokens, RmlTokenStream};
 use rmlx::{AnalysisWorkspace, RmlxParser, SchemaAst};
+use std::collections::HashMap;
 use std::ffi::OsStr;
 use std::path::Path;
-use std::collections::HashMap;
 use std::sync::{Arc, RwLock};
 use tower_lsp::jsonrpc::Result;
 use tower_lsp::lsp_types::{
@@ -19,7 +20,6 @@ use tower_lsp::lsp_types::{
     TextDocumentSyncKind, Url, WorkDoneProgressOptions,
 };
 use tower_lsp::{Client, LanguageServer, LspService, Server};
-use crate::tokens::get_tokens;
 
 struct Backend {
     client: Client,
@@ -233,8 +233,8 @@ async fn main() {
 
 #[cfg(test)]
 mod tests {
-    use rmlx::RmlxParser;
     use crate::tokens::get_tokens;
+    use rmlx::RmlxParser;
 
     #[test]
     fn semantic_tokens() {

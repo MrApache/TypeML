@@ -1,6 +1,10 @@
+use crate::pest::cst::{CstKind, CstNode};
 use std::fmt::Display;
 
-use crate::pest::cst::{CstKind, CstNode};
+fn trim_quotes(s: &str) -> &str {
+    let s = s.strip_prefix('"').unwrap_or(s);
+    s.strip_suffix('"').unwrap_or(s)
+}
 
 #[derive(Debug)]
 pub struct SchemaAst {
@@ -15,16 +19,33 @@ pub struct Directive {
     pub value: Option<String>, // содержимое <...>
 }
 
-#[derive(Debug)]
+#[derive(Clone, Debug)]
 pub struct Annotation {
     pub name: String,
     pub value: Option<AnnotationValue>,
 }
 
-#[derive(Debug)]
+#[derive(Clone, Debug)]
 pub enum AnnotationValue {
     String(String),
     Array(Vec<String>),
+}
+
+#[derive(Debug)]
+pub struct AnnotationList {
+    inner: Vec<Annotation>,
+}
+
+impl AnnotationList {
+    #[must_use]
+    pub const fn new(inner: Vec<Annotation>) -> Self {
+        AnnotationList { inner }
+    }
+
+    #[must_use]
+    pub fn try_take(&self, name: &str) -> Option<Annotation> {
+        self.inner.iter().find(|annotation| annotation.name == name).cloned()
+    }
 }
 
 // Rust-like атрибуты #[attr(...)]
@@ -129,7 +150,7 @@ pub struct Struct {
 
 #[derive(Debug)]
 pub struct Field {
-    pub annotations: Vec<Annotation>,
+    pub annotations: AnnotationList,
     pub name: String,
     pub ty: TypeRef,
 }
@@ -216,7 +237,7 @@ pub struct Enum {
 
 #[derive(Debug)]
 pub struct EnumVariant {
-    pub annotations: Vec<Annotation>,
+    pub annotations: AnnotationList,
     pub name: String,
     pub value: Option<TypeRef>,
 }
@@ -228,7 +249,6 @@ pub struct Element {
     pub bind: TypeRef,
     pub fields: Vec<Field>,
 }
-
 
 #[derive(Debug)]
 pub struct Group {
@@ -258,7 +278,7 @@ pub enum Count {
 #[derive(Debug)]
 pub struct Expression {
     pub attributes: Vec<Attribute>,
-    pub annotations: Vec<Annotation>,
+    pub annotations: AnnotationList,
     pub name: String,
     pub fields: Vec<Field>,
 }
@@ -285,9 +305,8 @@ fn build_annotation(node: &CstNode) -> Annotation {
     for child in &node.children {
         match child.kind {
             CstKind::Ident => name.clone_from(&child.text),
-            CstKind::String => value = Some(AnnotationValue::String(child.text.clone())),
+            CstKind::AnnotationValue => value = Some(AnnotationValue::String(trim_quotes(&child.text).to_string())),
             CstKind::Block => {
-                // можно добавить поддержку массива
                 let array = child
                     .children
                     .iter()
@@ -425,7 +444,11 @@ fn build_field(node: &CstNode) -> Field {
         }
     }
 
-    Field { annotations, name, ty }
+    Field {
+        annotations: AnnotationList::new(annotations),
+        name,
+        ty,
+    }
 }
 
 fn build_enum(node: &CstNode) -> Enum {
@@ -437,7 +460,8 @@ fn build_enum(node: &CstNode) -> Enum {
         match child.kind {
             CstKind::AttributeList => attributes.extend(build_attributes(child)),
             CstKind::Ident if name.is_empty() => name.clone_from(&child.text),
-            _ => variants.push(build_enum_variant(child)),
+            CstKind::EnumVariant => variants.push(build_enum_variant(child)),
+            _ => {}
         }
     }
 
@@ -471,7 +495,7 @@ fn build_enum_variant(node: &CstNode) -> EnumVariant {
     }
 
     EnumVariant {
-        annotations,
+        annotations: AnnotationList::new(annotations),
         name,
         value,
     }
@@ -599,7 +623,7 @@ fn build_expression(node: &CstNode) -> Expression {
 
     Expression {
         attributes,
-        annotations,
+        annotations: AnnotationList::new(annotations),
         name,
         fields,
     }

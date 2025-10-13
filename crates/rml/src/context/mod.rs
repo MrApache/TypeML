@@ -6,8 +6,8 @@ mod tag;
 mod text;
 
 pub use attribute::*;
-pub use structure::*;
-pub use expression::*;
 pub use directive::*;
-pub use text::*;
+pub use expression::*;
+pub use structure::*;
 pub use tag::*;
+pub use text::*;

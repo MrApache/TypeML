@@ -1,9 +1,6 @@
 #namespace <base>
 
-
-
 extend group Component;
-
 
 #[Description("Entity")]
 group Container {
@@ -24,11 +21,8 @@ group Template {
 }
 
 element Layout -> Root;
+element Container -> Container;
 element ItemTemplate -> Template;
-element Test -> Template {
-    target: String,
-    path:   String,
-}
 
 @groups   [Component]
 expression Resource {
@@ -51,4 +45,3 @@ expression Item {
     @optional converter: String,
     @optional fallback:  String,
 }
-

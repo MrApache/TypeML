@@ -13,7 +13,7 @@ pub struct RmlxParser;
 
 impl RmlxParser {
     #[must_use]
-    pub fn build_cst(content: &str) -> CstNode{
+    pub fn build_cst(content: &str) -> CstNode {
         let mut prev_line = 1;
         let mut prev_col = 1;
         let mut result = RmlxParser::parse(Rule::file, content);

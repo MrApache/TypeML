@@ -8,5 +8,5 @@ mod semantic;
 mod pest;
 mod error;
 
-pub use semantic::*;
 pub use pest::*;
+pub use semantic::*;

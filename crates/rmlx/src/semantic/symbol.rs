@@ -6,26 +6,13 @@ use crate::semantic::{
     structure::StructSymbol,
 };
 use enum_dispatch::enum_dispatch;
-use std::{
-    collections::HashMap,
-    fmt::Debug,
-    sync::{Arc, RwLock},
-};
+use std::{collections::HashMap, fmt::Debug};
 
-#[derive(Clone)]
+//TODO make copyable
+#[derive(Default, Debug, Clone, Hash, PartialEq, Eq)]
 pub struct SymbolRef {
     pub namespace: Option<String>,
     pub id: usize,
-    pub model: Arc<RwLock<SchemaModel>>,
-}
-
-impl Debug for SymbolRef {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        f.debug_struct("SymbolRef")
-            .field("namespace", &self.namespace)
-            .field("id", &self.id)
-            .finish()
-    }
 }
 
 #[derive(Debug, Clone)]
@@ -34,37 +21,51 @@ pub enum TypeRef {
     Generic(String),
 }
 
+impl TypeRef {
+    pub fn as_concrete(&self) -> &SymbolRef {
+        match self {
+            TypeRef::Concrete(symbol_ref) => symbol_ref,
+            TypeRef::Generic(_) => unreachable!(),
+        }
+    }
+}
+
 #[enum_dispatch]
 pub trait Symbol {
     fn identifier(&self) -> &str;
-    fn try_get_self_reference(&self) -> Option<&SymbolRef> {
+    fn can_parse(&self, value: &str, model: &SchemaModel) -> bool;
+    fn try_get_self_reference(&self, model: &SchemaModel) -> Option<&SymbolRef> {
         None
     }
 }
 
 macro_rules! impl_symbol {
-    ($name:ident, $ident:expr) => {
+    ($name:ident, $ident:expr, $parse:expr) => {
         #[derive(Debug, Clone)]
         pub struct $name;
         impl Symbol for $name {
             fn identifier(&self) -> &str {
                 $ident
             }
+
+            fn can_parse(&self, value: &str, model: &SchemaModel) -> bool {
+                $parse(value).is_ok()
+            }
         }
     };
 }
 
-impl_symbol!(F32, "f32");
-impl_symbol!(F64, "f64");
-impl_symbol!(I8, "i8");
-impl_symbol!(I16, "i16");
-impl_symbol!(I32, "i32");
-impl_symbol!(I64, "i64");
-impl_symbol!(U8, "u8");
-impl_symbol!(U16, "u16");
-impl_symbol!(U32, "u32");
-impl_symbol!(U64, "u64");
-impl_symbol!(Str, "String");
+impl_symbol!(F32, "f32", str::parse::<f32>);
+impl_symbol!(F64, "f64", str::parse::<f64>);
+impl_symbol!(I8, "i8", str::parse::<i8>);
+impl_symbol!(I16, "i16", str::parse::<i16>);
+impl_symbol!(I32, "i32", str::parse::<i32>);
+impl_symbol!(I64, "i64", str::parse::<i64>);
+impl_symbol!(U8, "u8", str::parse::<u8>);
+impl_symbol!(U16, "u16", str::parse::<u16>);
+impl_symbol!(U32, "u32", str::parse::<u32>);
+impl_symbol!(U64, "u64", str::parse::<u64>);
+impl_symbol!(Str, "String", str::parse::<String>);
 
 #[derive(Debug, Clone)]
 pub struct GenericSymbol {
@@ -101,18 +102,35 @@ impl GenericSymbol {
     }
 
     #[must_use]
-    pub fn construct_type(&self, other: &SymbolKind) -> SymbolKind {
+    pub fn construct_type(&self, other: &SymbolKind, other_ref: &SymbolRef) -> SymbolKind {
         match &self.base {
             SymbolKind::Struct(value) => SymbolKind::Struct(StructSymbol {
                 identifier: format!("{}_{}", value.identifier(), other.identifier()),
                 fields: value.fields.clone(),
                 metadata: value.metadata.clone(),
             }),
-            SymbolKind::Enum(value) => SymbolKind::Enum(EnumSymbol {
-                identifier: format!("{}_{}", value.identifier(), other.identifier()),
-                variants: value.variants.clone(),
-                metadata: value.metadata.clone(),
-            }),
+            SymbolKind::Enum(value) => {
+                let variants = value
+                    .variants
+                    .iter()
+                    .map(|var| {
+                        let ty = var.ty.as_ref().map(|ty| match ty {
+                            TypeRef::Concrete(concrete) => TypeRef::Concrete(concrete.clone()),
+                            TypeRef::Generic(generic) => TypeRef::Concrete(other_ref.clone()),
+                        });
+                        EnumVariant {
+                            identifier: var.identifier.clone(),
+                            ty,
+                            pattern: var.pattern.clone(),
+                        }
+                    })
+                    .collect::<Vec<_>>();
+                SymbolKind::Enum(EnumSymbol {
+                    identifier: format!("{}_{}", value.identifier(), other.identifier()),
+                    variants,
+                    metadata: value.metadata.clone(),
+                })
+            }
             SymbolKind::Generic(_) => todo!("Make type construction"),
             SymbolKind::Group(_) => unimplemented!("The group does not support generics"),
             SymbolKind::Element(_) => unimplemented!("The element does not support generics"),
@@ -125,11 +143,19 @@ impl Symbol for GenericSymbol {
     fn identifier(&self) -> &str {
         self.base.identifier()
     }
+
+    fn can_parse(&self, value: &str, model: &SchemaModel) -> bool {
+        false
+    }
 }
 
 impl Symbol for Box<GenericSymbol> {
     fn identifier(&self) -> &str {
         self.base.identifier()
+    }
+
+    fn can_parse(&self, value: &str, model: &SchemaModel) -> bool {
+        false
     }
 }
 
@@ -137,11 +163,15 @@ impl Symbol for Box<GenericSymbol> {
 pub struct LazySymbol {
     pub source: usize,
     pub identifier: String,
-} 
+}
 
 impl Symbol for LazySymbol {
     fn identifier(&self) -> &str {
         &self.identifier
+    }
+
+    fn can_parse(&self, value: &str, model: &SchemaModel) -> bool {
+        false
     }
 }
 
@@ -182,18 +212,18 @@ impl SymbolKind {
         }
     }
 
+    pub fn as_element_symbol(&self) -> &ElementSymbol {
+        match self {
+            SymbolKind::Element(symbol) => symbol,
+            _ => panic!("Not a element symbol"),
+        }
+    }
+
     pub fn is_group_symbol(&self) -> bool {
         matches!(self, SymbolKind::Group(_))
     }
 
     pub fn is_element_symbol(&self) -> bool {
         matches!(self, SymbolKind::Element(_))
-    }
-
-    pub fn as_element_symbol(&self) -> &ElementSymbol {
-        match self {
-            SymbolKind::Element(symbol) => symbol,
-            _ => panic!("Not a element symbol"),
-        }
     }
 }

@@ -1,7 +1,4 @@
-use crate::{
-    semantic::symbol::{Symbol, SymbolRef},
-    BaseType, Element, Field, TypeResolver, UnresolvedType, AnalysisWorkspace,
-};
+use crate::{semantic::symbol::{Symbol, SymbolRef}, AnalysisWorkspace, BaseType, Element, Field, SchemaModel, TypeResolver, UnresolvedType};
 use std::collections::HashMap;
 
 #[derive(Debug, Clone)]
@@ -16,12 +13,26 @@ impl ElementSymbol {
     pub fn group(&self) -> &SymbolRef {
         &self.bind
     }
+
+    pub fn fields(&self) -> &[ResolvedField] {
+        &self.fields
+    }
 }
 
 #[derive(Debug, Clone)]
 pub struct ResolvedField {
     identifier: String,
     ty: SymbolRef,
+}
+
+impl ResolvedField {
+    pub fn identifier(&self) -> &str {
+        &self.identifier
+    }
+
+    pub fn ty(&self) -> &SymbolRef {
+        &self.ty
+    }
 }
 
 pub struct UnresolvedElementField {
@@ -103,5 +114,15 @@ impl TypeResolver<ElementSymbol> for UnresolvedElementSymbol {
 impl Symbol for ElementSymbol {
     fn identifier(&self) -> &str {
         &self.identifier
+    }
+
+    fn can_parse(&self, value: &str, model: &SchemaModel) -> bool {
+        false
+    }
+}
+
+impl ElementSymbol {
+    pub fn field(&self, name: &str) -> Option<&ResolvedField> {
+        self.fields.iter().find(|f| f.identifier == name)
     }
 }

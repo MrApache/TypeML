@@ -1,5 +1,5 @@
-use logos::{Lexer, Logos};
 use lexer_core::*;
+use logos::{Lexer, Logos};
 
 use crate::{
     context::attribute::{attribute_context_callback, AttributeContext},

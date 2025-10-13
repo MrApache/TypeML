@@ -1,9 +1,9 @@
-use crate::{
-    semantic::symbol::{
-        GenericSymbol, Str, Symbol, SymbolKind, SymbolRef, F32, F64, I16, I32, I64, I8, U16, U32, U64, U8,
-    },
-    CstNode,
+use crate::semantic::element::ElementSymbol;
+use crate::semantic::group::GroupSymbol;
+use crate::semantic::symbol::{
+    F32, F64, GenericSymbol, I8, I16, I32, I64, Str, Symbol, SymbolKind, SymbolRef, U8, U16, U32, U64,
 };
+use pest::pratt_parser::Op;
 use std::collections::HashMap;
 
 #[derive(Debug)]
@@ -36,6 +36,40 @@ impl Default for SchemaModel {
 }
 
 impl SchemaModel {
+    #[must_use]
+    pub fn get_type_by_ref(&self, symbol: &SymbolRef) -> TypeQuery {
+        let type_table = self.get_type_table(symbol.namespace.as_deref());
+        let ty = type_table.get(symbol.id).unwrap();
+        TypeQuery {
+            symbol_ref: symbol.clone(),
+            kind: Some(ty),
+        }
+    }
+
+    #[must_use]
+    pub fn get_type_by_name(&self, namespace: Option<&str>, name: &str) -> TypeQuery {
+        let type_table = self.get_type_table(namespace);
+        let ty = type_table
+            .iter()
+            .enumerate()
+            .find(|(id, kind)| kind.identifier() == name);
+
+        if let Some((id, kind)) = ty {
+            TypeQuery {
+                symbol_ref: SymbolRef {
+                    namespace: namespace.map(str::to_string),
+                    id,
+                },
+                kind: Some(kind),
+            }
+        } else {
+            TypeQuery {
+                symbol_ref: SymbolRef::default(),
+                kind: None,
+            }
+        }
+    }
+
     #[must_use]
     pub fn get_type_table(&self, namespace: Option<&str>) -> &[SymbolKind] {
         if let Some(ns) = namespace {
@@ -75,12 +109,6 @@ impl SchemaModel {
         type_table.get(id)
     }
 
-    #[must_use]
-    pub fn get_type_by_name(&self, namespace: Option<&str>, name: &str) -> Option<&SymbolKind> {
-        let type_table = self.get_type_table(namespace);
-        type_table.iter().find(|t| t.identifier() == name)
-    }
-
     pub fn add_symbol(&mut self, namespace: Option<&str>, symbol: SymbolKind) {
         let type_table = self.get_mut_type_table(namespace);
         type_table.push(symbol);
@@ -93,21 +121,68 @@ impl SchemaModel {
 
     #[must_use]
     pub fn get_root_group_ref(&self) -> (usize, Option<String>) {
-        let root = self.namespaces.iter()  // (&String, &Vec<Kind>)
+        self.namespaces
+            .iter()
             .flat_map(|(key, kinds)| {
-                kinds.iter()
+                kinds
+                    .iter()
                     .enumerate()
                     .map(move |(idx, kind)| (idx, Some(key.clone()), kind))
             })
-            .chain(
-                self.global.iter()
-                    .enumerate()
-                    .map(|(idx, kind)| (idx, None, kind))
-            )
+            .chain(self.global.iter().enumerate().map(|(idx, kind)| (idx, None, kind)))
             .find(|(_, _, t)| t.identifier() == "Root")
             .map(|(index, namespace, _)| (index, namespace))
-            .unwrap();
+            .unwrap()
+    }
+}
 
-        root
+pub struct TypeQuery<'a> {
+    symbol_ref: SymbolRef,
+    kind: Option<&'a SymbolKind>,
+}
+
+impl<'a> TypeQuery<'a> {
+    pub fn is_element_symbol(&self) -> bool {
+        self.kind.map_or(false, |k| k.is_element_symbol())
+    }
+
+    pub fn as_element_symbol(&self) -> Option<&'a ElementSymbol> {
+        self.kind.and_then(|k| {
+            if k.is_element_symbol() {
+                Some(k.as_element_symbol())
+            } else {
+                None
+            }
+        })
+    }
+
+    pub fn is_group_symbol(&self) -> bool {
+        self.kind.map_or(false, |k| k.is_group_symbol())
+    }
+
+    pub fn as_group_symbol(&self) -> Option<&'a GroupSymbol> {
+        self.kind.and_then(|k| {
+            if k.is_group_symbol() {
+                Some(k.as_group_symbol())
+            } else {
+                None
+            }
+        })
+    }
+
+    pub fn as_ref(&self) -> &SymbolKind {
+        self.kind.unwrap()
+    }
+
+    pub fn unwrap(self) -> Option<&'a SymbolKind> {
+        self.kind
+    }
+
+    pub fn unwrap_with_ref(self) -> Option<(SymbolRef, &'a SymbolKind)> {
+        if let Some(value) = self.kind {
+            Some((self.symbol_ref, value))
+        } else {
+            None
+        }
     }
 }

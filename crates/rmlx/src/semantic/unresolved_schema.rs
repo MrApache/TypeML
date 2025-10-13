@@ -1,7 +1,7 @@
 use crate::{semantic::{
     element::UnresolvedElementSymbol, enumeration::UnresolvedEnumSymbol, group::UnresolvedGroupSymbol,
     structure::UnresolvedStructSymbol, symbol::SymbolKind,
-}, utils::to_url, CustomType, SchemaAst, TypeResolver, AnalysisWorkspace, RmlxParser};
+}, utils::to_url, AnalysisWorkspace, CustomType, RmlxParser, SchemaAst, TypeResolver};
 
 pub struct UnresolvedSchema {
     namespace: Option<String>,

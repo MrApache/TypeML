@@ -1,9 +1,8 @@
+use crate::{semantic::{
+    symbol::{Symbol, SymbolKind, SymbolRef},
+    TypeResolver,
+}, AnalysisWorkspace, BaseType, Count, Group, SchemaModel, UnresolvedType};
 use std::collections::HashMap;
-use crate::{
-    semantic::{
-        symbol::{Symbol, SymbolKind, SymbolRef},
-        TypeResolver,
-    }, BaseType, Count, Group, UnresolvedType, AnalysisWorkspace };
 
 #[derive(Debug, Clone)]
 pub struct GroupSymbol {
@@ -94,8 +93,7 @@ impl TypeResolver<GroupSymbol> for UnresolvedGroupSymbol {
                     count: f.count,
                 });
                 return false;
-            }
-            else if let Some(symbol) = workspace.get_type(&f.symbol) {
+            } else if let Some(symbol) = workspace.get_type(&f.symbol) {
                 self.resolved.push(GroupConfig {
                     symbol,
                     unique: f.unique,
@@ -124,12 +122,20 @@ impl Symbol for GroupSymbol {
         &self.identifier
     }
 
-    fn try_get_self_reference(&self) -> Option<&SymbolRef> {
+    fn can_parse(&self, value: &str, model: &SchemaModel) -> bool {
+        false
+    }
+
+    fn try_get_self_reference(&self, model: &SchemaModel) -> Option<&SymbolRef> {
         for group in &self.groups {
-            let model = group.symbol.model.read().unwrap();
             let ty = model.get_type_by_id(group.symbol.namespace.as_deref(), group.symbol.id).unwrap();
-            if matches!(ty, SymbolKind::Lazy(_)) {
-                return Some(&group.symbol);
+            match ty {
+                SymbolKind::Lazy(lazy) => {
+                    if lazy.identifier == self.identifier {
+                        return Some(&group.symbol);
+                    }
+                }
+                _ => return None,
             }
         }
         None

@@ -111,7 +111,7 @@ pub fn build_cst(
     *prev_col = start_col_utf16;
 
     let kind = map_rule_to_cst_kind(pair.as_rule());
-    
+
     // рекурсивно строим детей
     let children: Vec<CstNode> = pair
         .clone()
@@ -142,12 +142,12 @@ fn map_rule_to_cst_kind(rule: Rule) -> CstKind {
         Rule::directive => CstKind::Directive,
 
         Rule::EXTEND
-            | Rule::UNIQUE
-            | Rule::STRUCT
-            | Rule::ENUM
-            | Rule::ELEMENT
-            | Rule::EXPRESSION
-            | Rule::GROUP => CstKind::Keyword,
+        | Rule::UNIQUE
+        | Rule::STRUCT
+        | Rule::ENUM
+        | Rule::ELEMENT
+        | Rule::EXPRESSION
+        | Rule::GROUP => CstKind::Keyword,
 
         Rule::COMMENT_MULTI | Rule::COMMENT_LINE => CstKind::Comment,
         Rule::WHITESPACE => CstKind::Whitespace,
@@ -185,6 +185,5 @@ fn map_rule_to_cst_kind(rule: Rule) -> CstKind {
         Rule::annotation_value => CstKind::AnnotationValue,
         Rule::enum_variant => CstKind::EnumVariant,
         _ => CstKind::Symbol
-
     }
 }

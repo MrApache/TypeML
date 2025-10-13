@@ -1,6 +1,6 @@
 use crate::{
+    AnalysisWorkspace, BaseType, Field, SchemaModel, Struct, TypeResolver, UnresolvedType,
     semantic::symbol::{Symbol, SymbolRef},
-    BaseType, Field, Struct, TypeResolver, UnresolvedType, AnalysisWorkspace,
 };
 use std::collections::HashMap;
 
@@ -34,7 +34,7 @@ impl From<crate::pest::TypeRef> for UnresolvedType {
                 generic_base: Some(ident),
                 namespace: value.namespace,
                 identifier: inner.to_string(), //TODO
-            }
+            },
         }
     }
 }
@@ -43,10 +43,7 @@ impl UnresolvedStructField {
     pub fn new(f: &Field) -> UnresolvedStructField {
         let identifier = f.name.to_string();
         let ty = f.ty.clone().into();
-        UnresolvedStructField {
-            identifier,
-            ty
-        }
+        UnresolvedStructField { identifier, ty }
     }
 }
 
@@ -106,5 +103,28 @@ impl TypeResolver<StructSymbol> for UnresolvedStructSymbol {
 impl Symbol for StructSymbol {
     fn identifier(&self) -> &str {
         &self.identifier
+    }
+
+    fn can_parse(&self, value: &str, model: &SchemaModel) -> bool {
+        let mut result = true;
+        value.split(',').for_each(|field| {
+            let mut parts = field.split('=');
+            let name = parts.next().unwrap().trim();
+            let value = parts.next().unwrap().trim();
+            if let Some(field) = self.field(name) {
+                let ty = model.get_type_by_ref(&field.ty).unwrap().unwrap();
+                result &= ty.can_parse(value, model);
+            } else {
+                result = false;
+            }
+        });
+
+        result
+    }
+}
+
+impl StructSymbol {
+    pub fn field(&self, name: &str) -> Option<&ResolvedField> {
+        self.fields.iter().find(|f| f.identifier == name)
     }
 }
