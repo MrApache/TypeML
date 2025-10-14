@@ -1,4 +1,4 @@
-WHITESPACE = _{ " " | "\t" | "\r" | "\n" }
+WHITESPACE = _{ " " | "\t" | "\r" | "\n" | COMMENT_LINE }
 
 COMMENT_MULTI = { "/*" ~ (!"*/" ~ ANY)* ~ "*/" }
 COMMENT_LINE  = { "//" ~ (!"\n" ~ ANY)* ~ ("\n" | EOI) }
