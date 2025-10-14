@@ -1,4 +1,4 @@
-use crate::pest::RmlNode;
+use crate::RmlNode;
 use lexer_core::CstNode;
 
 #[derive(Debug)]

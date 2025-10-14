@@ -4,6 +4,7 @@ version = "0.1.0"
 edition = "2024"
 
 [dependencies]
+rmlx.workspace = true
 tower-lsp.workspace = true
 lexer-core.workspace = true
 pest.workspace = true

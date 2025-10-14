@@ -1315,6 +1315,7 @@ dependencies = [
  "lexer-core",
  "pest",
  "pest_derive",
+ "rmlx",
  "tower-lsp",
 ]
 
