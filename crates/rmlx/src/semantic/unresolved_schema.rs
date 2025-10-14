@@ -1,7 +1,11 @@
-use crate::{semantic::{
-    element::UnresolvedElementSymbol, enumeration::UnresolvedEnumSymbol, group::UnresolvedGroupSymbol,
-    structure::UnresolvedStructSymbol, symbol::SymbolKind,
-}, utils::to_url, AnalysisWorkspace, CustomType, RmlxParser, SchemaAst, TypeResolver};
+use crate::{
+    AnalysisWorkspace, CustomType, RmlxParser, SchemaAst, TypeResolver,
+    semantic::{
+        element::UnresolvedElementSymbol, enumeration::UnresolvedEnumSymbol, group::UnresolvedGroupSymbol,
+        structure::UnresolvedStructSymbol, symbol::SymbolKind,
+    },
+};
+use lexer_core::to_url;
 
 pub struct UnresolvedSchema {
     namespace: Option<String>,

@@ -880,6 +880,7 @@ name = "lexer-core"
 version = "0.1.0"
 dependencies = [
  "pest",
+ "url",
 ]
 
 [[package]]
@@ -1317,6 +1318,7 @@ dependencies = [
  "pest_derive",
  "rmlx",
  "tower-lsp",
+ "url",
 ]
 
 [[package]]
