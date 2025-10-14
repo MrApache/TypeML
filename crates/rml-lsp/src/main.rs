@@ -3,6 +3,7 @@
 mod tokens;
 
 use crate::tokens::get_tokens;
+use lexer_core::CstNode;
 use rmlx::{AnalysisWorkspace, RmlxParser, SchemaAst};
 use std::collections::HashMap;
 use std::ffi::OsStr;
@@ -178,7 +179,7 @@ impl LanguageServer for Backend {
                 let read = self.schemas.read().unwrap();
                 let content = read.get(&params.text_document.uri).unwrap().source();
                 dbg!(content);
-                let cst = RmlxParser::build_cst(content);
+                let cst = CstNode::new::<RmlxParser>(content, rmlx::Rule::file);
                 get_tokens(&cst)
             }
             "rml" => vec![],
@@ -236,12 +237,13 @@ async fn main() {
 #[cfg(test)]
 mod tests {
     use crate::tokens::get_tokens;
+    use lexer_core::CstNode;
     use rmlx::RmlxParser;
 
     #[test]
     fn semantic_tokens() {
         let content = std::fs::read_to_string("/home/irisu/Storage/Projects/rml/examples/base.rmlx").unwrap();
-        let cst = RmlxParser::build_cst(&content);
+        let cst = CstNode::new::<RmlxParser>(&content, rmlx::Rule::file);
         let _tokens = get_tokens(&cst);
         println!();
     }

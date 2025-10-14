@@ -16,20 +16,8 @@ pub struct RmlParser;
 
 impl RmlParser {
     #[must_use]
-    pub fn build_cst(content: &str) -> CstNode<RmlNode> {
-        let mut prev_line = 1;
-        let mut prev_col = 1;
-        let mut result = RmlParser::parse(Rule::file, content);
-        if let Ok(mut tree) = result {
-            CstNode::<RmlNode>::build_cst(&tree.next().unwrap(), content, &mut prev_line, &mut prev_col)
-        } else {
-            panic!("Error: {result:#?}");
-        }
-    }
-
-    #[must_use]
     pub fn build_ast(content: &str) -> LayoutAst {
-        let cst = Self::build_cst(content);
+        let cst = CstNode::new::<RmlParser>(content, Rule::file);
         build_layout_ast(&cst)
     }
 }

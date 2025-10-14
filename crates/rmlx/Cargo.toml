@@ -10,9 +10,7 @@ harness = false
 [dependencies]
 lexer-core.workspace = true
 
-tower-lsp.workspace = true
 thiserror.workspace = true
-tokio.workspace = true
 url.workspace = true
 reqwest.workspace = true
 enum_dispatch.workspace = true

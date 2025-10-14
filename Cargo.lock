@@ -122,9 +122,6 @@ name = "bitflags"
 version = "2.9.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "6a65b545ab31d687cff52899d4890855fec459eb6afe0da6417b8a18da87aa29"
-dependencies = [
- "serde",
-]
 
 [[package]]
 name = "block-buffer"
@@ -1317,7 +1314,6 @@ dependencies = [
  "pest",
  "pest_derive",
  "rmlx",
- "tower-lsp",
  "url",
 ]
 
@@ -1326,11 +1322,7 @@ name = "rml-lsp"
 version = "0.1.0"
 dependencies = [
  "lexer-core",
- "log",
- "rml",
  "rmlx",
- "ron",
- "serde",
  "tokio",
  "tower-lsp",
 ]
@@ -1347,22 +1339,7 @@ dependencies = [
  "regex",
  "reqwest",
  "thiserror",
- "tokio",
- "tower-lsp",
  "url",
-]
-
-[[package]]
-name = "ron"
-version = "0.11.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "db09040cc89e461f1a265139777a2bde7f8d8c67c4936f700c63ce3e2904d468"
-dependencies = [
- "base64",
- "bitflags 2.9.2",
- "serde",
- "serde_derive",
- "unicode-ident",
 ]
 
 [[package]]

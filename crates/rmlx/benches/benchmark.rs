@@ -1,5 +1,6 @@
 use divan::Bencher;
-use rmlx::{AnalysisWorkspace, RmlxParser, build_schema_ast};
+use lexer_core::CstNode;
+use rmlx::{AnalysisWorkspace, RmlxNode, RmlxParser, Rule, build_schema_ast};
 use url::Url;
 
 fn main() {
@@ -11,7 +12,7 @@ fn parse_ast(bench: Bencher) {
     bench
         .with_inputs(|| {
             const CONTENT: &str = include_str!(concat!(env!("CARGO_WORKSPACE_DIR"), "examples/schema.rmlx"));
-            RmlxParser::build_cst(CONTENT)
+            CstNode::new::<RmlxParser>(CONTENT, Rule::file)
         })
         .bench_values(|cst| build_schema_ast(&cst));
 }
@@ -19,7 +20,7 @@ fn parse_ast(bench: Bencher) {
 #[divan::bench]
 fn parse_cst() {
     const CONTENT: &str = include_str!(concat!(env!("CARGO_WORKSPACE_DIR"), "examples/schema.rmlx"));
-    let _cst = RmlxParser::build_cst(CONTENT);
+    let _: CstNode<RmlxNode> = CstNode::new::<RmlxParser>(CONTENT, Rule::file);
 }
 
 #[divan::bench]

@@ -1,11 +1,12 @@
 #![allow(unused)]
 
 use pest::iterators::Pair;
+use pest::{Parser, RuleType};
 use std::fmt::Debug;
 use std::hash::Hash;
 
 pub trait CstKind: Debug + Clone + Copy + PartialEq + Eq {
-    type Rule: Copy + Debug + Eq + Hash + Ord;
+    type Rule: RuleType + Copy + Debug + Eq + Hash + Ord;
     fn map_rule_to_cst_kind(rule: Self::Rule) -> Self;
 }
 
@@ -21,7 +22,18 @@ pub struct CstNode<K: CstKind> {
 }
 
 impl<K: CstKind> CstNode<K> {
-    pub fn build_cst(pair: &Pair<K::Rule>, source: &str, prev_line: &mut u32, prev_col: &mut u32) -> Self {
+    pub fn new<P: Parser<K::Rule>>(content: &str, start_rule: K::Rule) -> Self {
+        let mut prev_line = 1;
+        let mut prev_col = 1;
+        let mut result = P::parse(start_rule, content);
+        if let Ok(mut tree) = result {
+            Self::build_cst(&tree.next().unwrap(), content, &mut prev_line, &mut prev_col)
+        } else {
+            panic!("Error: {result:#?}");
+        }
+    }
+
+    fn build_cst(pair: &Pair<K::Rule>, source: &str, prev_line: &mut u32, prev_col: &mut u32) -> Self {
         let span = pair.as_span();
         let (start_line_1, start_col_1) = span.start_pos().line_col();
         let (end_line_1, end_col_1) = span.end_pos().line_col();

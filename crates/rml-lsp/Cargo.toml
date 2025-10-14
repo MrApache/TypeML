@@ -4,12 +4,8 @@ version = "0.1.0"
 edition = "2024"
 
 [dependencies]
-rml.workspace = true
 rmlx.workspace = true
 lexer-core.workspace = true
 
-ron.workspace = true
 tokio.workspace = true
 tower-lsp.workspace = true
-serde.workspace = true
-log = "0.4.27"
