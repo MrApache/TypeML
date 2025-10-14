@@ -30,7 +30,6 @@ struct Backend {
 struct Workspace {
     _references: Vec<Arc<SchemaAst>>,
     content: String,
-    tokens: Vec<MarkupTokens>,
 }
 
 #[tower_lsp::async_trait]
@@ -112,6 +111,7 @@ impl LanguageServer for Backend {
 
         match extension {
             "rml" => {
+                /*
                 let stream = RmlTokenStream::new(&params.text_document.text);
                 let tokens = stream.to_vec();
                 let mut workspaces = self.workspaces.write().unwrap();
@@ -123,6 +123,7 @@ impl LanguageServer for Backend {
                         tokens,
                     },
                 );
+                 */
             }
             "rmlx" => {
                 let workspace = AnalysisWorkspace::new(uri.clone()).run();
@@ -141,10 +142,12 @@ impl LanguageServer for Backend {
 
         match extension {
             "rml" => {
+                /*
                 let mut write = self.workspaces.write().unwrap();
                 let file = write.get_mut(&uri).unwrap();
                 file.tokens = RmlTokenStream::new(text).to_vec();
                 file.content.clone_from(text);
+                 */
             }
             "rmlx" => {
                 let workspace = AnalysisWorkspace::new(uri.clone()).run();

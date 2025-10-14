@@ -1,12 +1,13 @@
 use lexer_core::{
-    COMMENT_TOKEN, KEYWORD_TOKEN, MACRO_TOKEN, NUMBER_TOKEN, OPERATOR_TOKEN, PARAMETER_TOKEN, STRING_TOKEN, TYPE_TOKEN,
+    COMMENT_TOKEN, CstNode, KEYWORD_TOKEN, MACRO_TOKEN, NUMBER_TOKEN, OPERATOR_TOKEN, PARAMETER_TOKEN, STRING_TOKEN,
+    TYPE_TOKEN,
 };
-use rmlx::{CstNode, RmlxNode};
+use rmlx::RmlxNode;
 use tower_lsp::lsp_types::SemanticToken;
 
 // directive_content = @{ (!">" ~ ANY)* }
 // directive = HASH ~ ident ~ (LT ~ directive_content ~ GT)?
-fn directive_tokens(cst: &CstNode, tokens: &mut Vec<SemanticToken>) {
+fn directive_tokens(cst: &CstNode<RmlxNode>, tokens: &mut Vec<SemanticToken>) {
     cst.children.iter().for_each(|f| {
         let token_type = match f.kind {
             RmlxNode::Hash | RmlxNode::Ident => MACRO_TOKEN,
@@ -26,7 +27,7 @@ fn directive_tokens(cst: &CstNode, tokens: &mut Vec<SemanticToken>) {
 }
 
 //attribute_list = { HASH ~ LBRACK ~ attribute ~ (COMMA ~ attribute)* ~ RBRACK }
-fn attribute_list_tokens(ancestor: &CstNode, cst: &CstNode, tokens: &mut Vec<SemanticToken>) {
+fn attribute_list_tokens(ancestor: &CstNode<RmlxNode>, cst: &CstNode<RmlxNode>, tokens: &mut Vec<SemanticToken>) {
     tokens.push(SemanticToken {
         delta_line: ancestor.delta_line,
         delta_start: ancestor.delta_start,
@@ -57,7 +58,7 @@ fn attribute_list_tokens(ancestor: &CstNode, cst: &CstNode, tokens: &mut Vec<Sem
 }
 
 //attribute = { ident ~ (LPAREN ~ base_types ~ RPAREN)? }
-fn attribute_tokens(cst: &CstNode, tokens: &mut Vec<SemanticToken>) {
+fn attribute_tokens(cst: &CstNode<RmlxNode>, tokens: &mut Vec<SemanticToken>) {
     let mut iter = cst.children.iter();
 
     tokens.push(SemanticToken {
@@ -94,7 +95,7 @@ fn attribute_tokens(cst: &CstNode, tokens: &mut Vec<SemanticToken>) {
 //number     = @{ ASCII_DIGIT+ }
 //boolean    = { "true" | "false" }
 //base_types = { number | boolean | ident | string }
-fn base_type_tokens(cst: &CstNode, tokens: &mut Vec<SemanticToken>) {
+fn base_type_tokens(cst: &CstNode<RmlxNode>, tokens: &mut Vec<SemanticToken>) {
     let token = cst.children.first().unwrap();
     let token_type = match token.kind {
         RmlxNode::Boolean | RmlxNode::Number => NUMBER_TOKEN,
@@ -113,7 +114,7 @@ fn base_type_tokens(cst: &CstNode, tokens: &mut Vec<SemanticToken>) {
 }
 
 //generic_type = { ident ~ LT ~ ns_ident ~ GT }
-fn generic_type_tokens(cst: &CstNode, tokens: &mut Vec<SemanticToken>) {
+fn generic_type_tokens(cst: &CstNode<RmlxNode>, tokens: &mut Vec<SemanticToken>) {
     cst.children.iter().for_each(|f| {
         let token_type = match f.kind {
             RmlxNode::Ident | RmlxNode::NsIdent => TYPE_TOKEN,
@@ -132,7 +133,7 @@ fn generic_type_tokens(cst: &CstNode, tokens: &mut Vec<SemanticToken>) {
 }
 
 //array = { LBRACK ~ ns_ident ~ (COMMA ~ ns_ident)* ~ RBRACK }
-fn array_tokens(ancestor: &CstNode, cst: &CstNode, tokens: &mut Vec<SemanticToken>) {
+fn array_tokens(ancestor: &CstNode<RmlxNode>, cst: &CstNode<RmlxNode>, tokens: &mut Vec<SemanticToken>) {
     tokens.push(SemanticToken {
         delta_line: ancestor.delta_line,
         delta_start: ancestor.delta_start,
@@ -159,7 +160,7 @@ fn array_tokens(ancestor: &CstNode, cst: &CstNode, tokens: &mut Vec<SemanticToke
 }
 
 //annotation_value  = { string | array }
-fn annotation_value_tokens(cst: &CstNode, tokens: &mut Vec<SemanticToken>) {
+fn annotation_value_tokens(cst: &CstNode<RmlxNode>, tokens: &mut Vec<SemanticToken>) {
     let token = cst.children.first().unwrap();
     let token_type = match token.kind {
         RmlxNode::String => STRING_TOKEN,
@@ -180,7 +181,7 @@ fn annotation_value_tokens(cst: &CstNode, tokens: &mut Vec<SemanticToken>) {
 }
 
 //annotation = { AT ~ ident ~ annotation_value? }
-fn annotation_tokens(ancestor: &CstNode, cst: &CstNode, tokens: &mut Vec<SemanticToken>) {
+fn annotation_tokens(ancestor: &CstNode<RmlxNode>, cst: &CstNode<RmlxNode>, tokens: &mut Vec<SemanticToken>) {
     let mut iter = cst.children.iter();
     let token = iter.next().unwrap();
     assert_eq!(token.kind, RmlxNode::AT);
@@ -213,7 +214,7 @@ fn annotation_tokens(ancestor: &CstNode, cst: &CstNode, tokens: &mut Vec<Semanti
 }
 
 //simple_field = { annotation* ~ ident ~ COLON ~ (generic_type | ns_ident) }
-fn simple_field(ancestor: &CstNode, cst: &CstNode, tokens: &mut Vec<SemanticToken>) {
+fn simple_field(ancestor: &CstNode<RmlxNode>, cst: &CstNode<RmlxNode>, tokens: &mut Vec<SemanticToken>) {
     let mut iter = cst.children.iter();
     let token = iter.next().unwrap();
     match token.kind {
@@ -251,7 +252,7 @@ fn simple_field(ancestor: &CstNode, cst: &CstNode, tokens: &mut Vec<SemanticToke
 }
 
 //simple_fields = { simple_field ~ (COMMA ~ simple_field?)* ~ COMMA? }
-fn simple_fields(cst: &CstNode, tokens: &mut Vec<SemanticToken>) {
+fn simple_fields(cst: &CstNode<RmlxNode>, tokens: &mut Vec<SemanticToken>) {
     cst.children.iter().for_each(|f| {
         let token_type = match f.kind {
             RmlxNode::SimpleField => {
@@ -273,7 +274,7 @@ fn simple_fields(cst: &CstNode, tokens: &mut Vec<SemanticToken>) {
 }
 
 //block = { LBRACE ~ simple_fields ~ RBRACE }
-fn block_tokens(cst: &CstNode, tokens: &mut Vec<SemanticToken>) {
+fn block_tokens(cst: &CstNode<RmlxNode>, tokens: &mut Vec<SemanticToken>) {
     //let mut iter = cst.children.iter();
 
     tokens.push(SemanticToken {
@@ -305,7 +306,7 @@ fn block_tokens(cst: &CstNode, tokens: &mut Vec<SemanticToken>) {
 }
 
 //struct = { attribute_list* ~ STRUCT ~ (generic_type | ident) ~ block }
-fn struct_tokens(ancestor: &CstNode, cst: &CstNode, tokens: &mut Vec<SemanticToken>) {
+fn struct_tokens(ancestor: &CstNode<RmlxNode>, cst: &CstNode<RmlxNode>, tokens: &mut Vec<SemanticToken>) {
     cst.children.iter().for_each(|f| {
         let token_type = match f.kind {
             RmlxNode::AttributeList => {
@@ -336,7 +337,7 @@ fn struct_tokens(ancestor: &CstNode, cst: &CstNode, tokens: &mut Vec<SemanticTok
 }
 
 //element = { attribute_list* ~ ELEMENT ~ ident ~ ARROW ~ ns_ident ~ (block | SEMI) }
-fn element_tokens(ancestor: &CstNode, cst: &CstNode, tokens: &mut Vec<SemanticToken>) {
+fn element_tokens(ancestor: &CstNode<RmlxNode>, cst: &CstNode<RmlxNode>, tokens: &mut Vec<SemanticToken>) {
     let mut iter = cst.children.iter();
     let token = iter.next().unwrap();
     match token.kind {
@@ -375,7 +376,7 @@ fn element_tokens(ancestor: &CstNode, cst: &CstNode, tokens: &mut Vec<SemanticTo
 }
 
 //enum_variant = { annotation* ~ ((ident ~ LPAREN ~ ns_ident ~ RPAREN) | ident) }
-fn enum_variant_tokens(cst: &CstNode, tokens: &mut Vec<SemanticToken>) {
+fn enum_variant_tokens(cst: &CstNode<RmlxNode>, tokens: &mut Vec<SemanticToken>) {
     cst.children.iter().for_each(|f| {
         let token_type = match f.kind {
             RmlxNode::Annotation => {
@@ -399,7 +400,7 @@ fn enum_variant_tokens(cst: &CstNode, tokens: &mut Vec<SemanticToken>) {
 }
 
 //enum = { attribute_list* ~ ENUM ~ ident ~ LBRACE ~ enum_variant ~ (COMMA ~ enum_variant)* ~ COMMA? ~ RBRACE }
-fn enum_tokens(ancestor: &CstNode, cst: &CstNode, tokens: &mut Vec<SemanticToken>) {
+fn enum_tokens(ancestor: &CstNode<RmlxNode>, cst: &CstNode<RmlxNode>, tokens: &mut Vec<SemanticToken>) {
     cst.children.iter().for_each(|f| {
         let token_type = match f.kind {
             RmlxNode::AttributeList => {
@@ -427,7 +428,7 @@ fn enum_tokens(ancestor: &CstNode, cst: &CstNode, tokens: &mut Vec<SemanticToken
 }
 
 //count = { LPAREN ~ ((number ~ DASH ~ number) | number | STAR | QMARK | PLUS) ~ RPAREN }
-fn count_tokens(cst: &CstNode, tokens: &mut Vec<SemanticToken>) {
+fn count_tokens(cst: &CstNode<RmlxNode>, tokens: &mut Vec<SemanticToken>) {
     let mut iter = cst.children.iter();
     let token = iter.next().unwrap();
     assert_eq!(token.kind, RmlxNode::Symbol);
@@ -458,7 +459,7 @@ fn count_tokens(cst: &CstNode, tokens: &mut Vec<SemanticToken>) {
 }
 
 //group_entry  = { PLUS ~ UNIQUE? ~ ns_ident ~ count }
-fn group_entry_tokens(cst: &CstNode, tokens: &mut Vec<SemanticToken>) {
+fn group_entry_tokens(cst: &CstNode<RmlxNode>, tokens: &mut Vec<SemanticToken>) {
     let mut iter = cst.children.iter();
     let token = iter.next().unwrap();
     assert_eq!(token.kind, RmlxNode::Plus);
@@ -492,7 +493,7 @@ fn group_entry_tokens(cst: &CstNode, tokens: &mut Vec<SemanticToken>) {
 }
 
 //group_content = { LBRACE ~ group_entry* ~ RBRACE }
-fn group_content_tokens(cst: &CstNode, tokens: &mut Vec<SemanticToken>) {
+fn group_content_tokens(cst: &CstNode<RmlxNode>, tokens: &mut Vec<SemanticToken>) {
     let mut iter = cst.children.iter();
     let token = iter.next().unwrap();
     assert_eq!(token.kind, RmlxNode::Symbol);
@@ -525,7 +526,7 @@ fn group_content_tokens(cst: &CstNode, tokens: &mut Vec<SemanticToken>) {
 }
 
 //group = { attribute_list* ~ GROUP ~ ident ~ count* ~ (group_content | SEMI) }
-fn group_tokens(ancestor: &CstNode, cst: &CstNode, tokens: &mut Vec<SemanticToken>) {
+fn group_tokens(ancestor: &CstNode<RmlxNode>, cst: &CstNode<RmlxNode>, tokens: &mut Vec<SemanticToken>) {
     let mut iter = cst.children.iter();
 
     let token = iter.next().unwrap();
@@ -568,7 +569,7 @@ fn group_tokens(ancestor: &CstNode, cst: &CstNode, tokens: &mut Vec<SemanticToke
 }
 
 //expression = { (attribute_list | annotation)* ~ EXPRESSION ~ ident ~ block }
-fn expression_tokens(ancestor: &CstNode, cst: &CstNode, tokens: &mut Vec<SemanticToken>) {
+fn expression_tokens(ancestor: &CstNode<RmlxNode>, cst: &CstNode<RmlxNode>, tokens: &mut Vec<SemanticToken>) {
     let mut iter = cst.children.iter();
     let token = iter.next().unwrap();
     match token.kind {
@@ -614,7 +615,7 @@ fn expression_tokens(ancestor: &CstNode, cst: &CstNode, tokens: &mut Vec<Semanti
 }
 
 //custom_types = { enum | struct | element | extend_group | group | expression }
-fn custom_type_tokens(cst: &CstNode, tokens: &mut Vec<SemanticToken>) {
+fn custom_type_tokens(cst: &CstNode<RmlxNode>, tokens: &mut Vec<SemanticToken>) {
     let token = cst.children.first().unwrap();
     match token.kind {
         RmlxNode::Struct => struct_tokens(cst, token, tokens),
@@ -626,7 +627,7 @@ fn custom_type_tokens(cst: &CstNode, tokens: &mut Vec<SemanticToken>) {
     }
 }
 
-fn file_tokens(cst: &CstNode, tokens: &mut Vec<SemanticToken>) {
+fn file_tokens(cst: &CstNode<RmlxNode>, tokens: &mut Vec<SemanticToken>) {
     cst.children.iter().for_each(|f| match f.kind {
         RmlxNode::Comment => {
             tokens.push(SemanticToken {
@@ -644,7 +645,7 @@ fn file_tokens(cst: &CstNode, tokens: &mut Vec<SemanticToken>) {
     });
 }
 
-pub fn get_tokens(cst: &CstNode) -> Vec<SemanticToken> {
+pub fn get_tokens(cst: &CstNode<RmlxNode>) -> Vec<SemanticToken> {
     assert!(matches!(cst.kind, RmlxNode::File));
     let mut tokens = vec![];
     file_tokens(cst, &mut tokens);
