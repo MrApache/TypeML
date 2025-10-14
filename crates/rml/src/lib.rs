@@ -2,6 +2,7 @@
 #![allow(clippy::missing_errors_doc)]
 #![allow(unused)]
 
+mod analyzer;
 mod ast;
 mod cst;
 mod model;

@@ -1,13 +1,14 @@
+use crate::analyzer::RmlAnalyzer;
 use crate::ast::{Element, LayoutAst};
 use lexer_core::to_url;
-use rmlx::{AnalysisWorkspace, RmlAnalyzer, SchemaModel};
+use rmlx::{AnalysisWorkspace, SchemaModel};
 use std::sync::{Arc, RwLock};
 use url::Url;
 
-pub struct LayoutModel {}
+pub struct LayoutModel;
 
 impl LayoutModel {
-    pub fn validate(ast: LayoutAst, path: &str) -> Result<(), rmlx::Error> {
+    pub fn validate(ast: LayoutAst, path: &str) -> Result<Element, rmlx::Error> {
         let configs = ast
             .directives
             .iter()
@@ -20,7 +21,9 @@ impl LayoutModel {
 
         let model = load_config_model(configs)?;
         let mut analyzer = RmlAnalyzer::new(model.clone());
-        validate_element(&ast.root.unwrap(), &mut analyzer)
+        let root = ast.root.unwrap();
+        validate_element(&root, &mut analyzer)?;
+        Ok(root)
     }
 }
 
