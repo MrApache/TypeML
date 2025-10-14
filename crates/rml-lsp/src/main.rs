@@ -127,7 +127,7 @@ impl LanguageServer for Backend {
                  */
             }
             "rmlx" => {
-                let workspace = AnalysisWorkspace::new(uri.clone()).run();
+                let workspace = AnalysisWorkspace::new(uri.clone()).run().unwrap();
                 let mut schemas = self.schemas.write().unwrap();
                 schemas.insert(uri, workspace);
                 //self.client.publish_diagnostics(uri.clone(), std::mem::take(&mut model.diagnostics), None).await;
@@ -151,7 +151,7 @@ impl LanguageServer for Backend {
                  */
             }
             "rmlx" => {
-                let workspace = AnalysisWorkspace::new(uri.clone()).run();
+                let workspace = AnalysisWorkspace::new(uri.clone()).run().unwrap();
                 let mut schemas = self.schemas.write().unwrap();
                 schemas.insert(uri, workspace);
                 //self.client.publish_diagnostics(uri.clone(), std::mem::take(&mut schema.diagnostics), None).await;
@@ -179,7 +179,7 @@ impl LanguageServer for Backend {
                 let read = self.schemas.read().unwrap();
                 let content = read.get(&params.text_document.uri).unwrap().source();
                 dbg!(content);
-                let cst = CstNode::new::<RmlxParser>(content, rmlx::Rule::file);
+                let cst = CstNode::new::<RmlxParser>(content, rmlx::Rule::file).unwrap();
                 get_tokens(&cst)
             }
             "rml" => vec![],
@@ -232,19 +232,4 @@ async fn main() {
         workspaces: RwLock::default(),
     });
     Server::new(stdin, stdout, socket).serve(service).await;
-}
-
-#[cfg(test)]
-mod tests {
-    use crate::tokens::get_tokens;
-    use lexer_core::CstNode;
-    use rmlx::RmlxParser;
-
-    #[test]
-    fn semantic_tokens() {
-        let content = std::fs::read_to_string("/home/irisu/Storage/Projects/rml/examples/base.rmlx").unwrap();
-        let cst = CstNode::new::<RmlxParser>(&content, rmlx::Rule::file);
-        let _tokens = get_tokens(&cst);
-        println!();
-    }
 }

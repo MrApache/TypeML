@@ -1,8 +1,9 @@
 use reqwest::StatusCode;
 use std::{ffi::OsStr, path::Path};
+use thiserror::Error;
 use url::Url;
 
-#[derive(thiserror::Error, Debug)]
+#[derive(Error, Debug)]
 pub enum LoadError {
     #[error("invalid url: {0}")]
     InvalidUrl(String),

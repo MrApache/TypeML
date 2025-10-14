@@ -40,7 +40,7 @@ impl SchemaModel {
     #[must_use]
     pub fn get_type_by_ref(&self, symbol_ref: SymbolRef) -> TypeQuery<'_> {
         let type_table = self.get_type_table_by_namespace_id(symbol_ref.namespace);
-        let ty = type_table.get(symbol_ref.id).unwrap();
+        let ty = type_table.get(symbol_ref.id).expect("Unreachable!");
         TypeQuery {
             symbol_ref,
             kind: Some(ty),
@@ -68,14 +68,19 @@ impl SchemaModel {
         }
     }
 
-    #[must_use]
-    pub fn get_namespace_id(&self, namespace: Option<&str>) -> usize {
-        self.try_get_namespace_id(namespace)
-            .unwrap_or_else(|| panic!("Namespace '{}' does not exist", namespace.unwrap()))
+    pub fn get_namespace_id(&self, namespace: Option<&str>) -> Result<usize, crate::Error> {
+        if let Some(ns) = namespace {
+            self.namespaces
+                .iter()
+                .enumerate()
+                .find(|(id, n)| *n == ns)
+                .map(|(id, _)| id)
+                .ok_or(crate::Error::NamespaceNotFound(ns.to_string()))
+        } else {
+            Ok(0)
+        }
     }
 
-    //TODO Temp method
-    #[must_use]
     pub fn try_get_namespace_id(&self, namespace: Option<&str>) -> Option<usize> {
         if let Some(ns) = namespace {
             self.namespaces
@@ -88,24 +93,26 @@ impl SchemaModel {
         }
     }
 
-    #[must_use]
-    pub fn get_type_table_by_namespace_name(&self, namespace: Option<&str>) -> &[SymbolKind] {
-        let id = self.get_namespace_id(namespace);
-        self.get_type_table_by_namespace_id(id)
+    pub fn get_type_table_by_namespace_name(&self, namespace: Option<&str>) -> Result<&[SymbolKind], crate::Error> {
+        let id = self.get_namespace_id(namespace)?;
+        Ok(self.get_type_table_by_namespace_id(id))
     }
 
     #[must_use]
     pub fn get_type_table_by_namespace_id(&self, namespace: usize) -> &[SymbolKind] {
-        self.modules.get(namespace).unwrap()
+        self.modules.get(namespace).expect("Unreachable!")
     }
 
-    pub fn get_mut_type_table_by_namespace_name(&mut self, namespace: Option<&str>) -> &mut Vec<SymbolKind> {
-        let id = self.get_namespace_id(namespace);
-        self.get_mut_type_table_by_namespace_id(id)
+    pub fn get_mut_type_table_by_namespace_name(
+        &mut self,
+        namespace: Option<&str>,
+    ) -> Result<&mut Vec<SymbolKind>, crate::Error> {
+        let id = self.get_namespace_id(namespace)?;
+        Ok(self.get_mut_type_table_by_namespace_id(id))
     }
 
     pub fn get_mut_type_table_by_namespace_id(&mut self, namespace: usize) -> &mut Vec<SymbolKind> {
-        self.modules.get_mut(namespace).unwrap()
+        self.modules.get_mut(namespace).expect("Unreachable!")
     }
 
     #[must_use]
@@ -114,10 +121,9 @@ impl SchemaModel {
         type_table.iter().position(|t| t.identifier() == name)
     }
 
-    #[must_use]
-    pub fn get_type_by_id(&self, namespace: Option<&str>, id: usize) -> Option<&SymbolKind> {
-        let type_table = self.get_type_table_by_namespace_name(namespace);
-        type_table.get(id)
+    pub fn get_type_by_id(&self, namespace: Option<&str>, id: usize) -> Result<Option<&SymbolKind>, crate::Error> {
+        let type_table = self.get_type_table_by_namespace_name(namespace)?;
+        Ok(type_table.get(id))
     }
 
     pub fn add_symbol(&mut self, namespace: usize, symbol: SymbolKind) {
@@ -130,8 +136,7 @@ impl SchemaModel {
         type_table[symbol_ref.id] = kind;
     }
 
-    #[must_use]
-    pub fn get_root_group_ref(&self) -> SymbolRef {
+    pub fn get_root_group_ref(&self) -> Result<SymbolRef, crate::Error> {
         let (namespace, id) = self
             .modules
             .iter()
@@ -142,9 +147,9 @@ impl SchemaModel {
                     .position(|k| k.identifier() == "Root")
                     .map(|id| (namespace, id))
             })
-            .unwrap();
+            .ok_or(crate::Error::RootGroupNotFound)?;
 
-        SymbolRef { namespace, id }
+        Ok(SymbolRef { namespace, id })
     }
 
     #[must_use]
@@ -153,7 +158,7 @@ impl SchemaModel {
             .modules
             .iter()
             .find_map(|array| array.iter().position(|k| k.identifier() == "Main"))
-            .unwrap();
+            .expect("Unreachable!");
 
         SymbolRef { namespace: 0, id }
     }
@@ -194,7 +199,7 @@ impl<'a> TypeQuery<'a> {
     }
 
     pub fn as_ref(&self) -> &SymbolKind {
-        self.kind.unwrap()
+        self.kind.expect("Unreachable!")
     }
 
     pub fn unwrap(self) -> Option<&'a SymbolKind> {

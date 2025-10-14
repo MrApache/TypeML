@@ -17,11 +17,12 @@ pub struct UnresolvedSchema {
 }
 
 impl UnresolvedSchema {
-    pub fn new(source: &str, path: &str, workspace: &mut AnalysisWorkspace) -> Self {
-        let ast = RmlxParser::build_ast(source);
+    pub fn new(source: &str, path: &str, workspace: &mut AnalysisWorkspace) -> Result<Self, crate::Error> {
+        let ast = RmlxParser::build_ast(source)?;
         let directive_result = process_directives(&ast);
-        directive_result.uses.iter().for_each(|u| {
-            workspace.load_single_model(&to_url(path, u).unwrap());
+        directive_result.uses.iter().try_for_each(|u| {
+            workspace.load_single_model(&to_url(path, u).map_err(crate::Error::UrlError)?);
+            Ok::<_, crate::Error>(())
         });
 
         let enums = ast
@@ -56,13 +57,13 @@ impl UnresolvedSchema {
             .map(UnresolvedElementSymbol::new)
             .collect::<Vec<_>>();
 
-        UnresolvedSchema {
+        Ok(UnresolvedSchema {
             namespace: directive_result.namespace,
             structs,
             enums,
             groups,
             elements,
-        }
+        })
     }
 
     pub fn resolve(&mut self, workspace: &mut AnalysisWorkspace) -> Vec<SymbolKind> {
@@ -131,7 +132,7 @@ fn process_directives(ast: &SchemaAst) -> DirectiveResult {
             }
         }
         "use" => {
-            let value = d.value.clone().unwrap();
+            let value = d.value.clone().expect("Unreachable!");
             uses.push(value);
         }
         other => errors.push(format!("Unknown directive: {other}")),

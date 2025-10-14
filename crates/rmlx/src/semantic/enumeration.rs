@@ -1,6 +1,6 @@
 use crate::ast::{AnnotationValue, BaseType, Enum};
 use crate::{
-    AnalysisWorkspace, SchemaModel, TypeResolver, UnresolvedType,
+    AnalysisWorkspace, Error, SchemaModel, TypeResolver, UnresolvedType,
     semantic::symbol::{Symbol, TypeRef},
 };
 use regex::Regex;
@@ -117,13 +117,14 @@ impl Symbol for EnumSymbol {
         &self.identifier
     }
 
-    fn can_parse(&self, value: &str, model: &SchemaModel) -> bool {
-        let default_inner_regex = Regex::new(r"([a-zA-Z][a-zA-Z0-9_]*)\((.*)\)").unwrap();
+    fn can_parse(&self, value: &str, model: &SchemaModel) -> Result<bool, Error> {
+        let default_inner_regex = Regex::new(r"([a-zA-Z][a-zA-Z0-9_]*)\((.*)\)")?;
 
-        self.variants.iter().any(|v| {
+        self.variants.iter().try_fold(false, |acc, v| {
             let mut result = false;
+
             if let Some(pattern) = &v.pattern {
-                let regex = Regex::new(pattern).unwrap();
+                let regex = Regex::new(pattern)?;
                 result = regex.is_match(value);
             }
 
@@ -132,16 +133,16 @@ impl Symbol for EnumSymbol {
                 && let Some(ty) = &v.ty
                 && let Some(cap) = default_inner_regex.captures(value)
             {
-                let value = cap.get(2).unwrap().as_str();
-                let ty = model.get_type_by_ref(ty.as_concrete()).unwrap().unwrap();
-                result = v.identifier == cap.get(1).unwrap().as_str() && ty.can_parse(value, model);
+                let value = cap.get(2).expect("Unreachable!").as_str();
+                let ty = model.get_type_by_ref(ty.as_concrete()).unwrap().expect("Unreachable!");
+                result = v.identifier == cap.get(1).expect("Unreachable!").as_str() && ty.can_parse(value, model)?;
             }
 
             if !result {
                 result = v.identifier == value;
             }
 
-            result
+            Ok(acc || result)
         })
     }
 }

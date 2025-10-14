@@ -1,3 +1,4 @@
+use crate::Error;
 use crate::semantic::{
     element::ElementSymbol,
     enumeration::{EnumSymbol, EnumVariant},
@@ -32,7 +33,7 @@ impl TypeRef {
 #[enum_dispatch]
 pub trait Symbol {
     fn identifier(&self) -> &str;
-    fn can_parse(&self, value: &str, model: &SchemaModel) -> bool;
+    fn can_parse(&self, value: &str, model: &SchemaModel) -> Result<bool, Error>;
     fn try_get_self_reference(&self, model: &SchemaModel) -> Option<&SymbolRef> {
         None
     }
@@ -47,8 +48,8 @@ macro_rules! impl_symbol {
                 $ident
             }
 
-            fn can_parse(&self, value: &str, model: &SchemaModel) -> bool {
-                $parse(value).is_ok()
+            fn can_parse(&self, value: &str, model: &SchemaModel) -> Result<bool, crate::Error> {
+                Ok($parse(value).is_ok())
             }
         }
     };
@@ -143,8 +144,8 @@ impl Symbol for GenericSymbol {
         self.base.identifier()
     }
 
-    fn can_parse(&self, value: &str, model: &SchemaModel) -> bool {
-        false
+    fn can_parse(&self, value: &str, model: &SchemaModel) -> Result<bool, crate::Error> {
+        Ok(false)
     }
 }
 
@@ -153,8 +154,8 @@ impl Symbol for Box<GenericSymbol> {
         self.base.identifier()
     }
 
-    fn can_parse(&self, value: &str, model: &SchemaModel) -> bool {
-        false
+    fn can_parse(&self, value: &str, model: &SchemaModel) -> Result<bool, crate::Error> {
+        Ok(false)
     }
 }
 
@@ -169,8 +170,8 @@ impl Symbol for LazySymbol {
         &self.identifier
     }
 
-    fn can_parse(&self, value: &str, model: &SchemaModel) -> bool {
-        false
+    fn can_parse(&self, value: &str, model: &SchemaModel) -> Result<bool, crate::Error> {
+        Ok(false)
     }
 }
 

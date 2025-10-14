@@ -112,7 +112,7 @@ impl TypeResolver<ElementSymbol> for UnresolvedElementSymbol {
             identifier: self.identifier.clone(),
             fields: self.resolved.clone(),
             metadata: self.metadata.clone(),
-            bind: self.resolved_bind.unwrap(),
+            bind: self.resolved_bind.expect("Unreachable!"),
         }
     }
 }
@@ -122,8 +122,8 @@ impl Symbol for ElementSymbol {
         &self.identifier
     }
 
-    fn can_parse(&self, value: &str, model: &SchemaModel) -> bool {
-        false
+    fn can_parse(&self, value: &str, model: &SchemaModel) -> Result<bool, crate::Error> {
+        Ok(false)
     }
 }
 

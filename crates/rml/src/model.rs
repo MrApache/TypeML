@@ -7,7 +7,7 @@ use url::Url;
 pub struct LayoutModel {}
 
 impl LayoutModel {
-    pub fn validate(ast: LayoutAst, path: &str) {
+    pub fn validate(ast: LayoutAst, path: &str) -> Result<(), rmlx::Error> {
         let configs = ast
             .directives
             .iter()
@@ -18,35 +18,37 @@ impl LayoutModel {
             })
             .collect::<Vec<_>>();
 
-        let model = load_config_model(configs);
+        let model = load_config_model(configs)?;
         let mut analyzer = RmlAnalyzer::new(model.clone());
-        validate_element(&ast.root.unwrap(), &mut analyzer);
+        validate_element(&ast.root.unwrap(), &mut analyzer)
     }
 }
 
-fn load_config_model(configs: Vec<Url>) -> Arc<RwLock<SchemaModel>> {
+fn load_config_model(configs: Vec<Url>) -> Result<Arc<RwLock<SchemaModel>>, rmlx::Error> {
     assert!(!configs.is_empty(), "Config not found");
     let mut iter = configs.into_iter();
-    let mut workspace = AnalysisWorkspace::new(iter.next().unwrap()).run();
-    println!();
-    workspace.model()
+    let mut workspace = AnalysisWorkspace::new(iter.next().unwrap()).run()?;
+    Ok(workspace.model())
 }
 
-fn validate_element(element: &Element, analyzer: &mut RmlAnalyzer) {
+fn validate_element(element: &Element, analyzer: &mut RmlAnalyzer) -> Result<(), rmlx::Error> {
     let namespace = element.namespace.as_deref();
     let identifier = &element.identifier;
-    if analyzer.is_allowed_element(namespace, identifier) {
+    if analyzer.is_allowed_element(namespace, identifier)? {
         analyzer.next_state(namespace, identifier);
-        element.attributes.iter().for_each(|attr| {
+        element.attributes.iter().try_for_each(|attr| {
             assert!(
-                analyzer.is_valid_attribute(&attr.identifier, attr.value.as_str()),
+                analyzer.is_valid_attribute(&attr.identifier, attr.value.as_str())?,
                 "Not valid attribute"
             );
+            Ok::<(), rmlx::Error>(())
         });
-        element.children.iter().for_each(|child| {
-            validate_element(child, analyzer);
-        });
+        element
+            .children
+            .iter()
+            .try_for_each(|child| validate_element(child, analyzer))?;
         analyzer.exit_state(namespace, identifier);
+        Ok(())
     } else {
         panic!("Incorrect element: {}", element.identifier);
     }

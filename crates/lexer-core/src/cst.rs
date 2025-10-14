@@ -1,3 +1,5 @@
+#![allow(clippy::missing_panics_doc)]
+#![allow(clippy::missing_errors_doc)]
 #![allow(unused)]
 
 use pest::iterators::Pair;
@@ -22,14 +24,19 @@ pub struct CstNode<K: CstKind> {
 }
 
 impl<K: CstKind> CstNode<K> {
-    pub fn new<P: Parser<K::Rule>>(content: &str, start_rule: K::Rule) -> Self {
+    pub fn new<P: Parser<K::Rule>>(content: &str, start_rule: K::Rule) -> Result<Self, String> {
         let mut prev_line = 1;
         let mut prev_col = 1;
         let mut result = P::parse(start_rule, content);
         if let Ok(mut tree) = result {
-            Self::build_cst(&tree.next().unwrap(), content, &mut prev_line, &mut prev_col)
+            Ok(Self::build_cst(
+                &tree.next().unwrap(),
+                content,
+                &mut prev_line,
+                &mut prev_col,
+            ))
         } else {
-            panic!("Error: {result:#?}");
+            Err(format!("{}", result.unwrap_err()))
         }
     }
 

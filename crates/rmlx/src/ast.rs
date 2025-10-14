@@ -350,7 +350,7 @@ fn build_attribute(node: &CstNode<RmlxNode>) -> Attribute {
     for child in &node.children {
         match child.kind {
             RmlxNode::Ident => name.clone_from(&child.text),
-            RmlxNode::BaseType => match child.children.first().unwrap().kind {
+            RmlxNode::BaseType => match child.children.first().expect("Unreachable!").kind {
                 RmlxNode::Number => value = Some(BaseType::Number(child.text.clone())),
                 RmlxNode::Boolean => value = Some(BaseType::Boolean(child.text == "true")),
                 RmlxNode::String => value = Some(BaseType::String(child.text.clone())),
@@ -594,7 +594,7 @@ fn build_group_entry(node: &CstNode<RmlxNode>) -> GroupEntry {
 fn build_count(node: &CstNode<RmlxNode>) -> Count {
     let mut iter = node.children.iter();
     consume_token(&mut iter, &RmlxNode::Symbol, Some("("));
-    match iter.next().unwrap().text.as_str() {
+    match iter.next().expect("Unreachable!").text.as_str() {
         "*" => Count::Asterisk,
         "?" => Count::Question,
         "+" => Count::Plus,

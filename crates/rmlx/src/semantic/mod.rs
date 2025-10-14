@@ -8,6 +8,7 @@ mod structure;
 mod symbol;
 mod unresolved_schema;
 
+pub(crate) use loader::LoadError;
 pub use model::SchemaModel;
 
 use crate::semantic::group::{GroupConfig, GroupSymbol, UnresolvedGroupConfig, UnresolvedGroupSymbol};
@@ -75,32 +76,38 @@ impl AnalysisWorkspace {
         &self.source
     }
 
-    #[must_use]
-    pub fn run(mut self) -> Self {
-        self.source = load_rmlx(&self.path).unwrap();
+    pub fn run(mut self) -> Result<Self, crate::Error> {
+        self.source = load_rmlx(&self.path)?;
         let source = self.source.clone();
         let path = self.path.clone();
         self.load_model_internal(&source, &path);
         {
-            let root_ref = self.find_root();
+            let root_ref = self.find_root()?;
             let main_group = GroupSymbol::main(root_ref);
-            let mut write = self.model.write().unwrap();
+            let mut write = self.model.write().expect("Unreachable!");
             write.modules[0].push(SymbolKind::Group(main_group));
         }
-        self
+        Ok(self)
     }
 
-    fn find_root(&self) -> SymbolRef {
-        let model = self.model.read().unwrap();
+    fn find_root(&self) -> Result<SymbolRef, crate::Error> {
+        let model = self.model.read().expect("Unreachable!");
         model.get_root_group_ref()
     }
 
-    fn load_model_internal(&mut self, source: &str, path: &Url) {
+    fn load_model_internal(&mut self, source: &str, path: &Url) -> Result<(), crate::Error> {
         if self.unresolved.contains_key(path.as_str()) {
-            return;
+            return Ok(());
         }
 
-        let mut unresolved_module = UnresolvedSchema::new(source, path.to_file_path().unwrap().to_str().unwrap(), self);
+        let mut unresolved_module = UnresolvedSchema::new(
+            source,
+            path.to_file_path()
+                .expect("Unreachable!")
+                .to_str()
+                .expect("Unreachable!"),
+            self,
+        )?;
         let namespace = unresolved_module.namespace();
         let namespace_id = self.get_or_add_namespace_id(namespace);
 
@@ -116,7 +123,7 @@ impl AnalysisWorkspace {
             }
 
             symbols.retain(|f| {
-                let mut model = self.model.write().unwrap();
+                let mut model = self.model.write().expect("Unreachable!");
                 if let Some(r) = f.try_get_self_reference(&model) {
                     model.replace_type(r, f.clone());
                     return false;
@@ -125,20 +132,22 @@ impl AnalysisWorkspace {
                 true
             });
 
-            let mut write = self.model.write().unwrap();
-            let vec = write.modules.get_mut(namespace_id).unwrap();
+            let mut write = self.model.write().expect("Unreachable!");
+            let vec = write.modules.get_mut(namespace_id).expect("Unreachable!");
             vec.extend(symbols);
         }
         self.namespace_stack.pop();
+
+        Ok(())
     }
 
-    pub(crate) fn load_single_model(&mut self, path: &Url) {
-        let content = load_rmlx(path).unwrap();
-        self.load_model_internal(&content, path);
+    pub(crate) fn load_single_model(&mut self, path: &Url) -> Result<(), crate::Error> {
+        let content = load_rmlx(path)?;
+        self.load_model_internal(&content, path)
     }
 
     fn get_or_add_namespace_id(&mut self, namespace: Option<&str>) -> usize {
-        let mut model = self.model.write().unwrap();
+        let mut model = self.model.write().expect("Unreachable!");
 
         if let Some(ns) = namespace {
             if let Some(id) = model.try_get_namespace_id(namespace) {
@@ -161,7 +170,7 @@ impl AnalysisWorkspace {
     fn get_type(&mut self, ty: &UnresolvedType) -> Option<SymbolRef> {
         let namespace = self.get_or_add_namespace_id(ty.namespace.as_deref());
 
-        let mut model = self.model.write().unwrap();
+        let mut model = self.model.write().expect("model is not poisoned");
         let identifier = if let Some(generic) = &ty.generic_base {
             format!("{generic}_{}", ty.identifier)
         } else {
@@ -185,7 +194,7 @@ impl AnalysisWorkspace {
 
     fn create_self_reference(&mut self, ty: &UnresolvedType) -> SymbolRef {
         let namespace = self.get_or_add_namespace_id(ty.namespace.as_deref());
-        let mut model = self.model.write().unwrap();
+        let mut model = self.model.write().expect("model is not poisoned");
         let type_table = model.get_mut_type_table_by_namespace_id(namespace);
         let id = type_table.len();
         type_table.push(SymbolKind::Lazy(LazySymbol {
@@ -276,7 +285,7 @@ impl RmlAnalyzer {
 
     #[must_use]
     pub fn new(model: Arc<RwLock<SchemaModel>>) -> Self {
-        let read_model = model.read().unwrap();
+        let read_model = model.read().expect("Unreachable!");
         let group = read_model.get_main_group_ref();
         let states = Self::build_states(group, &read_model);
         drop(read_model);
@@ -289,32 +298,34 @@ impl RmlAnalyzer {
         }
     }
 
-    #[must_use]
-    pub fn is_allowed_element(&self, namespace: Option<&str>, name: &str) -> bool {
-        let model = self.model.read().unwrap();
-        let namespace_id = model.get_namespace_id(namespace);
-        let element = model.get_type_by_name(namespace_id, name).as_element_symbol().unwrap();
+    pub fn is_allowed_element(&self, namespace: Option<&str>, name: &str) -> Result<bool, crate::Error> {
+        let model = self.model.read().expect("Unreachable!");
+        let namespace_id = model.get_namespace_id(namespace)?;
+        let element = model
+            .get_type_by_name(namespace_id, name)
+            .as_element_symbol()
+            .ok_or(crate::Error::ElementNotFound(name.into()))?;
         let bind_group = element.group();
 
         let group_ref = self.states[self.active].group;
-        let ty = model.get_type_by_ref(group_ref).unwrap().unwrap();
+        let ty = model.get_type_by_ref(group_ref).unwrap().expect("Unreachable!");
         let group = ty.as_group_symbol();
         let groups = group.groups();
-        groups.iter().any(|g| {
-            let symbol = g.symbol();
-            symbol.id == bind_group.id && symbol.namespace == bind_group.namespace
-        })
+        Ok(groups.iter().any(|g| g.symbol() == bind_group))
     }
 
-    pub fn next_state(&mut self, namespace: Option<&str>, name: &str) {
-        debug_assert!(self.is_allowed_element(namespace, name));
+    pub fn next_state(&mut self, namespace: Option<&str>, name: &str) -> Result<(), crate::Error> {
+        debug_assert!(self.is_allowed_element(namespace, name)?);
 
-        let model = self.model.read().unwrap();
-        let namespace_id = model.get_namespace_id(namespace);
-        let element = model.get_type_by_name(namespace_id, name).as_element_symbol().unwrap();
+        let model = self.model.read().expect("Unreachable!");
+        let namespace_id = model.get_namespace_id(namespace)?;
+        let element = model
+            .get_type_by_name(namespace_id, name)
+            .as_element_symbol()
+            .expect("Unreachable!");
         let bind_group = element.group();
 
-        let ty = model.get_type_by_ref(bind_group).unwrap().unwrap();
+        let ty = model.get_type_by_ref(bind_group).unwrap().expect("Unreachable!");
         let group = ty.as_group_symbol();
         if group.groups().is_empty() {
             self.depth.push(PreviousElement {
@@ -322,7 +333,7 @@ impl RmlAnalyzer {
                 namespace: namespace.map(str::to_string),
                 state: self.active,
             });
-            return;
+            return Ok(());
         }
 
         let active = &self.states[self.active];
@@ -333,7 +344,7 @@ impl RmlAnalyzer {
                 let state = &self.states[**allowed];
                 state.group == bind_group
             })
-            .unwrap();
+            .expect("Unreachable!");
 
         self.depth.push(PreviousElement {
             name: name.to_string(),
@@ -341,24 +352,25 @@ impl RmlAnalyzer {
             state: self.active,
         });
         self.active = next;
+
+        Ok(())
     }
 
     pub fn exit_state(&mut self, namespace: Option<&str>, name: &str) {
-        let previous_element = self.depth.pop().unwrap();
+        let previous_element = self.depth.pop().expect("Unreachable!");
         assert!(previous_element.name == name && previous_element.namespace.as_deref() == namespace);
         self.active = previous_element.state;
     }
 
-    #[must_use]
-    pub fn is_valid_attribute(&self, name: &str, value: &str) -> bool {
-        let model = self.model.read().unwrap();
-        let last_element = self.depth.last().unwrap();
-        let element_namespace = model.get_namespace_id(last_element.namespace.as_deref());
+    pub fn is_valid_attribute(&self, name: &str, value: &str) -> Result<bool, crate::Error> {
+        let model = self.model.read().expect("Unreachable!");
+        let last_element = self.depth.last().expect("Unreachable!");
+        let element_namespace = model.get_namespace_id(last_element.namespace.as_deref())?;
         let element = model
             .get_type_by_name(element_namespace, &last_element.name)
             .as_element_symbol()
-            .unwrap();
-        let field = element.field(name).unwrap();
+            .expect("Unreachable!");
+        let field = element.field(name).expect("Unreachable!");
         let field_type = model.get_type_by_ref(field.ty());
         let field_type = field_type.as_ref();
         field_type.can_parse(value, &model)

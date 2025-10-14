@@ -12,7 +12,7 @@ fn parse_ast(bench: Bencher) {
     bench
         .with_inputs(|| {
             const CONTENT: &str = include_str!(concat!(env!("CARGO_WORKSPACE_DIR"), "examples/schema.rmlx"));
-            CstNode::new::<RmlxParser>(CONTENT, Rule::file)
+            CstNode::new::<RmlxParser>(CONTENT, Rule::file).unwrap()
         })
         .bench_values(|cst| build_schema_ast(&cst));
 }
@@ -20,7 +20,7 @@ fn parse_ast(bench: Bencher) {
 #[divan::bench]
 fn parse_cst() {
     const CONTENT: &str = include_str!(concat!(env!("CARGO_WORKSPACE_DIR"), "examples/schema.rmlx"));
-    let _: CstNode<RmlxNode> = CstNode::new::<RmlxParser>(CONTENT, Rule::file);
+    let _: CstNode<RmlxNode> = CstNode::new::<RmlxParser>(CONTENT, Rule::file).unwrap();
 }
 
 #[divan::bench]
