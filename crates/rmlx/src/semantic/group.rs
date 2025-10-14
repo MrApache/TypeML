@@ -18,6 +18,18 @@ impl GroupSymbol {
     pub fn groups(&self) -> &[GroupConfig] {
         &self.groups
     }
+
+    pub fn main(root: SymbolRef) -> Self {
+        Self {
+            identifier: String::from("Main"),
+            extend: false,
+            groups: vec![GroupConfig {
+                symbol: root,
+                unique: true,
+                count: Some(Count::Single(1)),
+            }],
+        }
+    }
 }
 
 #[derive(Debug, Clone)]

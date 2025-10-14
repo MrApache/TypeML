@@ -10,7 +10,7 @@ mod unresolved_schema;
 
 pub use model::SchemaModel;
 
-use crate::semantic::group::GroupConfig;
+use crate::semantic::group::{GroupConfig, GroupSymbol, UnresolvedGroupConfig, UnresolvedGroupSymbol};
 use crate::semantic::symbol::{LazySymbol, SymbolKind};
 use crate::{
     RmlxParser,
@@ -81,7 +81,18 @@ impl AnalysisWorkspace {
         let source = self.source.clone();
         let path = self.path.clone();
         self.load_model_internal(&source, &path);
+        {
+            let root_ref = self.find_root();
+            let main_group = GroupSymbol::main(root_ref);
+            let mut write = self.model.write().unwrap();
+            write.modules[0].push(SymbolKind::Group(main_group));
+        }
         self
+    }
+
+    fn find_root(&self) -> SymbolRef {
+        let model = self.model.read().unwrap();
+        model.get_root_group_ref()
     }
 
     fn load_model_internal(&mut self, source: &str, path: &Url) {
@@ -266,8 +277,7 @@ impl RmlAnalyzer {
     #[must_use]
     pub fn new(model: Arc<RwLock<SchemaModel>>) -> Self {
         let read_model = model.read().unwrap();
-        let group = read_model.get_root_group_ref();
-
+        let group = read_model.get_main_group_ref();
         let states = Self::build_states(group, &read_model);
         drop(read_model);
 

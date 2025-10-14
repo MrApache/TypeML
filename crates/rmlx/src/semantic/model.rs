@@ -160,6 +160,17 @@ impl SchemaModel {
 
         SymbolRef { namespace, id }
     }
+
+    #[must_use]
+    pub fn get_main_group_ref(&self) -> SymbolRef {
+        let id = self
+            .modules
+            .iter()
+            .find_map(|array| array.iter().position(|k| k.identifier() == "Main"))
+            .unwrap();
+
+        SymbolRef { namespace: 0, id }
+    }
 }
 
 pub struct TypeQuery<'a> {
