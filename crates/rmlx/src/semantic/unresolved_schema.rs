@@ -1,5 +1,6 @@
+use crate::ast::CustomType;
 use crate::{
-    AnalysisWorkspace, CustomType, RmlxParser, SchemaAst, TypeResolver,
+    AnalysisWorkspace, RmlxParser, SchemaAst, TypeResolver,
     semantic::{
         element::UnresolvedElementSymbol, enumeration::UnresolvedEnumSymbol, group::UnresolvedGroupSymbol,
         structure::UnresolvedStructSymbol, symbol::SymbolKind,

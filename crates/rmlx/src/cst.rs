@@ -1,4 +1,4 @@
-use crate::pest::Rule;
+use crate::Rule;
 use lexer_core::CstKind;
 use pest::iterators::Pair;
 

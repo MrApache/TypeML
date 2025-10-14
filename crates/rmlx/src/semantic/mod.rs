@@ -38,7 +38,7 @@ pub struct UnresolvedType {
 pub struct AnalysisWorkspace {
     source: String,
     path: Url,
-    model: Arc<RwLock<SchemaModel>>,
+    pub model: Arc<RwLock<SchemaModel>>,
 
     namespace_stack: Vec<usize>,
     unresolved: HashMap<String, UnresolvedSchema>,
@@ -362,24 +362,5 @@ impl RmlAnalyzer {
         let field_type = model.get_type_by_ref(field.ty());
         let field_type = field_type.as_ref();
         field_type.can_parse(value, &model)
-    }
-}
-
-#[cfg(test)]
-mod tests {
-    use crate::{AnalysisWorkspace, RmlAnalyzer};
-    use url::Url;
-
-    #[test]
-    fn test() {
-        let path = "D:\\Projects\\rml\\examples\\schema.rmlx";
-        let url = Url::from_file_path(path).unwrap();
-        let mut workspace = AnalysisWorkspace::new(url).run();
-        let mut rml = RmlAnalyzer::new(workspace.model.clone());
-        let _allowed = rml.is_allowed_element(None, "Node");
-        rml.next_state(None, "Node");
-        let _allowed_attribute = rml.is_valid_attribute("left", "10px");
-        let _allowed_generic = rml.is_valid_attribute("aspect_ratio", "Some(10)");
-        println!();
     }
 }

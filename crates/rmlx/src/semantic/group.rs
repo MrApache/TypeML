@@ -1,5 +1,6 @@
+use crate::ast::{BaseType, Count, Group};
 use crate::{
-    AnalysisWorkspace, BaseType, Count, Group, SchemaModel, UnresolvedType,
+    AnalysisWorkspace, SchemaModel, UnresolvedType,
     semantic::{
         TypeResolver,
         symbol::{Symbol, SymbolKind, SymbolRef},

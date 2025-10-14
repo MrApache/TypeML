@@ -1,3 +1,5 @@
+#![allow(unused)]
+
 use pest::iterators::Pair;
 use std::fmt::Debug;
 use std::hash::Hash;
@@ -32,7 +34,7 @@ impl<K: CstKind> CstNode<K> {
         let byte_start = span.start();
         let byte_end = span.end();
 
-        let line_start_byte = source[..byte_start].rfind('\n').map(|pos| pos + 1).unwrap_or(0);
+        let line_start_byte = source[..byte_start].rfind('\n').map_or(0, |pos| pos + 1);
 
         let start_col_utf16 = source[line_start_byte..byte_start].encode_utf16().count() as u32;
         let end_col_utf16 = source[line_start_byte..byte_end].encode_utf16().count() as u32;

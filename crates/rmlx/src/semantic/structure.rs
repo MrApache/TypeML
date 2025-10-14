@@ -1,5 +1,8 @@
+use crate::ast::TypeIdent;
+use crate::ast::TypeRef;
+use crate::ast::{BaseType, Field, Struct};
 use crate::{
-    AnalysisWorkspace, BaseType, Field, SchemaModel, Struct, TypeResolver, UnresolvedType,
+    AnalysisWorkspace, SchemaModel, TypeResolver, UnresolvedType,
     semantic::symbol::{Symbol, SymbolRef},
 };
 use std::collections::HashMap;
@@ -22,15 +25,15 @@ pub struct UnresolvedStructField {
     ty: UnresolvedType,
 }
 
-impl From<crate::pest::TypeRef> for UnresolvedType {
-    fn from(value: crate::pest::TypeRef) -> Self {
+impl From<TypeRef> for UnresolvedType {
+    fn from(value: TypeRef) -> Self {
         match value.ident {
-            crate::TypeIdent::Simple(ident) => Self {
+            TypeIdent::Simple(ident) => Self {
                 generic_base: None,
                 namespace: value.namespace,
                 identifier: ident,
             },
-            crate::TypeIdent::Generic(ident, inner) => Self {
+            TypeIdent::Generic(ident, inner) => Self {
                 generic_base: Some(ident),
                 namespace: value.namespace,
                 identifier: inner.to_string(), //TODO

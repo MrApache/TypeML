@@ -1,5 +1,5 @@
 use divan::Bencher;
-use rmlx::{AnalysisWorkspace, RmlAnalyzer, RmlxParser, build_schema_ast};
+use rmlx::{AnalysisWorkspace, RmlxParser, build_schema_ast};
 use url::Url;
 
 fn main() {

@@ -1,4 +1,4 @@
-use crate::pest::cst::RmlxNode;
+use crate::cst::RmlxNode;
 use lexer_core::CstNode;
 use std::fmt::Display;
 

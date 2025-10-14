@@ -1,5 +1,6 @@
+use crate::ast::{AnnotationValue, BaseType, Enum};
 use crate::{
-    AnalysisWorkspace, AnnotationValue, BaseType, Enum, SchemaModel, TypeResolver, UnresolvedType,
+    AnalysisWorkspace, SchemaModel, TypeResolver, UnresolvedType,
     semantic::symbol::{Symbol, TypeRef},
 };
 use regex::Regex;

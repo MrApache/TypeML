@@ -38,7 +38,7 @@ impl Default for SchemaModel {
 
 impl SchemaModel {
     #[must_use]
-    pub fn get_type_by_ref(&self, symbol_ref: SymbolRef) -> TypeQuery {
+    pub fn get_type_by_ref(&self, symbol_ref: SymbolRef) -> TypeQuery<'_> {
         let type_table = self.get_type_table_by_namespace_id(symbol_ref.namespace);
         let ty = type_table.get(symbol_ref.id).unwrap();
         TypeQuery {
@@ -48,7 +48,7 @@ impl SchemaModel {
     }
 
     #[must_use]
-    pub fn get_type_by_name(&self, namespace: usize, name: &str) -> TypeQuery {
+    pub fn get_type_by_name(&self, namespace: usize, name: &str) -> TypeQuery<'_> {
         let type_table = self.get_type_table_by_namespace_id(namespace);
         let ty = type_table
             .iter()
@@ -113,20 +113,6 @@ impl SchemaModel {
         let type_table = self.get_type_table_by_namespace_id(namespace);
         type_table.iter().position(|t| t.identifier() == name)
     }
-
-    /*
-    #[must_use]
-    pub fn get_type_id(&self, namespace: Option<&str>, name: &str) -> Option<usize> {
-        let type_table = self.get_type_table_by_namespace_name(namespace);
-        if let Some(id) = type_table.iter().position(|t| t.identifier() == name) {
-            Some(id)
-        } else if namespace.is_some() {
-            self.get_type_id(None, name)
-        } else {
-            None
-        }
-    }
-    */
 
     #[must_use]
     pub fn get_type_by_id(&self, namespace: Option<&str>, id: usize) -> Option<&SymbolKind> {
