@@ -3,10 +3,9 @@
 #![allow(clippy::missing_panics_doc)]
 #![allow(unused)]
 
-mod utils;
-mod semantic;
-mod pest;
 mod error;
+mod pest;
+mod semantic;
 
 pub use pest::*;
 pub use semantic::*;
