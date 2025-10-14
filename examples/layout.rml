@@ -1,12 +1,11 @@
 #use <schema.rmlx> //Use rmlx file
-#import <schema::*> //Import all types from namespace "schema"
 
 <base::Layout@Root>
-    <schema::Node width=100% height=100%/>
-    <schema::base::ItemTemplate>
-        <base::Container>
+    <Node width=100% height=100%/>
+    <base::ItemTemplate>
+        <base::Entity>
             <Node width=30px height=40px/>
             <BackgroundColor self={Item}/>
-        </base::Container>
+        </base::Entity>
     </base::ItemTemplate>
 </base::Layout>

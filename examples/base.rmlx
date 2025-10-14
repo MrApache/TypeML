@@ -13,6 +13,7 @@ group Container {
 group Root(1) {
     + unique Component(*)
     + Container(?)
+    + Template(?)
 }
 
 #[Description("Template")]
@@ -21,7 +22,7 @@ group Template {
 }
 
 element Layout -> Root;
-element Container -> Container;
+element Entity -> Container;
 element ItemTemplate -> Template;
 
 @groups   [Component]
