@@ -11,7 +11,6 @@ harness = false
 lexer-core.workspace = true
 
 tower-lsp.workspace = true
-logos.workspace = true
 thiserror.workspace = true
 tokio.workspace = true
 url.workspace = true

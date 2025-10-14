@@ -1,6 +1,3 @@
-use lexer_core::Position;
-use logos::{Lexer, Logos};
-
 #[derive(Default, Debug, Clone, PartialEq, Eq)]
 pub enum Error {
     #[default]
@@ -16,14 +13,4 @@ pub enum Error {
     MissingToken {
         expected: Vec<&'static str>,
     },
-}
-
-impl Error {
-    pub(crate) fn from_lexer<'source, T>(lex: &mut Lexer<'source, T>) -> Self
-    where
-        T: Logos<'source, Extras=Position, Source=str>,
-    {
-        let ch = lex.slice().chars().next().unwrap();
-        Error::UnexpectedChar(ch)
-    }
 }

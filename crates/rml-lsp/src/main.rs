@@ -3,7 +3,6 @@
 mod tokens;
 
 use crate::tokens::get_tokens;
-use rml::{MarkupTokens, RmlTokenStream};
 use rmlx::{AnalysisWorkspace, RmlxParser, SchemaAst};
 use std::collections::HashMap;
 use std::ffi::OsStr;
@@ -14,10 +13,10 @@ use tower_lsp::lsp_types::{
     CompletionItem, CompletionOptions, CompletionParams, CompletionResponse, DeclarationCapability, DeclarationOptions,
     DeclarationRegistrationOptions, DidChangeTextDocumentParams, DidCloseTextDocumentParams, DidOpenTextDocumentParams,
     DocumentFilter, InitializeParams, InitializeResult, InitializedParams, InsertTextFormat, MessageType,
-    SemanticTokenType, SemanticTokens, SemanticTokensFullOptions, SemanticTokensLegend,
-    SemanticTokensOptions, SemanticTokensParams, SemanticTokensResult, SemanticTokensServerCapabilities,
-    ServerCapabilities, StaticRegistrationOptions, TextDocumentRegistrationOptions, TextDocumentSyncCapability,
-    TextDocumentSyncKind, Url, WorkDoneProgressOptions,
+    SemanticTokenType, SemanticTokens, SemanticTokensFullOptions, SemanticTokensLegend, SemanticTokensOptions,
+    SemanticTokensParams, SemanticTokensResult, SemanticTokensServerCapabilities, ServerCapabilities,
+    StaticRegistrationOptions, TextDocumentRegistrationOptions, TextDocumentSyncCapability, TextDocumentSyncKind, Url,
+    WorkDoneProgressOptions,
 };
 use tower_lsp::{Client, LanguageServer, LspService, Server};
 
