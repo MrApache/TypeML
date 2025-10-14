@@ -1,4 +1,5 @@
 use crate::ast::CustomType;
+use crate::semantic::expression::UnresolvedExpressionSymbol;
 use crate::{
     AnalysisWorkspace, RmlxParser, SchemaAst, TypeResolver,
     semantic::{
@@ -14,6 +15,7 @@ pub struct UnresolvedSchema {
     enums: Vec<UnresolvedEnumSymbol>,
     groups: Vec<UnresolvedGroupSymbol>,
     elements: Vec<UnresolvedElementSymbol>,
+    expressions: Vec<UnresolvedExpressionSymbol>,
 }
 
 impl UnresolvedSchema {
@@ -57,12 +59,21 @@ impl UnresolvedSchema {
             .map(UnresolvedElementSymbol::new)
             .collect::<Vec<_>>();
 
+        let expressions = ast
+            .custom_types
+            .iter()
+            .filter(|t| t.is_expression())
+            .map(CustomType::unwrap_expression)
+            .map(UnresolvedExpressionSymbol::new)
+            .collect::<Vec<_>>();
+
         Ok(UnresolvedSchema {
             namespace: directive_result.namespace,
             structs,
             enums,
             groups,
             elements,
+            expressions,
         })
     }
 
@@ -96,6 +107,14 @@ impl UnresolvedSchema {
             let result = e.resolve(workspace);
             if result {
                 symbols.push(SymbolKind::Element(e.as_resolved_type()));
+            }
+            !result
+        });
+
+        self.expressions.retain_mut(|e| {
+            let result = e.resolve(workspace);
+            if result {
+                symbols.push(SymbolKind::Expression(e.as_resolved_type()));
             }
             !result
         });

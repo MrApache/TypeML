@@ -299,6 +299,27 @@ fn build_directive(node: &CstNode<RmlxNode>) -> Directive {
     Directive { name, value }
 }
 
+fn build_annotation_value(node: &CstNode<RmlxNode>) -> AnnotationValue {
+    let child = node.children.first().unwrap();
+    match child.kind {
+        RmlxNode::Array => AnnotationValue::Array(
+            child
+                .children
+                .iter()
+                .filter_map(|c| {
+                    if let RmlxNode::Ident = c.kind {
+                        Some(c.text.clone())
+                    } else {
+                        None
+                    }
+                })
+                .collect(),
+        ),
+        RmlxNode::String => AnnotationValue::String(trim_quotes(&child.text).to_string()),
+        _ => unreachable!(),
+    }
+}
+
 fn build_annotation(node: &CstNode<RmlxNode>) -> Annotation {
     let mut name = String::new();
     let mut value = None;
@@ -306,21 +327,7 @@ fn build_annotation(node: &CstNode<RmlxNode>) -> Annotation {
     for child in &node.children {
         match child.kind {
             RmlxNode::Ident => name.clone_from(&child.text),
-            RmlxNode::AnnotationValue => value = Some(AnnotationValue::String(trim_quotes(&child.text).to_string())),
-            RmlxNode::Block => {
-                let array = child
-                    .children
-                    .iter()
-                    .filter_map(|c| {
-                        if let RmlxNode::Ident = c.kind {
-                            Some(c.text.clone())
-                        } else {
-                            None
-                        }
-                    })
-                    .collect();
-                value = Some(AnnotationValue::Array(array));
-            }
+            RmlxNode::AnnotationValue => value = Some(build_annotation_value(child)),
             _ => {}
         }
     }

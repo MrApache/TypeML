@@ -1,4 +1,5 @@
 use crate::Error;
+use crate::semantic::expression::ExpressionSymbol;
 use crate::semantic::{
     element::ElementSymbol,
     enumeration::{EnumSymbol, EnumVariant},
@@ -33,7 +34,9 @@ impl TypeRef {
 #[enum_dispatch]
 pub trait Symbol {
     fn identifier(&self) -> &str;
-    fn can_parse(&self, value: &str, model: &SchemaModel) -> Result<bool, Error>;
+    fn can_parse(&self, value: &str, model: &SchemaModel) -> Result<bool, Error> {
+        Ok(false)
+    }
     fn try_get_self_reference(&self, model: &SchemaModel) -> Option<&SymbolRef> {
         None
     }
@@ -194,6 +197,7 @@ pub enum SymbolKind {
     Enum(EnumSymbol),
     Group(GroupSymbol),
     Element(ElementSymbol),
+    Expression(ExpressionSymbol),
     Lazy(LazySymbol),
 }
 

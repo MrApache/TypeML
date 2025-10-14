@@ -48,6 +48,7 @@ impl UnresolvedElementField {
     pub fn new(f: &Field) -> UnresolvedElementField {
         let identifier = f.name.to_string();
         let ty = f.ty.clone().into();
+        //TODO Annotations
         UnresolvedElementField { identifier, ty }
     }
 }
@@ -120,10 +121,6 @@ impl TypeResolver<ElementSymbol> for UnresolvedElementSymbol {
 impl Symbol for ElementSymbol {
     fn identifier(&self) -> &str {
         &self.identifier
-    }
-
-    fn can_parse(&self, value: &str, model: &SchemaModel) -> Result<bool, crate::Error> {
-        Ok(false)
     }
 }
 
