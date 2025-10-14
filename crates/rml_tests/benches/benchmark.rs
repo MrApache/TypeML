@@ -39,7 +39,7 @@ fn semantic_analysis(bench: Bencher) {
 
 #[divan::bench]
 fn rml_full_analysis(bench: Bencher) {
-    const PATH: &str = concat!(env!("CARGO_WORKSPACE_DIR"), "examples/schema.rmlx");
+    const PATH: &str = concat!(env!("CARGO_WORKSPACE_DIR"), "examples/layout.rml");
     bench
         .with_inputs(|| {
             let content = std::fs::read_to_string(PATH).unwrap();
