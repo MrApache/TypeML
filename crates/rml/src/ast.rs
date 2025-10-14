@@ -29,6 +29,7 @@ pub struct Field {
 
 #[derive(Debug)]
 pub struct Struct {
+    pub source: String,
     pub fields: Vec<Field>,
 }
 
@@ -50,6 +51,7 @@ pub struct ExpressionArgument {
 
 #[derive(Debug)]
 pub struct Expression {
+    pub source: String,
     pub identifier: String,
     pub arguments: Vec<ExpressionArgument>,
 }
@@ -62,6 +64,25 @@ pub enum AttributeValue {
     Enum(String),
     Struct(Struct),
     Expression(Expression),
+}
+
+impl AttributeValue {
+    pub fn as_str(&self) -> &str {
+        match self {
+            AttributeValue::Boolean(value) => {
+                if *value {
+                    "true"
+                } else {
+                    "false"
+                }
+            }
+            AttributeValue::Number(value) => value.as_str(),
+            AttributeValue::String(value) => value.as_str(),
+            AttributeValue::Enum(value) => value.as_str(),
+            AttributeValue::Struct(value) => value.source.as_str(),
+            AttributeValue::Expression(value) => value.source.as_str(),
+        }
+    }
 }
 
 #[derive(Debug)]
@@ -118,6 +139,14 @@ fn build_expression_argument(node: &CstNode<RmlNode>) -> ExpressionArgument {
 }
 
 fn build_expression(node: &CstNode<RmlNode>) -> Expression {
+    let source = node
+        .text
+        .strip_prefix("{")
+        .unwrap()
+        .strip_suffix("}")
+        .unwrap()
+        .to_string();
+
     let mut iter = node.children.iter();
     let identifier = iter.next().unwrap().text.clone();
     let arguments = iter
@@ -125,7 +154,11 @@ fn build_expression(node: &CstNode<RmlNode>) -> Expression {
         .map(build_expression_argument)
         .collect::<Vec<_>>();
 
-    Expression { identifier, arguments }
+    Expression {
+        source,
+        identifier,
+        arguments,
+    }
 }
 
 fn build_field_value(node: &CstNode<RmlNode>) -> FieldValue {
@@ -147,13 +180,21 @@ fn build_struct_field(node: &CstNode<RmlNode>) -> Field {
 }
 
 fn build_struct(node: &CstNode<RmlNode>) -> Struct {
+    let source = node
+        .text
+        .strip_prefix("{{")
+        .unwrap()
+        .strip_suffix("}}")
+        .unwrap()
+        .to_string();
+
     let fields = node
         .children
         .iter()
         .filter(|c| matches!(c.kind, RmlNode::StructField))
         .map(build_struct_field)
         .collect::<Vec<_>>();
-    Struct { fields }
+    Struct { source, fields }
 }
 
 fn build_attribute_value(node: &CstNode<RmlNode>) -> AttributeValue {
