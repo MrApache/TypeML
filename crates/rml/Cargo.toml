@@ -9,3 +9,4 @@ tower-lsp.workspace = true
 lexer-core.workspace = true
 pest.workspace = true
 pest_derive.workspace = true
+url.workspace = true
