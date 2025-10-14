@@ -4,24 +4,36 @@ use lexer_core::CstKind;
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum RmlNode {
     File,
+
     Ident,
+    NsIdent,
+    Alias,
+
     String,
-    Number,
-    NumberWithUnit,
     Boolean,
 
+    Integer,
+    Float,
+    Number,
+
     EnumValue,
+    NumberWithUnit,
+
     Struct,
     StructField,
     FieldName,
     FieldValue,
+
     DirectiveContent,
     Directive,
+
     Element,
     EmptyTag,
     Tag,
+
     AttrValue,
     Attribute,
+
     Expression,
     ExprName,
     ExprArg,
@@ -39,10 +51,16 @@ impl CstKind for RmlNode {
     fn map_rule_to_cst_kind(rule: Self::Rule) -> Self {
         match rule {
             Rule::file => RmlNode::File,
-            Rule::identifier => RmlNode::Ident,
-            Rule::number => RmlNode::Number,
-            Rule::boolean => RmlNode::Boolean,
+
+            Rule::ident => RmlNode::Ident,
+            Rule::ns_ident => RmlNode::NsIdent,
+            Rule::alias => RmlNode::Alias,
             Rule::string => RmlNode::String,
+            Rule::boolean => RmlNode::Boolean,
+
+            Rule::number => RmlNode::Number,
+            //Rule::integer => RmlNode::Integer,
+            //Rule::float => RmlNode::Float,
             Rule::enum_val => RmlNode::EnumValue,
             Rule::number_with_unit => RmlNode::NumberWithUnit,
             Rule::structure => RmlNode::Struct,

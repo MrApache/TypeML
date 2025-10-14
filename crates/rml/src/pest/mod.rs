@@ -35,17 +35,11 @@ impl RmlParser {
 #[cfg(test)]
 mod tests {
     use crate::pest::RmlParser;
-
-    const CONTENT: &str = r#"
-    <Layout id="asd">
-        <Node width=10 height={Expression x=1 x="Hello" y=[A, B, C]}/>
-    </Layout>
-"#;
+    const PATH: &str = concat!(env!("CARGO_WORKSPACE_DIR"), "examples/layout.rml");
     #[test]
     fn test() {
-        //let content = std::fs::read_to_string("D:\\Projects\\rml\\examples\\base.rmlx").unwrap();
-        //let cst = RmlParser::build_cst(&content);
-        let ast = RmlParser::build_ast(CONTENT);
+        let content = std::fs::read_to_string(PATH).unwrap();
+        let ast = RmlParser::build_ast(&content);
         dbg!(ast);
     }
 }

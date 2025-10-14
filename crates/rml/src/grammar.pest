@@ -1,42 +1,48 @@
-WHITESPACE    = _{ " " | "\t" | "\r" | "\n" | COMMENT_MULTI | LINE_COMMENT}
+WHITESPACE    = _{ " " | "\t" | "\r" | "\n" | COMMENT_MULTI | LINE_COMMENT }
 COMMENT_MULTI = _{ "/*" ~ (!"*/" ~ ANY)* ~ "*/" }
 LINE_COMMENT  = _{ "//" ~ (!"\n" ~ ANY)* ~ ("\n" | EOI) }
 
 // Основной файл UI
-file        = { SOI ~ directive* ~ element ~ directive* ~ EOI }
+file = { SOI ~ directive* ~ element* ~ directive* ~ EOI }
 
-identifier  = @{ (ASCII_ALPHA | "_") ~ (ASCII_ALPHANUMERIC | "_")* }
-number      = @{ ASCII_DIGIT+ }
-boolean     = { "true" | "false" }
-string      = @{ "\"" ~ (!"\"" ~ ANY)* ~ "\"" }
-enum_val    = @{ (identifier | number_with_unit) }
-number_with_unit = { ASCII_DIGIT+ ~ ASCII_ALPHANUMERIC+ }
+ident    = @{ (ASCII_ALPHA | "_") ~ (ASCII_ALPHANUMERIC | "_")* }
+ns_ident =  { ident ~ ("::" ~ ident)* }
+alias    =  { "@" ~ ident }
 
-structure   = { "{{" ~ struct_field* ~ "}}" }
-struct_field = { WHITESPACE* ~ field_name ~ "=" ~ field_value ~ ("," ~ WHITESPACE*)? }
-field_name  = @{ ASCII_ALPHANUMERIC+ }
-field_value = { string | number | boolean | enum_val }
+integer = @{ "-"? ~ ASCII_DIGIT+ }
+float   = @{ integer ~ ("." ~ integer*)? }
+number  = @{ float | integer }
+
+boolean          =  { "true" | "false" }
+string           = @{ "\"" ~ (!"\"" ~ ANY)* ~ "\"" }
+enum_val         = @{ (ident | number_with_unit) }
+number_with_unit =  { ASCII_DIGIT+ ~ (!(WHITESPACE | "/") ~ ANY)* }
+
+structure    =  { "{{" ~ struct_field* ~ "}}" }
+struct_field =  { WHITESPACE* ~ field_name ~ "=" ~ field_value ~ ("," ~ WHITESPACE*)? }
+field_name   = @{ ASCII_ALPHANUMERIC+ }
+field_value  =  { string | number | boolean | enum_val }
 
 directive_content = { (!">" ~ ANY)* }
-directive = { "#" ~ identifier ~ ("<" ~ directive_content ~ ">")? }
+directive         = { "#" ~ ident ~ ("<" ~ directive_content ~ ">")? }
 
 element = { empty_tag | tag }
 
-empty_tag = { "<" ~ identifier ~ attribute* ~ "/>" }
-tag = { 
-	"<" ~ identifier ~ attribute* ~ ">" ~
-    element* ~
-    "</" ~ identifier ~ ">"
+empty_tag = { "<" ~ ns_ident ~ alias? ~ attribute* ~ "/>" }
+tag       = {
+    "<" ~ ns_ident ~ alias? ~ attribute* ~ ">" ~ element* ~ "</" ~ ns_ident ~ ">"
 }
 
-attr_value  = { enum_val | number | boolean | string | expression | structure }
-attribute = { identifier ~ "=" ~ attr_value } 
+// Attributes
+attr_value = { enum_val | number | boolean | string | expression | structure }
+attribute  = { ident ~ "=" ~ attr_value }
 
-expression  = { "{" ~ expr_name ~ (WHITESPACE* ~ expr_arg)* ~ "}" }
-expr_name   = @{ ASCII_ALPHANUMERIC+ }
-expr_arg    = { arg_name ~ "=" ~ arg_val }
-arg_name    = @{ ASCII_ALPHANUMERIC+ }
-arg_val     = { string | number | boolean | enum_val | list_val | negation }
+// Expression {ExpressionName arg1=val1, arg2=val2}
+expression =  { "{" ~ expr_name ~ (WHITESPACE* ~ expr_arg)* ~ "}" }
+expr_name  = @{ ASCII_ALPHANUMERIC+ }
+expr_arg   =  { arg_name ~ "=" ~ arg_val }
+arg_name   = @{ ASCII_ALPHANUMERIC+ }
+arg_val    =  { string | number | boolean | enum_val | list_val | negation }
 
-list_val    = { "[" ~ (arg_val ~ ("," ~ arg_val)*)? ~ "]" }
-negation    = { "!" ~ arg_val }
+list_val = { "[" ~ (arg_val ~ ("," ~ arg_val)*)? ~ "]" }
+negation = { "!" ~ arg_val }

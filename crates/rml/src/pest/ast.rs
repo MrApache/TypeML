@@ -57,7 +57,7 @@ pub struct Expression {
 #[derive(Debug)]
 pub enum AttributeValue {
     Boolean(bool),
-    Integer(String),
+    Number(String),
     String(String),
     Enum(String),
     Struct(Struct),
@@ -72,6 +72,7 @@ pub struct Attribute {
 
 #[derive(Debug)]
 pub struct Element {
+    pub namespace: Option<String>,
     pub identifier: String,
     pub attributes: Vec<Attribute>,
     pub children: Vec<Element>,
@@ -92,12 +93,10 @@ fn build_directive(node: &CstNode<RmlNode>) -> Directive {
     Directive { name, value }
 }
 
-//list_val    = { "[" ~ (arg_val ~ ("," ~ arg_val)*)? ~ "]" }
 fn build_list_value(node: &CstNode<RmlNode>) -> Vec<ArgumentValue> {
     node.children.iter().map(build_argument_value).collect()
 }
 
-//arg_val     = { string | number | boolean | enum_val | list_val | negation }
 fn build_argument_value(node: &CstNode<RmlNode>) -> ArgumentValue {
     let child = node.children.first().unwrap();
     match child.kind {
@@ -111,8 +110,6 @@ fn build_argument_value(node: &CstNode<RmlNode>) -> ArgumentValue {
     }
 }
 
-//expr_arg    = { arg_name ~ "=" ~ arg_val }
-//arg_name    = @{ ASCII_ALPHANUMERIC+ }
 fn build_expression_argument(node: &CstNode<RmlNode>) -> ExpressionArgument {
     let mut iter = node.children.iter();
     let identifier = iter.next().unwrap().text.clone();
@@ -120,8 +117,6 @@ fn build_expression_argument(node: &CstNode<RmlNode>) -> ExpressionArgument {
     ExpressionArgument { identifier, value }
 }
 
-//expr_name   = @{ ASCII_ALPHANUMERIC+ }
-//expression  = { "{" ~ expr_name ~ (WHITESPACE* ~ expr_arg)* ~ "}" }
 fn build_expression(node: &CstNode<RmlNode>) -> Expression {
     let mut iter = node.children.iter();
     let identifier = iter.next().unwrap().text.clone();
@@ -133,7 +128,6 @@ fn build_expression(node: &CstNode<RmlNode>) -> Expression {
     Expression { identifier, arguments }
 }
 
-//field_value = { string | number | boolean | enum_val }
 fn build_field_value(node: &CstNode<RmlNode>) -> FieldValue {
     let child = node.children.first().unwrap();
     match child.kind {
@@ -145,8 +139,6 @@ fn build_field_value(node: &CstNode<RmlNode>) -> FieldValue {
     }
 }
 
-//struct_field = { WHITESPACE* ~ field_name ~ "=" ~ arg_val ~ ("," ~ WHITESPACE*)? }
-//field_name  = @{ ASCII_ALPHANUMERIC+ }
 fn build_struct_field(node: &CstNode<RmlNode>) -> Field {
     let mut iter = node.children.iter();
     let identifier = iter.next().unwrap().text.clone();
@@ -154,7 +146,6 @@ fn build_struct_field(node: &CstNode<RmlNode>) -> Field {
     Field { identifier, value }
 }
 
-//structure   = { "{{" ~ struct_field* ~ "}}" }
 fn build_struct(node: &CstNode<RmlNode>) -> Struct {
     let fields = node
         .children
@@ -169,7 +160,7 @@ fn build_attribute_value(node: &CstNode<RmlNode>) -> AttributeValue {
     let child = node.children.first().unwrap();
     match child.kind {
         RmlNode::EnumValue => AttributeValue::Enum(node.text.to_string()),
-        RmlNode::Number => AttributeValue::Integer(node.text.to_string()),
+        RmlNode::Number => AttributeValue::Number(node.text.to_string()),
         RmlNode::Boolean => AttributeValue::Boolean(str::parse(&node.text).unwrap()),
         RmlNode::String => AttributeValue::String(node.text.to_string()),
         RmlNode::Expression => AttributeValue::Expression(build_expression(child)),
@@ -185,40 +176,64 @@ fn build_attribute(node: &CstNode<RmlNode>) -> Attribute {
     Attribute { identifier, value }
 }
 
+fn build_alias(node: &CstNode<RmlNode>) -> String {
+    node.children.first().unwrap().text.clone()
+}
+
+fn build_element_ident(node: &CstNode<RmlNode>) -> (Option<String>, String) {
+    match node.kind {
+        RmlNode::Ident => (None, node.text.to_string()),
+        RmlNode::NsIdent => {
+            if let Some((ns, ident)) = node.text.rsplit_once("::") {
+                (Some(ns.to_string()), ident.to_string())
+            } else {
+                (None, node.text.to_string())
+            }
+        }
+        _ => unreachable!(),
+    }
+}
+
 fn build_element_from_tag(node: &CstNode<RmlNode>) -> Element {
-    let open_identifier = node.children.first().unwrap().text.clone();
-    let close_identifier = node.children.last().unwrap().text.clone();
+    let (open_ns, open_ident) = build_element_ident(node.children.first().unwrap());
+    let (close_ns, close_ident) = build_element_ident(node.children.last().unwrap());
+    let mut alias = String::new();
     let mut children = vec![];
     let mut attributes = vec![];
 
     node.children[1..node.children.len() - 1]
         .iter()
         .for_each(|c| match c.kind {
+            RmlNode::Alias => alias = build_alias(c),
             RmlNode::Element => children.push(build_element(c)),
             RmlNode::Attribute => attributes.push(build_attribute(c)),
-            _ => unreachable!(),
+            kind => unreachable!("{kind:#?}"),
         });
 
+    //assert_eq!(open_ns, close_ns);
+    //assert_eq!(open_ident, close_ident);
+
     Element {
-        identifier: open_identifier,
+        namespace: open_ns,
+        identifier: open_ident,
         attributes,
         children,
     }
 }
 
 fn build_element_from_empty_tag(node: &CstNode<RmlNode>) -> Element {
-    let mut identifier = String::new();
+    let (namespace, identifier) = build_element_ident(node.children.first().unwrap());
     let mut attributes = Vec::new();
 
-    for child in &node.children {
+    for child in node.children.iter().skip(1) {
         match child.kind {
-            RmlNode::Ident => identifier.clone_from(&child.text),
             RmlNode::Attribute => attributes.push(build_attribute(child)),
             _ => unreachable!(),
         }
     }
 
     Element {
+        namespace,
         identifier,
         attributes,
         children: vec![],
