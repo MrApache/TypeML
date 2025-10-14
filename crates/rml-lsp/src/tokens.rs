@@ -1,7 +1,7 @@
 use lexer_core::{
     COMMENT_TOKEN, KEYWORD_TOKEN, MACRO_TOKEN, NUMBER_TOKEN, OPERATOR_TOKEN, PARAMETER_TOKEN, STRING_TOKEN, TYPE_TOKEN,
 };
-use rmlx::{CstKind, CstNode};
+use rmlx::{CstNode, RmlxNode};
 use tower_lsp::lsp_types::SemanticToken;
 
 // directive_content = @{ (!">" ~ ANY)* }
@@ -9,9 +9,9 @@ use tower_lsp::lsp_types::SemanticToken;
 fn directive_tokens(cst: &CstNode, tokens: &mut Vec<SemanticToken>) {
     cst.children.iter().for_each(|f| {
         let token_type = match f.kind {
-            CstKind::Hash | CstKind::Ident => MACRO_TOKEN,
-            CstKind::GT | CstKind::LT => OPERATOR_TOKEN,
-            CstKind::DirectiveContent => STRING_TOKEN,
+            RmlxNode::Hash | RmlxNode::Ident => MACRO_TOKEN,
+            RmlxNode::GT | RmlxNode::LT => OPERATOR_TOKEN,
+            RmlxNode::DirectiveContent => STRING_TOKEN,
             _ => unreachable!(),
         };
 
@@ -37,9 +37,9 @@ fn attribute_list_tokens(ancestor: &CstNode, cst: &CstNode, tokens: &mut Vec<Sem
 
     cst.children.iter().for_each(|f| {
         let token_type = match f.kind {
-            CstKind::Symbol => MACRO_TOKEN,
-            CstKind::Hash => return,
-            CstKind::Attribute => {
+            RmlxNode::Symbol => MACRO_TOKEN,
+            RmlxNode::Hash => return,
+            RmlxNode::Attribute => {
                 attribute_tokens(f, tokens);
                 return;
             }
@@ -71,8 +71,8 @@ fn attribute_tokens(cst: &CstNode, tokens: &mut Vec<SemanticToken>) {
     iter.for_each(|f| {
         let token_type = match f.kind {
             //CstKind::Ident => return,
-            CstKind::Symbol => u32::MAX,
-            CstKind::BaseType => {
+            RmlxNode::Symbol => u32::MAX,
+            RmlxNode::BaseType => {
                 base_type_tokens(f, tokens);
                 return;
             }
@@ -97,9 +97,9 @@ fn attribute_tokens(cst: &CstNode, tokens: &mut Vec<SemanticToken>) {
 fn base_type_tokens(cst: &CstNode, tokens: &mut Vec<SemanticToken>) {
     let token = cst.children.first().unwrap();
     let token_type = match token.kind {
-        CstKind::Boolean | CstKind::Number => NUMBER_TOKEN,
-        CstKind::Ident => u32::MAX,
-        CstKind::String => STRING_TOKEN,
+        RmlxNode::Boolean | RmlxNode::Number => NUMBER_TOKEN,
+        RmlxNode::Ident => u32::MAX,
+        RmlxNode::String => STRING_TOKEN,
         _ => unreachable!(),
     };
 
@@ -116,8 +116,8 @@ fn base_type_tokens(cst: &CstNode, tokens: &mut Vec<SemanticToken>) {
 fn generic_type_tokens(cst: &CstNode, tokens: &mut Vec<SemanticToken>) {
     cst.children.iter().for_each(|f| {
         let token_type = match f.kind {
-            CstKind::Ident | CstKind::NsIdent => TYPE_TOKEN,
-            CstKind::GT | CstKind::LT => OPERATOR_TOKEN,
+            RmlxNode::Ident | RmlxNode::NsIdent => TYPE_TOKEN,
+            RmlxNode::GT | RmlxNode::LT => OPERATOR_TOKEN,
             _ => unreachable!(),
         };
 
@@ -143,8 +143,8 @@ fn array_tokens(ancestor: &CstNode, cst: &CstNode, tokens: &mut Vec<SemanticToke
 
     cst.children.iter().skip(1).for_each(|f| {
         let token_type = match f.kind {
-            CstKind::Symbol => u32::MAX,
-            CstKind::NsIdent => TYPE_TOKEN,
+            RmlxNode::Symbol => u32::MAX,
+            RmlxNode::NsIdent => TYPE_TOKEN,
             _ => unreachable!(),
         };
 
@@ -162,8 +162,8 @@ fn array_tokens(ancestor: &CstNode, cst: &CstNode, tokens: &mut Vec<SemanticToke
 fn annotation_value_tokens(cst: &CstNode, tokens: &mut Vec<SemanticToken>) {
     let token = cst.children.first().unwrap();
     let token_type = match token.kind {
-        CstKind::String => STRING_TOKEN,
-        CstKind::Array => {
+        RmlxNode::String => STRING_TOKEN,
+        RmlxNode::Array => {
             array_tokens(cst, token, tokens);
             return;
         }
@@ -183,7 +183,7 @@ fn annotation_value_tokens(cst: &CstNode, tokens: &mut Vec<SemanticToken>) {
 fn annotation_tokens(ancestor: &CstNode, cst: &CstNode, tokens: &mut Vec<SemanticToken>) {
     let mut iter = cst.children.iter();
     let token = iter.next().unwrap();
-    assert_eq!(token.kind, CstKind::AT);
+    assert_eq!(token.kind, RmlxNode::AT);
     tokens.push(SemanticToken {
         delta_line: ancestor.delta_line,
         delta_start: ancestor.delta_start,
@@ -194,8 +194,8 @@ fn annotation_tokens(ancestor: &CstNode, cst: &CstNode, tokens: &mut Vec<Semanti
 
     iter.for_each(|f| {
         let token_type = match f.kind {
-            CstKind::Ident => MACRO_TOKEN,
-            CstKind::AnnotationValue => {
+            RmlxNode::Ident => MACRO_TOKEN,
+            RmlxNode::AnnotationValue => {
                 annotation_value_tokens(f, tokens);
                 return;
             }
@@ -217,8 +217,8 @@ fn simple_field(ancestor: &CstNode, cst: &CstNode, tokens: &mut Vec<SemanticToke
     let mut iter = cst.children.iter();
     let token = iter.next().unwrap();
     match token.kind {
-        CstKind::Annotation => annotation_tokens(ancestor, token, tokens),
-        CstKind::Ident => tokens.push(SemanticToken {
+        RmlxNode::Annotation => annotation_tokens(ancestor, token, tokens),
+        RmlxNode::Ident => tokens.push(SemanticToken {
             delta_line: ancestor.delta_line,
             delta_start: ancestor.delta_start,
             length: token.text.len() as u32,
@@ -230,13 +230,13 @@ fn simple_field(ancestor: &CstNode, cst: &CstNode, tokens: &mut Vec<SemanticToke
 
     iter.for_each(|f| {
         let token_type = match f.kind {
-            CstKind::GenericType => {
+            RmlxNode::GenericType => {
                 generic_type_tokens(f, tokens);
                 return;
             }
-            CstKind::Symbol => u32::MAX,
-            CstKind::NsIdent => TYPE_TOKEN,
-            CstKind::Ident => PARAMETER_TOKEN,
+            RmlxNode::Symbol => u32::MAX,
+            RmlxNode::NsIdent => TYPE_TOKEN,
+            RmlxNode::Ident => PARAMETER_TOKEN,
             _ => unreachable!(),
         };
 
@@ -254,11 +254,11 @@ fn simple_field(ancestor: &CstNode, cst: &CstNode, tokens: &mut Vec<SemanticToke
 fn simple_fields(cst: &CstNode, tokens: &mut Vec<SemanticToken>) {
     cst.children.iter().for_each(|f| {
         let token_type = match f.kind {
-            CstKind::SimpleField => {
+            RmlxNode::SimpleField => {
                 simple_field(cst, f, tokens);
                 return;
             }
-            CstKind::Symbol => u32::MAX,
+            RmlxNode::Symbol => u32::MAX,
             _ => unreachable!(),
         };
 
@@ -286,8 +286,8 @@ fn block_tokens(cst: &CstNode, tokens: &mut Vec<SemanticToken>) {
 
     cst.children.iter().skip(1).for_each(|f| {
         let token_type = match f.kind {
-            CstKind::Symbol => u32::MAX,
-            CstKind::SimpleFields => {
+            RmlxNode::Symbol => u32::MAX,
+            RmlxNode::SimpleFields => {
                 simple_fields(f, tokens);
                 return;
             }
@@ -308,20 +308,20 @@ fn block_tokens(cst: &CstNode, tokens: &mut Vec<SemanticToken>) {
 fn struct_tokens(ancestor: &CstNode, cst: &CstNode, tokens: &mut Vec<SemanticToken>) {
     cst.children.iter().for_each(|f| {
         let token_type = match f.kind {
-            CstKind::AttributeList => {
+            RmlxNode::AttributeList => {
                 attribute_list_tokens(ancestor, f, tokens);
                 return;
             }
-            CstKind::GenericType => {
+            RmlxNode::GenericType => {
                 generic_type_tokens(f, tokens);
                 return;
             }
-            CstKind::Block => {
+            RmlxNode::Block => {
                 block_tokens(f, tokens);
                 return;
             }
-            CstKind::Ident => TYPE_TOKEN,
-            CstKind::Keyword => KEYWORD_TOKEN,
+            RmlxNode::Ident => TYPE_TOKEN,
+            RmlxNode::Keyword => KEYWORD_TOKEN,
             _ => unreachable!(),
         };
 
@@ -340,8 +340,8 @@ fn element_tokens(ancestor: &CstNode, cst: &CstNode, tokens: &mut Vec<SemanticTo
     let mut iter = cst.children.iter();
     let token = iter.next().unwrap();
     match token.kind {
-        CstKind::AttributeList => attribute_list_tokens(ancestor, token, tokens),
-        CstKind::Keyword => tokens.push(SemanticToken {
+        RmlxNode::AttributeList => attribute_list_tokens(ancestor, token, tokens),
+        RmlxNode::Keyword => tokens.push(SemanticToken {
             delta_line: ancestor.delta_line,
             delta_start: ancestor.delta_start,
             length: token.text.len() as u32,
@@ -353,14 +353,14 @@ fn element_tokens(ancestor: &CstNode, cst: &CstNode, tokens: &mut Vec<SemanticTo
 
     iter.for_each(|f| {
         let token_type = match f.kind {
-            CstKind::Block => {
+            RmlxNode::Block => {
                 block_tokens(f, tokens);
                 return;
             }
-            CstKind::Keyword => KEYWORD_TOKEN,
-            CstKind::Arrow => OPERATOR_TOKEN,
-            CstKind::Ident | CstKind::NsIdent => TYPE_TOKEN,
-            CstKind::Symbol => u32::MAX,
+            RmlxNode::Keyword => KEYWORD_TOKEN,
+            RmlxNode::Arrow => OPERATOR_TOKEN,
+            RmlxNode::Ident | RmlxNode::NsIdent => TYPE_TOKEN,
+            RmlxNode::Symbol => u32::MAX,
             _ => unreachable!(),
         };
 
@@ -378,13 +378,13 @@ fn element_tokens(ancestor: &CstNode, cst: &CstNode, tokens: &mut Vec<SemanticTo
 fn enum_variant_tokens(cst: &CstNode, tokens: &mut Vec<SemanticToken>) {
     cst.children.iter().for_each(|f| {
         let token_type = match f.kind {
-            CstKind::Annotation => {
+            RmlxNode::Annotation => {
                 annotation_tokens(cst, f, tokens); //TODO fix
                 return;
             }
-            CstKind::Ident => PARAMETER_TOKEN,
-            CstKind::Symbol => u32::MAX,
-            CstKind::NsIdent => TYPE_TOKEN,
+            RmlxNode::Ident => PARAMETER_TOKEN,
+            RmlxNode::Symbol => u32::MAX,
+            RmlxNode::NsIdent => TYPE_TOKEN,
             _ => unreachable!(),
         };
 
@@ -402,17 +402,17 @@ fn enum_variant_tokens(cst: &CstNode, tokens: &mut Vec<SemanticToken>) {
 fn enum_tokens(ancestor: &CstNode, cst: &CstNode, tokens: &mut Vec<SemanticToken>) {
     cst.children.iter().for_each(|f| {
         let token_type = match f.kind {
-            CstKind::AttributeList => {
+            RmlxNode::AttributeList => {
                 attribute_list_tokens(ancestor, f, tokens);
                 return;
             }
-            CstKind::EnumVariant => {
+            RmlxNode::EnumVariant => {
                 enum_variant_tokens(f, tokens);
                 return;
             }
-            CstKind::Keyword => KEYWORD_TOKEN,
-            CstKind::Ident => TYPE_TOKEN,
-            CstKind::Symbol => u32::MAX,
+            RmlxNode::Keyword => KEYWORD_TOKEN,
+            RmlxNode::Ident => TYPE_TOKEN,
+            RmlxNode::Symbol => u32::MAX,
             _ => unreachable!(),
         };
 
@@ -430,7 +430,7 @@ fn enum_tokens(ancestor: &CstNode, cst: &CstNode, tokens: &mut Vec<SemanticToken
 fn count_tokens(cst: &CstNode, tokens: &mut Vec<SemanticToken>) {
     let mut iter = cst.children.iter();
     let token = iter.next().unwrap();
-    assert_eq!(token.kind, CstKind::Symbol);
+    assert_eq!(token.kind, RmlxNode::Symbol);
     tokens.push(SemanticToken {
         delta_line: cst.delta_line,
         delta_start: cst.delta_start,
@@ -441,9 +441,9 @@ fn count_tokens(cst: &CstNode, tokens: &mut Vec<SemanticToken>) {
 
     iter.for_each(|f| {
         let token_type = match f.kind {
-            CstKind::Symbol => OPERATOR_TOKEN,
-            CstKind::Number => NUMBER_TOKEN,
-            CstKind::Star | CstKind::QMark | CstKind::Plus => MACRO_TOKEN,
+            RmlxNode::Symbol => OPERATOR_TOKEN,
+            RmlxNode::Number => NUMBER_TOKEN,
+            RmlxNode::Star | RmlxNode::QMark | RmlxNode::Plus => MACRO_TOKEN,
             _ => unreachable!(),
         };
 
@@ -461,7 +461,7 @@ fn count_tokens(cst: &CstNode, tokens: &mut Vec<SemanticToken>) {
 fn group_entry_tokens(cst: &CstNode, tokens: &mut Vec<SemanticToken>) {
     let mut iter = cst.children.iter();
     let token = iter.next().unwrap();
-    assert_eq!(token.kind, CstKind::Plus);
+    assert_eq!(token.kind, RmlxNode::Plus);
     tokens.push(SemanticToken {
         delta_line: cst.delta_line,
         delta_start: cst.delta_start,
@@ -472,9 +472,9 @@ fn group_entry_tokens(cst: &CstNode, tokens: &mut Vec<SemanticToken>) {
 
     iter.for_each(|f| {
         let token_type = match f.kind {
-            CstKind::Keyword => KEYWORD_TOKEN,
-            CstKind::NsIdent => TYPE_TOKEN,
-            CstKind::Count => {
+            RmlxNode::Keyword => KEYWORD_TOKEN,
+            RmlxNode::NsIdent => TYPE_TOKEN,
+            RmlxNode::Count => {
                 count_tokens(f, tokens);
                 return;
             }
@@ -495,7 +495,7 @@ fn group_entry_tokens(cst: &CstNode, tokens: &mut Vec<SemanticToken>) {
 fn group_content_tokens(cst: &CstNode, tokens: &mut Vec<SemanticToken>) {
     let mut iter = cst.children.iter();
     let token = iter.next().unwrap();
-    assert_eq!(token.kind, CstKind::Symbol);
+    assert_eq!(token.kind, RmlxNode::Symbol);
     tokens.push(SemanticToken {
         delta_line: cst.delta_line,
         delta_start: cst.delta_start,
@@ -506,8 +506,8 @@ fn group_content_tokens(cst: &CstNode, tokens: &mut Vec<SemanticToken>) {
 
     iter.for_each(|f| {
         let token_type = match f.kind {
-            CstKind::Symbol => u32::MAX,
-            CstKind::GroupEntry => {
+            RmlxNode::Symbol => u32::MAX,
+            RmlxNode::GroupEntry => {
                 group_entry_tokens(f, tokens);
                 return;
             }
@@ -530,31 +530,30 @@ fn group_tokens(ancestor: &CstNode, cst: &CstNode, tokens: &mut Vec<SemanticToke
 
     let token = iter.next().unwrap();
     match token.kind {
-        CstKind::AttributeList => attribute_list_tokens(ancestor, token, tokens),
-        CstKind::Keyword => tokens.push(
-            SemanticToken {
-                delta_line: ancestor.delta_line,
-                delta_start: ancestor.delta_start,
-                length: token.text.len() as u32,
-                token_type: KEYWORD_TOKEN,
-                token_modifiers_bitset: 0,
-            }),
-        _ => unreachable!()
+        RmlxNode::AttributeList => attribute_list_tokens(ancestor, token, tokens),
+        RmlxNode::Keyword => tokens.push(SemanticToken {
+            delta_line: ancestor.delta_line,
+            delta_start: ancestor.delta_start,
+            length: token.text.len() as u32,
+            token_type: KEYWORD_TOKEN,
+            token_modifiers_bitset: 0,
+        }),
+        _ => unreachable!(),
     }
 
     iter.for_each(|f| {
         let token_type = match f.kind {
-            CstKind::Count => {
+            RmlxNode::Count => {
                 count_tokens(f, tokens);
                 return;
             }
-            CstKind::GroupContent => {
+            RmlxNode::GroupContent => {
                 group_content_tokens(f, tokens);
                 return;
             }
-            CstKind::Keyword => KEYWORD_TOKEN,
-            CstKind::Ident => TYPE_TOKEN,
-            CstKind::Symbol => u32::MAX,
+            RmlxNode::Keyword => KEYWORD_TOKEN,
+            RmlxNode::Ident => TYPE_TOKEN,
+            RmlxNode::Symbol => u32::MAX,
             _ => unreachable!(),
         };
 
@@ -573,34 +572,34 @@ fn expression_tokens(ancestor: &CstNode, cst: &CstNode, tokens: &mut Vec<Semanti
     let mut iter = cst.children.iter();
     let token = iter.next().unwrap();
     match token.kind {
-        CstKind::AttributeList => attribute_list_tokens(ancestor, token, tokens),
-        CstKind::Annotation => annotation_tokens(ancestor, token, tokens),
-        CstKind::Keyword => tokens.push(SemanticToken {
+        RmlxNode::AttributeList => attribute_list_tokens(ancestor, token, tokens),
+        RmlxNode::Annotation => annotation_tokens(ancestor, token, tokens),
+        RmlxNode::Keyword => tokens.push(SemanticToken {
             delta_line: ancestor.delta_line,
             delta_start: ancestor.delta_start,
             length: token.text.len() as u32,
             token_type: KEYWORD_TOKEN,
             token_modifiers_bitset: 0,
         }),
-        _ => unreachable!()
+        _ => unreachable!(),
     }
 
     cst.children.iter().for_each(|f| {
         let token_type = match f.kind {
-            CstKind::AttributeList => {
+            RmlxNode::AttributeList => {
                 attribute_list_tokens(f, f, tokens);
                 return;
             }
-            CstKind::Annotation => {
+            RmlxNode::Annotation => {
                 annotation_tokens(f, f, tokens);
                 return;
             }
-            CstKind::Block => {
+            RmlxNode::Block => {
                 block_tokens(f, tokens);
                 return;
             }
-            CstKind::Keyword => KEYWORD_TOKEN,
-            CstKind::Ident => TYPE_TOKEN,
+            RmlxNode::Keyword => KEYWORD_TOKEN,
+            RmlxNode::Ident => TYPE_TOKEN,
             _ => unreachable!(),
         };
 
@@ -618,18 +617,18 @@ fn expression_tokens(ancestor: &CstNode, cst: &CstNode, tokens: &mut Vec<Semanti
 fn custom_type_tokens(cst: &CstNode, tokens: &mut Vec<SemanticToken>) {
     let token = cst.children.first().unwrap();
     match token.kind {
-        CstKind::Struct => struct_tokens(cst, token, tokens),
-        CstKind::Element => element_tokens(cst, token, tokens),
-        CstKind::Enum => enum_tokens(cst, token, tokens),
-        CstKind::Expression => expression_tokens(cst, token, tokens),
-        CstKind::Group | CstKind::ExtendGroup => group_tokens(cst, token, tokens),
+        RmlxNode::Struct => struct_tokens(cst, token, tokens),
+        RmlxNode::Element => element_tokens(cst, token, tokens),
+        RmlxNode::Enum => enum_tokens(cst, token, tokens),
+        RmlxNode::Expression => expression_tokens(cst, token, tokens),
+        RmlxNode::Group | RmlxNode::ExtendGroup => group_tokens(cst, token, tokens),
         _ => unreachable!(),
     }
 }
 
 fn file_tokens(cst: &CstNode, tokens: &mut Vec<SemanticToken>) {
     cst.children.iter().for_each(|f| match f.kind {
-        CstKind::Comment => {
+        RmlxNode::Comment => {
             tokens.push(SemanticToken {
                 delta_line: f.delta_line,
                 delta_start: f.delta_start,
@@ -638,15 +637,15 @@ fn file_tokens(cst: &CstNode, tokens: &mut Vec<SemanticToken>) {
                 token_modifiers_bitset: 0,
             });
         }
-        CstKind::Directive => directive_tokens(f, tokens),
-        CstKind::CustomType => custom_type_tokens(f, tokens),
-        CstKind::Symbol => {}
+        RmlxNode::Directive => directive_tokens(f, tokens),
+        RmlxNode::CustomType => custom_type_tokens(f, tokens),
+        RmlxNode::Symbol => {}
         _ => unreachable!("{f:#?}"),
     });
 }
 
 pub fn get_tokens(cst: &CstNode) -> Vec<SemanticToken> {
-    assert!(matches!(cst.kind, CstKind::File));
+    assert!(matches!(cst.kind, RmlxNode::File));
     let mut tokens = vec![];
     file_tokens(cst, &mut tokens);
     tokens

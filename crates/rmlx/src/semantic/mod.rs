@@ -296,7 +296,7 @@ impl RmlAnalyzer {
         })
     }
 
-    fn next_state(&mut self, namespace: Option<&str>, name: &str) {
+    pub fn next_state(&mut self, namespace: Option<&str>, name: &str) {
         debug_assert!(self.is_allowed_element(namespace, name));
 
         let model = self.model.read().unwrap();
@@ -333,13 +333,14 @@ impl RmlAnalyzer {
         self.active = next;
     }
 
-    fn exit_state(&mut self, namespace: Option<&str>, name: &str) {
+    pub fn exit_state(&mut self, namespace: Option<&str>, name: &str) {
         let previous_element = self.depth.pop().unwrap();
         assert!(previous_element.name == name && previous_element.namespace.as_deref() == namespace);
         self.active = previous_element.state;
     }
 
-    fn is_valid_attribute(&self, name: &str, value: &str) -> bool {
+    #[must_use]
+    pub fn is_valid_attribute(&self, name: &str, value: &str) -> bool {
         let model = self.model.read().unwrap();
         let last_element = self.depth.last().unwrap();
         let element_namespace = model.get_namespace_id(last_element.namespace.as_deref());

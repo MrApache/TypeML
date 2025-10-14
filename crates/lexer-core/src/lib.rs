@@ -1,7 +1,10 @@
 #![allow(clippy::cast_possible_truncation)]
 
 mod comment;
+mod cst;
+
 pub use comment::*;
+pub use cst::*;
 use logos::{Lexer, Logos, Source, Span};
 use tower_lsp::lsp_types::{Position as LspPosition, Range, SemanticToken};
 
@@ -106,20 +109,16 @@ pub struct Token<T> {
 impl<T> Token<T> {
     pub fn new<'source, Token>(kind: T, lexer: &mut Lexer<'source, Token>) -> Self
     where
-        Token: Logos<'source, Extras=Position>,
+        Token: Logos<'source, Extras = Position>,
     {
         let delta_line = lexer.extras.get_delta_line();
         let delta_start = lexer.extras.get_delta_start();
         Self::new_custom(kind, lexer, lexer.span(), delta_line, delta_start)
     }
 
-    pub fn new_with_span<'source, Token>(
-        kind: T,
-        lexer: &mut Lexer<'source, Token>,
-        span: Span,
-    ) -> Self
+    pub fn new_with_span<'source, Token>(kind: T, lexer: &mut Lexer<'source, Token>, span: Span) -> Self
     where
-        Token: Logos<'source, Extras=Position>,
+        Token: Logos<'source, Extras = Position>,
     {
         let delta_line = lexer.extras.get_delta_line();
         let delta_start = lexer.extras.get_delta_start();
@@ -134,7 +133,7 @@ impl<T> Token<T> {
         delta_start: u32,
     ) -> Self
     where
-        Token: Logos<'source, Extras=Position>,
+        Token: Logos<'source, Extras = Position>,
     {
         Self {
             kind,
@@ -208,7 +207,7 @@ impl<T> Token<T> {
         }
     }
 
-    pub fn push_with_advance<'s, Tok: Logos<'s, Extras=Position>>(
+    pub fn push_with_advance<'s, Tok: Logos<'s, Extras = Position>>(
         tokens: &mut Vec<Self>,
         kind: impl Into<T>,
         lex: &mut Lexer<'s, Tok>,

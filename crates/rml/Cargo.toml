@@ -7,3 +7,5 @@ edition = "2024"
 tower-lsp.workspace = true
 logos.workspace = true
 lexer-core.workspace = true
+pest.workspace = true
+pest_derive.workspace = true

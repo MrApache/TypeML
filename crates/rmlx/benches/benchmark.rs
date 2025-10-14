@@ -1,5 +1,5 @@
 use divan::Bencher;
-use rmlx::{AnalysisWorkspace, RmlxParser, build_schema_ast};
+use rmlx::{AnalysisWorkspace, RmlAnalyzer, RmlxParser, build_schema_ast};
 use url::Url;
 
 fn main() {
@@ -34,3 +34,17 @@ fn semantic_analysis(bench: Bencher) {
             let _ = w.run();
         });
 }
+
+/*
+#[divan::bench]
+fn rml_analysis(bench: Bencher) {
+    const PATH: &str = concat!(env!("CARGO_WORKSPACE_DIR"), "examples/schema.rmlx");
+    bench
+        .with_inputs(|| {
+            let url = Url::from_file_path(PATH).unwrap();
+            let w = AnalysisWorkspace::new(url);
+            RmlAnalyzer::new(w.model())
+        })
+        .bench_values(|rml| rml.is_allowed_element());
+}
+*/

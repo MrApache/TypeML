@@ -1,9 +1,10 @@
-mod cst;
 mod ast;
+mod cst;
 
 pub use ast::*;
 pub use cst::*;
 
+use lexer_core::CstNode;
 use pest::Parser;
 use pest_derive::Parser;
 
@@ -13,12 +14,12 @@ pub struct RmlxParser;
 
 impl RmlxParser {
     #[must_use]
-    pub fn build_cst(content: &str) -> CstNode {
+    pub fn build_cst(content: &str) -> CstNode<RmlxNode> {
         let mut prev_line = 1;
         let mut prev_col = 1;
         let mut result = RmlxParser::parse(Rule::file, content);
         if let Ok(mut tree) = result {
-            build_cst(&tree.next().unwrap(), content, &mut prev_line, &mut prev_col)
+            CstNode::<RmlxNode>::build_cst(&tree.next().unwrap(), content, &mut prev_line, &mut prev_col)
         } else {
             panic!("Error: {result:#?}");
         }

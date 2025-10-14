@@ -1,12 +1,16 @@
+#![allow(unused)]
+
 pub mod context;
 mod errors;
-use lexer_core::{comment_callback, CommentToken, Position, Token};
+mod pest;
+
+use lexer_core::{CommentToken, Position, Token, comment_callback};
 pub use logos;
 
 use logos::{Lexer, Logos};
 
 use crate::context::{
-    directive_callback, tag_context_callback, text_context_callback, DirectiveToken, TagContext, Text,
+    DirectiveToken, TagContext, Text, directive_callback, tag_context_callback, text_context_callback,
 };
 
 #[derive(Logos, Debug, PartialEq, Eq, Clone)]

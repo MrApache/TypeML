@@ -886,6 +886,8 @@ name = "lexer-core"
 version = "0.1.0"
 dependencies = [
  "logos",
+ "pest",
+ "pest_derive",
  "tower-lsp",
 ]
 
@@ -1355,6 +1357,8 @@ version = "0.1.0"
 dependencies = [
  "lexer-core",
  "logos",
+ "pest",
+ "pest_derive",
  "tower-lsp",
 ]
 

@@ -6,3 +6,5 @@ edition = "2024"
 [dependencies]
 logos.workspace = true
 tower-lsp.workspace = true
+pest.workspace = true
+pest_derive.workspace = true

@@ -1,4 +1,5 @@
-use crate::pest::cst::{CstKind, CstNode};
+use crate::pest::cst::RmlxNode;
+use lexer_core::CstNode;
 use std::fmt::Display;
 
 fn trim_quotes(s: &str) -> &str {
@@ -16,7 +17,7 @@ pub struct SchemaAst {
 #[derive(Debug)]
 pub struct Directive {
     pub name: String,
-    pub value: Option<String>, // содержимое <...>
+    pub value: Option<String>,
 }
 
 #[derive(Clone, Debug)]
@@ -283,14 +284,14 @@ pub struct Expression {
     pub fields: Vec<Field>,
 }
 
-fn build_directive(node: &CstNode) -> Directive {
+fn build_directive(node: &CstNode<RmlxNode>) -> Directive {
     let mut name = String::new();
     let mut value = None;
 
     for child in &node.children {
         match child.kind {
-            CstKind::Ident => name.clone_from(&child.text),
-            CstKind::String | CstKind::DirectiveContent => value = Some(child.text.clone()),
+            RmlxNode::Ident => name.clone_from(&child.text),
+            RmlxNode::String | RmlxNode::DirectiveContent => value = Some(child.text.clone()),
             _ => {}
         }
     }
@@ -298,20 +299,20 @@ fn build_directive(node: &CstNode) -> Directive {
     Directive { name, value }
 }
 
-fn build_annotation(node: &CstNode) -> Annotation {
+fn build_annotation(node: &CstNode<RmlxNode>) -> Annotation {
     let mut name = String::new();
     let mut value = None;
 
     for child in &node.children {
         match child.kind {
-            CstKind::Ident => name.clone_from(&child.text),
-            CstKind::AnnotationValue => value = Some(AnnotationValue::String(trim_quotes(&child.text).to_string())),
-            CstKind::Block => {
+            RmlxNode::Ident => name.clone_from(&child.text),
+            RmlxNode::AnnotationValue => value = Some(AnnotationValue::String(trim_quotes(&child.text).to_string())),
+            RmlxNode::Block => {
                 let array = child
                     .children
                     .iter()
                     .filter_map(|c| {
-                        if let CstKind::Ident = c.kind {
+                        if let RmlxNode::Ident = c.kind {
                             Some(c.text.clone())
                         } else {
                             None
@@ -327,15 +328,15 @@ fn build_annotation(node: &CstNode) -> Annotation {
     Annotation { name, value }
 }
 
-fn build_attributes(node: &CstNode) -> Vec<Attribute> {
+fn build_attributes(node: &CstNode<RmlxNode>) -> Vec<Attribute> {
     let mut attributes = Vec::new();
 
     let mut iter = node.children.iter();
-    consume_token(&mut iter, &CstKind::Hash, Some("#"));
-    consume_token(&mut iter, &CstKind::Symbol, Some("["));
+    consume_token(&mut iter, &RmlxNode::Hash, Some("#"));
+    consume_token(&mut iter, &RmlxNode::Symbol, Some("["));
 
     for child in iter {
-        if child.kind == CstKind::Attribute {
+        if child.kind == RmlxNode::Attribute {
             attributes.push(build_attribute(child));
         }
     }
@@ -343,17 +344,17 @@ fn build_attributes(node: &CstNode) -> Vec<Attribute> {
     attributes
 }
 
-fn build_attribute(node: &CstNode) -> Attribute {
+fn build_attribute(node: &CstNode<RmlxNode>) -> Attribute {
     let mut name = String::new();
     let mut value = None;
     for child in &node.children {
         match child.kind {
-            CstKind::Ident => name.clone_from(&child.text),
-            CstKind::BaseType => match child.children.first().unwrap().kind {
-                CstKind::Number => value = Some(BaseType::Number(child.text.clone())),
-                CstKind::Boolean => value = Some(BaseType::Boolean(child.text == "true")),
-                CstKind::String => value = Some(BaseType::String(child.text.clone())),
-                CstKind::Ident => value = Some(BaseType::Ident(child.text.clone())),
+            RmlxNode::Ident => name.clone_from(&child.text),
+            RmlxNode::BaseType => match child.children.first().unwrap().kind {
+                RmlxNode::Number => value = Some(BaseType::Number(child.text.clone())),
+                RmlxNode::Boolean => value = Some(BaseType::Boolean(child.text == "true")),
+                RmlxNode::String => value = Some(BaseType::String(child.text.clone())),
+                RmlxNode::Ident => value = Some(BaseType::Ident(child.text.clone())),
                 _ => {}
             },
             _ => {}
@@ -362,22 +363,22 @@ fn build_attribute(node: &CstNode) -> Attribute {
     Attribute { name, value }
 }
 
-fn build_custom_type(node: &CstNode) -> CustomType {
+fn build_custom_type(node: &CstNode<RmlxNode>) -> CustomType {
     assert!(!node.children.is_empty(), "CustomType node has no children");
 
     let first_child = &node.children[0];
     match first_child.kind {
-        CstKind::Struct => CustomType::Struct(build_struct(first_child)),
-        CstKind::Enum => CustomType::Enum(build_enum(first_child)),
-        CstKind::Element => CustomType::Element(build_element(first_child)),
-        CstKind::ExtendGroup => CustomType::Group(build_group(first_child, true)),
-        CstKind::Group => CustomType::Group(build_group(first_child, false)),
-        CstKind::Expression => CustomType::Expression(build_expression(first_child)),
+        RmlxNode::Struct => CustomType::Struct(build_struct(first_child)),
+        RmlxNode::Enum => CustomType::Enum(build_enum(first_child)),
+        RmlxNode::Element => CustomType::Element(build_element(first_child)),
+        RmlxNode::ExtendGroup => CustomType::Group(build_group(first_child, true)),
+        RmlxNode::Group => CustomType::Group(build_group(first_child, false)),
+        RmlxNode::Expression => CustomType::Expression(build_expression(first_child)),
         _ => panic!("Unexpected child kind in CustomType: {:?}", first_child.kind),
     }
 }
 
-fn build_struct(node: &CstNode) -> Struct {
+fn build_struct(node: &CstNode<RmlxNode>) -> Struct {
     let mut attributes = Vec::new();
     let mut name = String::new();
     let mut generic = None;
@@ -385,15 +386,15 @@ fn build_struct(node: &CstNode) -> Struct {
 
     for child in &node.children {
         match child.kind {
-            CstKind::AttributeList => attributes.extend(build_attributes(child)),
-            CstKind::Ident => name.clone_from(&child.text),
-            CstKind::GenericType => {
+            RmlxNode::AttributeList => attributes.extend(build_attributes(child)),
+            RmlxNode::Ident => name.clone_from(&child.text),
+            RmlxNode::GenericType => {
                 let parts: Vec<&str> = child.text.split('<').collect();
                 if parts.len() == 2 {
                     generic = Some(parts[1].trim_end_matches('>').to_string());
                 }
             }
-            CstKind::Block => fields.extend(build_fields(child)),
+            RmlxNode::Block => fields.extend(build_fields(child)),
             _ => {}
         }
     }
@@ -406,13 +407,13 @@ fn build_struct(node: &CstNode) -> Struct {
     }
 }
 
-fn build_fields(block_node: &CstNode) -> Vec<Field> {
+fn build_fields(block_node: &CstNode<RmlxNode>) -> Vec<Field> {
     let mut fields = Vec::new();
 
     for child in &block_node.children {
-        if child.kind == CstKind::SimpleFields {
+        if child.kind == RmlxNode::SimpleFields {
             for field_node in &child.children {
-                if field_node.kind == CstKind::SimpleField {
+                if field_node.kind == RmlxNode::SimpleField {
                     fields.push(build_field(field_node));
                 }
             }
@@ -422,17 +423,17 @@ fn build_fields(block_node: &CstNode) -> Vec<Field> {
     fields
 }
 
-fn build_field(node: &CstNode) -> Field {
+fn build_field(node: &CstNode<RmlxNode>) -> Field {
     let mut annotations = Vec::new();
     let mut name = String::new();
     let mut ty = TypeRef::default();
 
     for child in &node.children {
         match child.kind {
-            CstKind::Annotation => annotations.push(build_annotation(child)),
-            CstKind::Ident if name.is_empty() => name.clone_from(&child.text),
-            CstKind::NsIdent => ty = TypeRef::new(child.text.as_str()),
-            CstKind::GenericType => {
+            RmlxNode::Annotation => annotations.push(build_annotation(child)),
+            RmlxNode::Ident if name.is_empty() => name.clone_from(&child.text),
+            RmlxNode::NsIdent => ty = TypeRef::new(child.text.as_str()),
+            RmlxNode::GenericType => {
                 let parts: Vec<&str> = child.text.split('<').collect();
                 if parts.len() == 2 {
                     ty = TypeRef::new_generic(parts[0], parts[1].trim_end_matches('>'));
@@ -451,16 +452,16 @@ fn build_field(node: &CstNode) -> Field {
     }
 }
 
-fn build_enum(node: &CstNode) -> Enum {
+fn build_enum(node: &CstNode<RmlxNode>) -> Enum {
     let mut attributes = Vec::new();
     let mut name = String::new();
     let mut variants = Vec::new();
 
     for child in &node.children {
         match child.kind {
-            CstKind::AttributeList => attributes.extend(build_attributes(child)),
-            CstKind::Ident if name.is_empty() => name.clone_from(&child.text),
-            CstKind::EnumVariant => variants.push(build_enum_variant(child)),
+            RmlxNode::AttributeList => attributes.extend(build_attributes(child)),
+            RmlxNode::Ident if name.is_empty() => name.clone_from(&child.text),
+            RmlxNode::EnumVariant => variants.push(build_enum_variant(child)),
             _ => {}
         }
     }
@@ -472,17 +473,17 @@ fn build_enum(node: &CstNode) -> Enum {
     }
 }
 
-fn build_enum_variant(node: &CstNode) -> EnumVariant {
+fn build_enum_variant(node: &CstNode<RmlxNode>) -> EnumVariant {
     let mut annotations = Vec::new();
     let mut name = String::new();
     let mut value = None;
 
     for child in &node.children {
         match child.kind {
-            CstKind::Annotation => annotations.push(build_annotation(child)),
-            CstKind::Ident => name.clone_from(&child.text),
-            CstKind::NsIdent => value = Some(TypeRef::new(child.text.as_str())),
-            CstKind::GenericType => {
+            RmlxNode::Annotation => annotations.push(build_annotation(child)),
+            RmlxNode::Ident => name.clone_from(&child.text),
+            RmlxNode::NsIdent => value = Some(TypeRef::new(child.text.as_str())),
+            RmlxNode::GenericType => {
                 let parts: Vec<&str> = child.text.split('<').collect();
                 if parts.len() == 2 {
                     value = Some(TypeRef::new_generic(parts[0], parts[1].trim_end_matches('>')));
@@ -501,7 +502,7 @@ fn build_enum_variant(node: &CstNode) -> EnumVariant {
     }
 }
 
-fn build_element(node: &CstNode) -> Element {
+fn build_element(node: &CstNode<RmlxNode>) -> Element {
     let mut attributes = Vec::new();
     let mut name = String::new();
     let mut bind = TypeRef::default();
@@ -509,10 +510,10 @@ fn build_element(node: &CstNode) -> Element {
 
     for child in &node.children {
         match child.kind {
-            CstKind::AttributeList => attributes.extend(build_attributes(child)),
-            CstKind::Ident => name.clone_from(&child.text),
-            CstKind::NsIdent => bind = TypeRef::new(child.text.as_str()),
-            CstKind::GenericType => {
+            RmlxNode::AttributeList => attributes.extend(build_attributes(child)),
+            RmlxNode::Ident => name.clone_from(&child.text),
+            RmlxNode::NsIdent => bind = TypeRef::new(child.text.as_str()),
+            RmlxNode::GenericType => {
                 let parts: Vec<&str> = child.text.split('<').collect();
                 if parts.len() == 2 {
                     bind = TypeRef::new_generic(parts[0], parts[1].trim_end_matches('>'));
@@ -520,7 +521,7 @@ fn build_element(node: &CstNode) -> Element {
                     unimplemented!();
                 }
             }
-            CstKind::Block => fields.extend(build_fields(child)),
+            RmlxNode::Block => fields.extend(build_fields(child)),
             _ => {}
         }
     }
@@ -533,7 +534,7 @@ fn build_element(node: &CstNode) -> Element {
     }
 }
 
-fn build_group(node: &CstNode, extend: bool) -> Group {
+fn build_group(node: &CstNode<RmlxNode>, extend: bool) -> Group {
     let mut attributes = Vec::new();
     let mut name = String::new();
     let mut entries = Vec::new();
@@ -541,10 +542,10 @@ fn build_group(node: &CstNode, extend: bool) -> Group {
 
     for child in &node.children {
         match child.kind {
-            CstKind::AttributeList => attributes.extend(build_attributes(child)),
-            CstKind::Ident => name.clone_from(&child.text),
-            CstKind::GroupContent => entries.extend(build_group_entries(child)),
-            CstKind::Count => count = Some(build_count(child)),
+            RmlxNode::AttributeList => attributes.extend(build_attributes(child)),
+            RmlxNode::Ident => name.clone_from(&child.text),
+            RmlxNode::GroupContent => entries.extend(build_group_entries(child)),
+            RmlxNode::Count => count = Some(build_count(child)),
             _ => {}
         }
     }
@@ -558,11 +559,11 @@ fn build_group(node: &CstNode, extend: bool) -> Group {
     }
 }
 
-fn build_group_entries(node: &CstNode) -> Vec<GroupEntry> {
+fn build_group_entries(node: &CstNode<RmlxNode>) -> Vec<GroupEntry> {
     let mut entries = Vec::new();
 
     for child in &node.children {
-        if child.kind == CstKind::GroupEntry {
+        if child.kind == RmlxNode::GroupEntry {
             entries.push(build_group_entry(child));
         }
     }
@@ -570,19 +571,19 @@ fn build_group_entries(node: &CstNode) -> Vec<GroupEntry> {
     entries
 }
 
-fn build_group_entry(node: &CstNode) -> GroupEntry {
+fn build_group_entry(node: &CstNode<RmlxNode>) -> GroupEntry {
     let mut unique = false;
     let mut name = String::new();
     let mut count = None;
 
     let mut iter = node.children.iter();
-    consume_token(&mut iter, &CstKind::Plus, Some("+"));
+    consume_token(&mut iter, &RmlxNode::Plus, Some("+"));
 
     for child in iter {
         match child.kind {
-            CstKind::NsIdent | CstKind::Ident => name.clone_from(&child.text),
-            CstKind::Symbol if child.text == "unique" => unique = true,
-            CstKind::Count => count = Some(build_count(child)),
+            RmlxNode::NsIdent | RmlxNode::Ident => name.clone_from(&child.text),
+            RmlxNode::Symbol if child.text == "unique" => unique = true,
+            RmlxNode::Count => count = Some(build_count(child)),
             _ => {}
         }
     }
@@ -590,9 +591,9 @@ fn build_group_entry(node: &CstNode) -> GroupEntry {
     GroupEntry { unique, name, count }
 }
 
-fn build_count(node: &CstNode) -> Count {
+fn build_count(node: &CstNode<RmlxNode>) -> Count {
     let mut iter = node.children.iter();
-    consume_token(&mut iter, &CstKind::Symbol, Some("("));
+    consume_token(&mut iter, &RmlxNode::Symbol, Some("("));
     match iter.next().unwrap().text.as_str() {
         "*" => Count::Asterisk,
         "?" => Count::Question,
@@ -605,7 +606,7 @@ fn build_count(node: &CstNode) -> Count {
     }
 }
 
-fn build_expression(node: &CstNode) -> Expression {
+fn build_expression(node: &CstNode<RmlxNode>) -> Expression {
     let mut attributes = Vec::new();
     let mut annotations = Vec::new();
     let mut name = String::new();
@@ -613,10 +614,10 @@ fn build_expression(node: &CstNode) -> Expression {
 
     for child in &node.children {
         match child.kind {
-            CstKind::AttributeList => attributes.extend(build_attributes(child)),
-            CstKind::Annotation => annotations.push(build_annotation(child)),
-            CstKind::Ident => name.clone_from(&child.text),
-            CstKind::Block => fields.extend(child.children.iter().map(build_field)),
+            RmlxNode::AttributeList => attributes.extend(build_attributes(child)),
+            RmlxNode::Annotation => annotations.push(build_annotation(child)),
+            RmlxNode::Ident => name.clone_from(&child.text),
+            RmlxNode::Block => fields.extend(child.children.iter().map(build_field)),
             _ => {}
         }
     }
@@ -629,9 +630,9 @@ fn build_expression(node: &CstNode) -> Expression {
     }
 }
 
-fn consume_token<'a, I>(iter: &mut I, expected_kind: &CstKind, expected_text: Option<&str>)
+fn consume_token<'a, I>(iter: &mut I, expected_kind: &RmlxNode, expected_text: Option<&str>)
 where
-    I: Iterator<Item = &'a CstNode>,
+    I: Iterator<Item = &'a CstNode<RmlxNode>>,
 {
     if let Some(node) = iter.next() {
         if node.kind != *expected_kind {
@@ -648,16 +649,16 @@ where
 }
 
 #[must_use]
-pub fn build_schema_ast(cst: &CstNode) -> SchemaAst {
+pub fn build_schema_ast(cst: &CstNode<RmlxNode>) -> SchemaAst {
     let mut annotations = Vec::new();
     let mut directives = Vec::new();
     let mut custom_types = Vec::new();
 
     for child in &cst.children {
         match child.kind {
-            CstKind::Directive => directives.push(build_directive(child)),
-            CstKind::Annotation => annotations.push(build_annotation(child)),
-            CstKind::CustomType => custom_types.push(build_custom_type(child)),
+            RmlxNode::Directive => directives.push(build_directive(child)),
+            RmlxNode::Annotation => annotations.push(build_annotation(child)),
+            RmlxNode::CustomType => custom_types.push(build_custom_type(child)),
             _ => {}
         }
     }

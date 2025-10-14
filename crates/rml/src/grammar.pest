@@ -3,18 +3,19 @@ COMMENT_MULTI = _{ "/*" ~ (!"*/" ~ ANY)* ~ "*/" }
 LINE_COMMENT  = _{ "//" ~ (!"\n" ~ ANY)* ~ ("\n" | EOI) }
 
 // Основной файл UI
-file        = { SOI ~ directive* ~ element* ~ directive* ~ EOI }
+file        = { SOI ~ directive* ~ element ~ directive* ~ EOI }
 
-identifier  = @{ ASCII_ALPHANUMERIC+ }
+identifier  = @{ (ASCII_ALPHA | "_") ~ (ASCII_ALPHANUMERIC | "_")* }
 number      = @{ ASCII_DIGIT+ }
 boolean     = { "true" | "false" }
 string      = @{ "\"" ~ (!"\"" ~ ANY)* ~ "\"" }
-enum_val    = @{ (ASCII_ALPHANUMERIC+ | number_with_unit) }
+enum_val    = @{ (identifier | number_with_unit) }
 number_with_unit = { ASCII_DIGIT+ ~ ASCII_ALPHANUMERIC+ }
 
 structure   = { "{{" ~ struct_field* ~ "}}" }
-struct_field = { WHITESPACE* ~ field_name ~ "=" ~ arg_val ~ ("," ~ WHITESPACE*)? }
+struct_field = { WHITESPACE* ~ field_name ~ "=" ~ field_value ~ ("," ~ WHITESPACE*)? }
 field_name  = @{ ASCII_ALPHANUMERIC+ }
+field_value = { string | number | boolean | enum_val }
 
 directive_content = { (!">" ~ ANY)* }
 directive = { "#" ~ identifier ~ ("<" ~ directive_content ~ ">")? }
@@ -28,11 +29,9 @@ tag = {
     "</" ~ identifier ~ ">"
 }
 
-//Attributes
 attr_value  = { enum_val | number | boolean | string | expression | structure }
 attribute = { identifier ~ "=" ~ attr_value } 
 
-// Expression {ExpressionName arg1=val1, arg2=val2}
 expression  = { "{" ~ expr_name ~ (WHITESPACE* ~ expr_arg)* ~ "}" }
 expr_name   = @{ ASCII_ALPHANUMERIC+ }
 expr_arg    = { arg_name ~ "=" ~ arg_val }
