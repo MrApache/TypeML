@@ -78,13 +78,10 @@ impl AnalysisWorkspace {
         self.source = load_rmlx(&self.path)?;
         let source = self.source.clone();
         let path = self.path.clone();
-        self.load_model_internal(&source, &path);
-        {
-            let root_ref = self.find_root()?;
-            let main_group = GroupSymbol::main(root_ref);
-            let mut write = self.model.write().expect("Unreachable!");
-            write.modules[0].push(SymbolKind::Group(main_group));
-        }
+        self.load_model_internal(&source, &path)?;
+        let mut write = self.model.write().expect("Unreachable!");
+        write.post_load()?;
+        drop(write);
         Ok(self)
     }
 
@@ -166,7 +163,21 @@ impl AnalysisWorkspace {
     }
 
     fn get_type(&mut self, ty: &UnresolvedType) -> Option<SymbolRef> {
+        let mut array = [0usize, 0usize];
         let namespace = self.get_or_add_namespace_id(ty.namespace.as_deref());
+        let mut ns_iter = if let Some(last) = self.namespace_stack.last()
+            && *last == namespace
+        {
+            array[0] = namespace;
+            array[1] = 0;
+            array.iter()
+        } else {
+            array[0] = 0;
+            array[1] = namespace;
+            let mut iter = array.iter();
+            iter.next();
+            iter
+        };
 
         let mut model = self.model.write().expect("model is not poisoned");
         let identifier = if let Some(generic) = &ty.generic_base {
@@ -175,19 +186,22 @@ impl AnalysisWorkspace {
             ty.identifier.clone()
         };
 
-        if let Some(id) = model.get_type_id(namespace, &identifier) {
-            return Some(SymbolRef { namespace, id });
-        } else if let Some(generic) = &ty.generic_base
-            && let Some(generic) = model.get_type_by_name(namespace, generic).unwrap()
-            && let Some((target_ref, target)) = model.get_type_by_name(0, &ty.identifier).unwrap_with_ref()
-        {
-            let generic = generic.as_generic_symbol();
-            let ct = generic.construct_type(target, &target_ref);
-            model.add_symbol(namespace, ct);
-        }
-        //Base type does not found
-
-        None
+        ns_iter.find_map(|namespace| {
+            let namespace = *namespace;
+            if let Some(id) = model.get_type_id(namespace, &identifier) {
+                Some(SymbolRef { namespace, id })
+            } else if let Some(generic) = &ty.generic_base
+                && let Some(generic) = model.get_type_by_name(namespace, generic).unwrap()
+                && let Some((target_ref, target)) = model.get_type_by_name(0, &ty.identifier).unwrap_with_ref()
+            {
+                let generic = generic.as_generic_symbol();
+                let ct = generic.construct_type(target, target_ref);
+                model.add_symbol(namespace, ct);
+                None
+            } else {
+                None
+            }
+        })
     }
 
     fn create_self_reference(&mut self, ty: &UnresolvedType) -> SymbolRef {

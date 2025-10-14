@@ -71,18 +71,49 @@ impl_symbol!(U64, "u64", str::parse::<u64>);
 impl_symbol!(Str, "String", str::parse::<String>);
 
 #[derive(Debug, Clone)]
+pub struct ArraySymbol {
+    identifier: String,
+    inner: SymbolRef,
+}
+
+impl Default for ArraySymbol {
+    fn default() -> Self {
+        Self {
+            identifier: "Array".to_string(),
+            inner: SymbolRef::default(),
+        }
+    }
+}
+
+impl Symbol for ArraySymbol {
+    fn identifier(&self) -> &str {
+        &self.identifier
+    }
+
+    fn can_parse(&self, value: &str, model: &SchemaModel) -> Result<bool, Error> {
+        let mut result = true;
+        value.split(',').map(str::trim).try_for_each(|value| {
+            let kind = model.get_type_by_ref(self.inner).unwrap().unwrap();
+            result &= kind.can_parse(value, model)?;
+            Ok::<_, Error>(())
+        })?;
+        Ok(result)
+    }
+}
+
+#[derive(Debug, Clone)]
 pub struct GenericSymbol {
     base: SymbolKind,
 }
 
 impl GenericSymbol {
     #[must_use]
-    pub const fn new(base: SymbolKind) -> GenericSymbol {
+    pub const fn new(base: SymbolKind) -> Self {
         Self { base }
     }
 
     #[must_use]
-    pub fn option() -> GenericSymbol {
+    pub fn option() -> Self {
         let variants = vec![
             EnumVariant {
                 identifier: "Some".to_string(),
@@ -104,9 +135,19 @@ impl GenericSymbol {
         }
     }
 
+    pub fn array() -> Self {
+        Self {
+            base: SymbolKind::Array(ArraySymbol::default()),
+        }
+    }
+
     #[must_use]
-    pub fn construct_type(&self, other: &SymbolKind, other_ref: &SymbolRef) -> SymbolKind {
+    pub fn construct_type(&self, other: &SymbolKind, other_ref: SymbolRef) -> SymbolKind {
         match &self.base {
+            SymbolKind::Array(value) => SymbolKind::Array(ArraySymbol {
+                identifier: format!("Array_{}", other.identifier()),
+                inner: other_ref,
+            }),
             SymbolKind::Struct(value) => SymbolKind::Struct(StructSymbol {
                 identifier: format!("{}_{}", value.identifier(), other.identifier()),
                 fields: value.fields.clone(),
@@ -119,7 +160,7 @@ impl GenericSymbol {
                     .map(|var| {
                         let ty = var.ty.as_ref().map(|ty| match ty {
                             TypeRef::Concrete(concrete) => TypeRef::Concrete(*concrete),
-                            TypeRef::Generic(generic) => TypeRef::Concrete(*other_ref),
+                            TypeRef::Generic(generic) => TypeRef::Concrete(other_ref),
                         });
                         EnumVariant {
                             identifier: var.identifier.clone(),
@@ -146,19 +187,11 @@ impl Symbol for GenericSymbol {
     fn identifier(&self) -> &str {
         self.base.identifier()
     }
-
-    fn can_parse(&self, value: &str, model: &SchemaModel) -> Result<bool, crate::Error> {
-        Ok(false)
-    }
 }
 
 impl Symbol for Box<GenericSymbol> {
     fn identifier(&self) -> &str {
         self.base.identifier()
-    }
-
-    fn can_parse(&self, value: &str, model: &SchemaModel) -> Result<bool, crate::Error> {
-        Ok(false)
     }
 }
 
@@ -171,10 +204,6 @@ pub struct LazySymbol {
 impl Symbol for LazySymbol {
     fn identifier(&self) -> &str {
         &self.identifier
-    }
-
-    fn can_parse(&self, value: &str, model: &SchemaModel) -> Result<bool, crate::Error> {
-        Ok(false)
     }
 }
 
@@ -198,6 +227,7 @@ pub enum SymbolKind {
     Group(GroupSymbol),
     Element(ElementSymbol),
     Expression(ExpressionSymbol),
+    Array(ArraySymbol),
     Lazy(LazySymbol),
 }
 

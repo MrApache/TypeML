@@ -123,7 +123,11 @@ impl UnresolvedSchema {
     }
 
     pub fn is_empty(&self) -> bool {
-        self.enums.is_empty() && self.structs.is_empty() && self.groups.is_empty() && self.elements.is_empty()
+        self.enums.is_empty()
+            && self.structs.is_empty()
+            && self.groups.is_empty()
+            && self.elements.is_empty()
+            && self.expressions.is_empty()
     }
 
     pub fn namespace(&self) -> Option<&str> {

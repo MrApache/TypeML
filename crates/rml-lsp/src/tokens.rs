@@ -622,7 +622,7 @@ fn custom_type_tokens(cst: &CstNode<RmlxNode>, tokens: &mut Vec<SemanticToken>) 
         RmlxNode::Element => element_tokens(cst, token, tokens),
         RmlxNode::Enum => enum_tokens(cst, token, tokens),
         RmlxNode::Expression => expression_tokens(cst, token, tokens),
-        RmlxNode::Group | RmlxNode::ExtendGroup => group_tokens(cst, token, tokens),
+        RmlxNode::Group => group_tokens(cst, token, tokens),
         _ => unreachable!(),
     }
 }

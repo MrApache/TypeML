@@ -624,7 +624,17 @@ fn build_expression(node: &CstNode<RmlxNode>) -> Expression {
             RmlxNode::AttributeList => attributes.extend(build_attributes(child)),
             RmlxNode::Annotation => annotations.push(build_annotation(child)),
             RmlxNode::Ident => name.clone_from(&child.text),
-            RmlxNode::Block => fields.extend(child.children.iter().map(build_field)),
+            RmlxNode::Block => fields.extend(
+                child
+                    .children
+                    .iter()
+                    .find(|c| matches!(c.kind, RmlxNode::SimpleFields))
+                    .unwrap()
+                    .children
+                    .iter()
+                    .filter(|c| matches!(c.kind, RmlxNode::SimpleField))
+                    .map(build_field),
+            ),
             _ => {}
         }
     }

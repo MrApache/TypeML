@@ -58,7 +58,7 @@ block         = { LBRACE ~ simple_fields ~ RBRACE }
 enum_variant = { annotation* ~ ((ident ~ LPAREN ~ ns_ident ~ RPAREN) | ident) }
 enum         = { attribute_list* ~ ENUM ~ ident ~ LBRACE ~ enum_variant ~ (COMMA ~ enum_variant)* ~ COMMA? ~ RBRACE }
 
-struct = { attribute_list* ~ STRUCT ~ (generic_type | ident) ~ block }
+struct = { attribute_list* ~ STRUCT ~ (generic_type | ident) ~ (block | SEMI)}
 
 element = { attribute_list* ~ ELEMENT ~ ident ~ ARROW ~ ns_ident ~ (block | SEMI) }
 

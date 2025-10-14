@@ -1,7 +1,7 @@
 use crate::semantic::element::ElementSymbol;
 use crate::semantic::group::GroupSymbol;
 use crate::semantic::symbol::{
-    F32, F64, GenericSymbol, I8, I16, I32, I64, Str, Symbol, SymbolKind, SymbolRef, U8, U16, U32, U64,
+    ArraySymbol, F32, F64, GenericSymbol, I8, I16, I32, I64, Str, Symbol, SymbolKind, SymbolRef, U8, U16, U32, U64,
 };
 use pest::pratt_parser::Op;
 use std::collections::HashMap;
@@ -27,6 +27,8 @@ impl Default for SchemaModel {
             SymbolKind::U64(U64),
             SymbolKind::String(Str),
             SymbolKind::Generic(Box::new(GenericSymbol::option())),
+            SymbolKind::Generic(Box::new(GenericSymbol::array())),
+            //SymbolKind::Array(ArraySymbol::default()),
         ];
 
         Self {
@@ -37,6 +39,25 @@ impl Default for SchemaModel {
 }
 
 impl SchemaModel {
+    pub(crate) fn post_load(&mut self) -> Result<(), crate::Error> {
+        let root_ref = self.get_root_group_ref()?;
+        let global = self.modules.first_mut().unwrap();
+
+        //Create main group
+        let main_group = GroupSymbol::main(root_ref);
+        global.push(SymbolKind::Group(main_group));
+
+        //Remove generic Array type
+        let array_index = global
+            .iter()
+            .enumerate()
+            .find(|(_, s)| s.identifier() == "Array")
+            .map(|(i, _)| i)
+            .unwrap();
+        //global.remove(array_index); TODO
+
+        Ok(())
+    }
     #[must_use]
     pub fn get_type_by_ref(&self, symbol_ref: SymbolRef) -> TypeQuery<'_> {
         let type_table = self.get_type_table_by_namespace_id(symbol_ref.namespace);
@@ -81,6 +102,7 @@ impl SchemaModel {
         }
     }
 
+    #[must_use]
     pub fn try_get_namespace_id(&self, namespace: Option<&str>) -> Option<usize> {
         if let Some(ns) = namespace {
             self.namespaces

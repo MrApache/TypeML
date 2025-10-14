@@ -31,6 +31,7 @@ fn load_config_model(configs: Vec<Url>) -> Result<Arc<RwLock<SchemaModel>>, rmlx
     assert!(!configs.is_empty(), "Config not found");
     let mut iter = configs.into_iter();
     let mut workspace = AnalysisWorkspace::new(iter.next().unwrap()).run()?;
+    println!();
     Ok(workspace.model())
 }
 
