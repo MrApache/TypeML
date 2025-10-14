@@ -1,5 +1,6 @@
 use divan::Bencher;
 use lexer_core::CstNode;
+use rml::{LayoutModel, RmlParser};
 use rmlx::{AnalysisWorkspace, RmlxNode, RmlxParser, Rule, build_schema_ast};
 use url::Url;
 
@@ -36,16 +37,15 @@ fn semantic_analysis(bench: Bencher) {
         });
 }
 
-/*
 #[divan::bench]
-fn rml_analysis(bench: Bencher) {
+fn rml_full_analysis(bench: Bencher) {
     const PATH: &str = concat!(env!("CARGO_WORKSPACE_DIR"), "examples/schema.rmlx");
     bench
         .with_inputs(|| {
-            let url = Url::from_file_path(PATH).unwrap();
-            let w = AnalysisWorkspace::new(url);
-            RmlAnalyzer::new(w.model())
+            let content = std::fs::read_to_string(PATH).unwrap();
+            RmlParser::build_ast(&content).unwrap()
         })
-        .bench_values(|rml| rml.is_allowed_element());
+        .bench_values(|ast| {
+            LayoutModel::validate(ast, PATH).unwrap();
+        });
 }
-*/

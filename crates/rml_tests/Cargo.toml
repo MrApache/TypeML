@@ -3,5 +3,16 @@ name = "rml_tests"
 version = "0.1.0"
 edition = "2024"
 
+[[bench]]
+name = "benchmark"
+harness = false
+
 [dependencies]
 rml.workspace = true
+rmlx.workspace = true
+lexer-core.workspace = true
+url.workspace = true
+
+
+[dev-dependencies]
+divan = { package = "codspeed-divan-compat", version = "*" }
