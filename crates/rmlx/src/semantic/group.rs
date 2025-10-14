@@ -16,10 +16,12 @@ pub struct GroupSymbol {
 }
 
 impl GroupSymbol {
+    #[must_use]
     pub fn groups(&self) -> &[GroupConfig] {
         &self.groups
     }
 
+    #[must_use]
     pub fn main(root: SymbolRef) -> Self {
         Self {
             identifier: String::from("Main"),
@@ -41,6 +43,7 @@ pub struct GroupConfig {
 }
 
 impl GroupConfig {
+    #[must_use]
     pub fn symbol(&self) -> SymbolRef {
         self.symbol
     }
@@ -63,12 +66,13 @@ pub struct UnresolvedGroupSymbol {
 impl UnresolvedGroupSymbol {
     pub fn new(g: &Group) -> Self {
         let identifier = g.name.clone();
-        let extend = g.extend;
         let mut metadata = HashMap::new();
 
         g.attributes.iter().for_each(|a| {
             metadata.insert(a.name.clone(), a.value.clone());
         });
+
+        let extend = g.annotations.try_take("extend").is_some();
 
         let unresolved = g
             .entries

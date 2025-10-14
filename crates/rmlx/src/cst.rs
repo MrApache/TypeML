@@ -42,7 +42,6 @@ pub enum RmlxNode {
     SimpleFields,
     Block,
 
-    ExtendGroup,
     GroupContent,
     GroupEntry,
     Group,
@@ -69,13 +68,9 @@ impl CstKind for RmlxNode {
             Rule::base_types => RmlxNode::BaseType,
             Rule::directive => RmlxNode::Directive,
 
-            Rule::EXTEND
-            | Rule::UNIQUE
-            | Rule::STRUCT
-            | Rule::ENUM
-            | Rule::ELEMENT
-            | Rule::EXPRESSION
-            | Rule::GROUP => RmlxNode::Keyword,
+            Rule::UNIQUE | Rule::STRUCT | Rule::ENUM | Rule::ELEMENT | Rule::EXPRESSION | Rule::GROUP => {
+                RmlxNode::Keyword
+            }
 
             Rule::COMMENT_MULTI | Rule::COMMENT_LINE => RmlxNode::Comment,
             Rule::WHITESPACE => RmlxNode::Whitespace,
@@ -94,7 +89,6 @@ impl CstKind for RmlxNode {
             Rule::ns_ident => RmlxNode::NsIdent,
             Rule::group_content => RmlxNode::GroupContent,
             Rule::group => RmlxNode::Group,
-            Rule::extend_group => RmlxNode::ExtendGroup,
             Rule::expression => RmlxNode::Expression,
             Rule::count => RmlxNode::Count,
             Rule::group_entry => RmlxNode::GroupEntry,

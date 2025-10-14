@@ -1,6 +1,8 @@
 #namespace <base>
 
-extend group Component;
+//Count??
+@extend
+group Component;
 
 #[Description("Entity")]
 group Container {
@@ -25,12 +27,14 @@ element Layout -> Root;
 element Entity -> Container;
 element ItemTemplate -> Template;
 
+#[Description("Component only")]
 @groups   [Component]
 expression Resource {
     target: String,
     path:   String,
 }
 
+#[Description("Component only")]
 @groups   [Component]
 expression Component {
     target: String,
@@ -39,6 +43,7 @@ expression Component {
     @optional without: Array<String>,
 }
 
+#[Description("Template only")]
 @groups   [Component]
 @restrict [Template]
 expression Item {

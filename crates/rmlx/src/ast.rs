@@ -9,7 +9,6 @@ fn trim_quotes(s: &str) -> &str {
 
 #[derive(Debug)]
 pub struct SchemaAst {
-    pub annotations: Vec<Annotation>,
     pub directives: Vec<Directive>,
     pub custom_types: Vec<CustomType>,
 }
@@ -253,10 +252,10 @@ pub struct Element {
 
 #[derive(Debug)]
 pub struct Group {
+    pub annotations: AnnotationList,
     pub attributes: Vec<Attribute>,
     pub name: String,
     pub entries: Vec<GroupEntry>,
-    pub extend: bool,
     pub count: Option<Count>,
 }
 
@@ -378,8 +377,7 @@ fn build_custom_type(node: &CstNode<RmlxNode>) -> CustomType {
         RmlxNode::Struct => CustomType::Struct(build_struct(first_child)),
         RmlxNode::Enum => CustomType::Enum(build_enum(first_child)),
         RmlxNode::Element => CustomType::Element(build_element(first_child)),
-        RmlxNode::ExtendGroup => CustomType::Group(build_group(first_child, true)),
-        RmlxNode::Group => CustomType::Group(build_group(first_child, false)),
+        RmlxNode::Group => CustomType::Group(build_group(first_child)),
         RmlxNode::Expression => CustomType::Expression(build_expression(first_child)),
         _ => panic!("Unexpected child kind in CustomType: {:?}", first_child.kind),
     }
@@ -541,7 +539,8 @@ fn build_element(node: &CstNode<RmlxNode>) -> Element {
     }
 }
 
-fn build_group(node: &CstNode<RmlxNode>, extend: bool) -> Group {
+fn build_group(node: &CstNode<RmlxNode>) -> Group {
+    let mut annotations = Vec::new();
     let mut attributes = Vec::new();
     let mut name = String::new();
     let mut entries = Vec::new();
@@ -549,6 +548,7 @@ fn build_group(node: &CstNode<RmlxNode>, extend: bool) -> Group {
 
     for child in &node.children {
         match child.kind {
+            RmlxNode::Annotation => annotations.push(build_annotation(child)),
             RmlxNode::AttributeList => attributes.extend(build_attributes(child)),
             RmlxNode::Ident => name.clone_from(&child.text),
             RmlxNode::GroupContent => entries.extend(build_group_entries(child)),
@@ -558,10 +558,10 @@ fn build_group(node: &CstNode<RmlxNode>, extend: bool) -> Group {
     }
 
     Group {
+        annotations: AnnotationList { inner: annotations },
         attributes,
         name,
         entries,
-        extend,
         count,
     }
 }
@@ -657,21 +657,18 @@ where
 
 #[must_use]
 pub fn build_schema_ast(cst: &CstNode<RmlxNode>) -> SchemaAst {
-    let mut annotations = Vec::new();
     let mut directives = Vec::new();
     let mut custom_types = Vec::new();
 
     for child in &cst.children {
         match child.kind {
             RmlxNode::Directive => directives.push(build_directive(child)),
-            RmlxNode::Annotation => annotations.push(build_annotation(child)),
             RmlxNode::CustomType => custom_types.push(build_custom_type(child)),
             _ => {}
         }
     }
 
     SchemaAst {
-        annotations,
         directives,
         custom_types,
     }
