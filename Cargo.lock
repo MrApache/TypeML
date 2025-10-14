@@ -1328,6 +1328,13 @@ dependencies = [
 ]
 
 [[package]]
+name = "rml_tests"
+version = "0.1.0"
+dependencies = [
+ "rml",
+]
+
+[[package]]
 name = "rmlx"
 version = "0.1.0"
 dependencies = [

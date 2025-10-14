@@ -7,10 +7,8 @@ rml = { path = "crates/rml" }
 rmlx = { path = "crates/rmlx" }
 lexer-core = { path = "crates/lexer-core" }
 
-ron = "0.11.0"
 tokio = { version = "1.47.1", features = ["full", "rt", "macros"] }
 tower-lsp = "0.20.0"
-serde = "1.0.228"
 url = "2.5.7"
 reqwest = "0.12.24"
 thiserror = "2.0.17"
