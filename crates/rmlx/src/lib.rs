@@ -98,4 +98,7 @@ pub enum Error {
 
     #[error("The element {0} is not unique")]
     NotUniqueElement(String),
+
+    #[error("Group {0} is not extendable")]
+    CantExtendGroup(String),
 }

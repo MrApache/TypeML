@@ -77,7 +77,7 @@ impl UnresolvedStructSymbol {
 }
 
 impl TypeResolver<StructSymbol> for UnresolvedStructSymbol {
-    fn resolve(&mut self, workspace: &mut AnalysisWorkspace) -> bool {
+    fn resolve(&mut self, workspace: &mut AnalysisWorkspace) -> Result<bool, crate::Error> {
         self.fields.retain(|f| {
             if let Some(ty) = workspace.get_type(&f.ty) {
                 self.resolved.push(ResolvedField {
@@ -90,7 +90,7 @@ impl TypeResolver<StructSymbol> for UnresolvedStructSymbol {
             true
         });
 
-        self.fields.is_empty()
+        Ok(self.fields.is_empty())
     }
 
     fn as_resolved_type(&self) -> StructSymbol {

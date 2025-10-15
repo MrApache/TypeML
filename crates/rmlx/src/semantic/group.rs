@@ -22,6 +22,11 @@ impl GroupSymbol {
     }
 
     #[must_use]
+    pub fn extend(&self) -> bool {
+        self.extend
+    }
+
+    #[must_use]
     pub fn main(root: SymbolRef) -> Self {
         Self {
             identifier: String::from("Main"),
@@ -120,7 +125,7 @@ impl UnresolvedGroupSymbol {
 }
 
 impl TypeResolver<GroupSymbol> for UnresolvedGroupSymbol {
-    fn resolve(&mut self, workspace: &mut AnalysisWorkspace) -> bool {
+    fn resolve(&mut self, workspace: &mut AnalysisWorkspace) -> Result<bool, crate::Error> {
         self.unresolved.retain(|f| {
             if f.symbol.identifier == self.identifier {
                 let symbol = workspace.create_self_reference(&f.symbol);
@@ -142,7 +147,7 @@ impl TypeResolver<GroupSymbol> for UnresolvedGroupSymbol {
             true
         });
 
-        self.unresolved.is_empty()
+        Ok(self.unresolved.is_empty())
     }
 
     fn as_resolved_type(&self) -> GroupSymbol {

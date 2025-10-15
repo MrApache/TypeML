@@ -29,14 +29,15 @@
 //TODO Deep value type checking
 //TODO An element counter support
 //TODO An unique element support
+//TODO Extend check
 
 //TODO A namespace identifier should be equal file name
 //TODO Directive 'Include' that allow include type from namespace (+ Alias support)
-//TODO Expression restrict support
 //TODO Annotations errors
 //TODO Item attachment
 //TODO Error locations
 //TODO Empty list error
-//TODO Extend check
-//TODO Metadata assignment
 //TODO Unresolved type error
+
+//TODO Metadata assignment
+//TODO Expression restrict support

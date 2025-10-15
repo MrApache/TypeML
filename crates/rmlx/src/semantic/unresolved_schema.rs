@@ -77,49 +77,49 @@ impl UnresolvedSchema {
         })
     }
 
-    pub fn resolve(&mut self, workspace: &mut AnalysisWorkspace) -> Vec<SymbolKind> {
+    pub fn resolve(&mut self, workspace: &mut AnalysisWorkspace) -> Result<Vec<SymbolKind>, crate::Error> {
         let mut symbols = vec![];
-        self.structs.retain_mut(|s| {
-            let result = s.resolve(workspace);
+        self.structs.try_retain_mut(|s| {
+            let result = s.resolve(workspace)?;
             if result {
                 symbols.push(SymbolKind::Struct(s.as_resolved_type()));
             }
-            !result
-        });
+            Ok::<bool, crate::Error>(!result)
+        })?;
 
-        self.enums.retain_mut(|e| {
-            let result = e.resolve(workspace);
+        self.enums.try_retain_mut(|e| {
+            let result = e.resolve(workspace)?;
             if result {
                 symbols.push(SymbolKind::Enum(e.as_resolved_type()));
             }
-            !result
-        });
+            Ok::<bool, crate::Error>(!result)
+        })?;
 
-        self.groups.retain_mut(|g| {
-            let result = g.resolve(workspace);
+        self.groups.try_retain_mut(|g| {
+            let result = g.resolve(workspace)?;
             if result {
                 symbols.push(SymbolKind::Group(g.as_resolved_type()));
             }
-            !result
-        });
+            Ok::<bool, crate::Error>(!result)
+        })?;
 
-        self.elements.retain_mut(|e| {
-            let result = e.resolve(workspace);
+        self.elements.try_retain_mut(|e| {
+            let result = e.resolve(workspace)?;
             if result {
                 symbols.push(SymbolKind::Element(e.as_resolved_type()));
             }
-            !result
-        });
+            Ok::<bool, crate::Error>(!result)
+        })?;
 
-        self.expressions.retain_mut(|e| {
-            let result = e.resolve(workspace);
+        self.expressions.try_retain_mut(|e| {
+            let result = e.resolve(workspace)?;
             if result {
                 symbols.push(SymbolKind::Expression(e.as_resolved_type()));
             }
-            !result
-        });
+            Ok::<bool, crate::Error>(!result)
+        })?;
 
-        symbols
+        Ok(symbols)
     }
 
     pub fn is_empty(&self) -> bool {
@@ -165,5 +165,34 @@ fn process_directives(ast: &SchemaAst) -> DirectiveResult {
         namespace,
         uses,
         errors,
+    }
+}
+
+trait TryRetainMut<T> {
+    fn try_retain_mut<F, E>(&mut self, f: F) -> Result<(), E>
+    where
+        F: FnMut(&mut T) -> Result<bool, E>;
+}
+
+impl<T> TryRetainMut<T> for Vec<T> {
+    fn try_retain_mut<F, E>(&mut self, mut f: F) -> Result<(), E>
+    where
+        F: FnMut(&mut T) -> Result<bool, E>,
+    {
+        let mut original_len = self.len();
+        let mut i = 0;
+
+        while i < original_len {
+            if f(&mut self[i])? {
+                i += 1;
+            } else {
+                // Swap with last element and reduce length
+                self.swap_remove(i);
+                original_len -= 1;
+                // Don't increment i since we need to check the swapped element
+            }
+        }
+
+        Ok(())
     }
 }

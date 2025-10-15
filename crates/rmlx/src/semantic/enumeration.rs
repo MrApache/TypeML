@@ -79,7 +79,7 @@ pub struct EnumVariant {
 }
 
 impl TypeResolver<EnumSymbol> for UnresolvedEnumSymbol {
-    fn resolve(&mut self, workspace: &mut AnalysisWorkspace) -> bool {
+    fn resolve(&mut self, workspace: &mut AnalysisWorkspace) -> Result<bool, crate::Error> {
         self.variants.retain(|v| {
             if let Some(ty) = &v.ty {
                 if let Some(ty) = workspace.get_type(ty) {
@@ -100,7 +100,7 @@ impl TypeResolver<EnumSymbol> for UnresolvedEnumSymbol {
 
             false
         });
-        self.variants.is_empty()
+        Ok(self.variants.is_empty())
     }
 
     fn as_resolved_type(&self) -> EnumSymbol {

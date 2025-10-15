@@ -85,7 +85,7 @@ impl UnresolvedExpressionSymbol {
 }
 
 impl TypeResolver<ExpressionSymbol> for UnresolvedExpressionSymbol {
-    fn resolve(&mut self, workspace: &mut AnalysisWorkspace) -> bool {
+    fn resolve(&mut self, workspace: &mut AnalysisWorkspace) -> Result<bool, crate::Error> {
         self.fields.retain(|f| {
             if let Some(ty) = workspace.get_type(&f.ty) {
                 self.resolved_fields.push(ExpressionField {
@@ -114,7 +114,7 @@ impl TypeResolver<ExpressionSymbol> for UnresolvedExpressionSymbol {
             true
         });
 
-        self.fields.is_empty() && self.groups.is_empty() && self.restrict.is_empty()
+        Ok(self.fields.is_empty() && self.groups.is_empty() && self.restrict.is_empty())
     }
 
     fn as_resolved_type(&self) -> ExpressionSymbol {

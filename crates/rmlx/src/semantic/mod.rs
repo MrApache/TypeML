@@ -98,7 +98,7 @@ impl AnalysisWorkspace {
 
         self.namespace_stack.push(namespace_id);
         loop {
-            let mut symbols = unresolved_module.resolve(self);
+            let mut symbols = unresolved_module.resolve(self)?;
             if symbols.is_empty() {
                 if unresolved_module.is_empty() {
                     break;
@@ -208,6 +208,6 @@ impl AnalysisWorkspace {
 }
 
 pub trait TypeResolver<T> {
-    fn resolve(&mut self, workspace: &mut AnalysisWorkspace) -> bool;
+    fn resolve(&mut self, workspace: &mut AnalysisWorkspace) -> Result<bool, crate::Error>;
     fn as_resolved_type(&self) -> T;
 }

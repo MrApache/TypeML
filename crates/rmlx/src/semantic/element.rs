@@ -77,7 +77,7 @@ impl UnresolvedElementSymbol {
 }
 
 impl TypeResolver<ElementSymbol> for UnresolvedElementSymbol {
-    fn resolve(&mut self, workspace: &mut AnalysisWorkspace) -> bool {
+    fn resolve(&mut self, workspace: &mut AnalysisWorkspace) -> Result<bool, crate::Error> {
         self.fields.retain(|f| {
             if let Some(ty) = workspace.get_type(&f.ty) {
                 self.resolved.push(ResolvedField {
@@ -92,10 +92,21 @@ impl TypeResolver<ElementSymbol> for UnresolvedElementSymbol {
         if self.resolved_bind.is_none()
             && let Some(ty) = workspace.get_type(&self.bind)
         {
-            self.resolved_bind = Some(ty);
+            let namespace_id = workspace.namespace_stack.last().copied().unwrap_or_default();
+            let model = workspace.model.read().unwrap();
+            if let Some(value) = model.can_extend_group(ty, namespace_id) {
+                if value {
+                    self.resolved_bind = Some(ty);
+                } else {
+                    let namespace = model.get_namespace_by_id(namespace_id);
+                    let group = model.get_type_by_ref(ty).as_group_symbol().unwrap();
+                    let full_path = format!("{namespace}::{}", group.identifier());
+                    return Err(crate::Error::CantExtendGroup(full_path));
+                }
+            }
         }
 
-        self.fields.is_empty() && self.resolved_bind.is_some()
+        Ok(self.fields.is_empty() && self.resolved_bind.is_some())
     }
 
     fn as_resolved_type(&self) -> ElementSymbol {

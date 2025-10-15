@@ -38,6 +38,16 @@ impl Default for SchemaModel {
 }
 
 impl SchemaModel {
+    pub(crate) fn can_extend_group(&self, group_ref: SymbolRef, element_namespace_id: usize) -> Option<bool> {
+        let ty = self.get_type_by_ref(group_ref);
+        let group = ty.as_group_symbol()?;
+        if group_ref.namespace == element_namespace_id {
+            Some(true)
+        } else {
+            Some(group.extend())
+        }
+    }
+
     fn find_duplicate_identifiers(&mut self) -> Result<(), crate::Error> {
         self.modules
             .iter()
@@ -115,6 +125,10 @@ impl SchemaModel {
                 kind: None,
             }
         }
+    }
+
+    pub(crate) fn get_namespace_by_id(&self, namespace: usize) -> &str {
+        self.namespaces[namespace].as_str()
     }
 
     pub fn get_namespace_id(&self, namespace: Option<&str>) -> Result<usize, crate::Error> {
