@@ -668,7 +668,7 @@ fn build_group_entry(node: &CstNode<RmlxNode>) -> GroupEntry {
     for child in iter {
         match child.kind {
             RmlxNode::NsIdent | RmlxNode::Ident => name.clone_from(&child.text),
-            RmlxNode::Symbol if child.text == "unique" => unique = true,
+            RmlxNode::Keyword if child.text == "unique" => unique = true,
             RmlxNode::Count => count = Some(build_count(child)),
             _ => {}
         }

@@ -9,7 +9,6 @@
         with=["ABC", "123", "ABC"]
         without=["ABC", "123", "ABC"]
     }/>
-    <BackgroundColor self="msg"/>
     <base::ItemTemplate>
         <base::Entity>
             <Node width=30px height=40px/>
@@ -24,10 +23,10 @@
 //TODO Expressions required and optional fields
 //TODO Deep value type checking
 //TODO An element counter support
+//TODO An unique element support
 
 //TODO A namespace identifier should be equal file name
 //TODO Directive 'Include' that allow include type from namespace (+ Alias support)
-//TODO An unique element support
 //TODO Expression restrict support
 //TODO Annotations errors
 //TODO Item attachment

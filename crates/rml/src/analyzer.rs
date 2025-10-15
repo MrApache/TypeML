@@ -15,8 +15,9 @@ pub struct PreviousElement {
     group: SymbolRef,
     state: usize,
     is_container: bool,
-    counter: HashMap<SymbolRef, HashMap<(Option<String>, String), u32>>,
+    uniques: HashSet<SymbolRef>,
     constraints: HashMap<SymbolRef, Count>,
+    counter: HashMap<SymbolRef, HashMap<(Option<String>, String), u32>>,
 }
 
 pub struct RmlAnalyzer {
@@ -134,6 +135,7 @@ impl RmlAnalyzer {
                 is_container: false,
                 counter: HashMap::default(),
                 constraints: group.get_constraints(),
+                uniques: group.get_unique_groups(),
             });
             return Ok(());
         }
@@ -156,6 +158,7 @@ impl RmlAnalyzer {
             is_container: true,
             counter: HashMap::default(),
             constraints: group.get_constraints(),
+            uniques: group.get_unique_groups(),
         });
         self.active = next;
 
@@ -203,11 +206,31 @@ impl RmlAnalyzer {
         Ok(())
     }
 
+    fn check_elements_uniqueness(&self) -> Result<(), rmlx::Error> {
+        if let Some(last) = self.depth.last() {
+            last.uniques.iter().try_for_each(|group| {
+                if let Some(elements) = last.counter.get(group) {
+                    if let Some(((ns, ident), count)) = elements.iter().find(|((_, _), count)| **count > 1) {
+                        let full_path = format!("{}::{}", ns.clone().unwrap_or_default(), ident);
+                        Err(rmlx::Error::NotUniqueElement(full_path))
+                    } else {
+                        Ok::<(), rmlx::Error>(())
+                    }
+                } else {
+                    Ok::<(), rmlx::Error>(())
+                }
+            })?;
+        }
+
+        Ok(())
+    }
+
     pub fn exit_element(&mut self, namespace: Option<&str>, name: &str) -> Result<(), rmlx::Error> {
         let previous_element = self.depth.pop().expect("Unreachable!");
         assert!(previous_element.name == name && previous_element.namespace.as_deref() == namespace);
         self.active = previous_element.state;
-        self.check_and_change_counter(previous_element.group, namespace, name)
+        self.check_and_change_counter(previous_element.group, namespace, name)?;
+        self.check_elements_uniqueness()
     }
 
     pub fn is_valid_attribute(&self, name: &str, value: &str) -> Result<(), rmlx::Error> {

@@ -6,7 +6,7 @@ use crate::{
         symbol::{Symbol, SymbolKind, SymbolRef},
     },
 };
-use std::collections::HashMap;
+use std::collections::{HashMap, HashSet};
 
 #[derive(Debug, Clone)]
 pub struct GroupSymbol {
@@ -38,9 +38,18 @@ impl GroupSymbol {
     pub fn get_constraints(&self) -> HashMap<SymbolRef, Count> {
         let mut map = HashMap::new();
         self.groups.iter().for_each(|g| {
-            map.insert(g.symbol, g.count.unwrap_or(Count::ZeroOrMore));
+            map.insert(g.symbol, g.count.unwrap_or(Count::ZeroOrMore)); //TODO set this value by default
         });
         map
+    }
+
+    #[must_use]
+    pub fn get_unique_groups(&self) -> HashSet<SymbolRef> {
+        let mut set = HashSet::new();
+        self.groups.iter().filter(|g| g.unique).for_each(|g| {
+            set.insert(g.symbol);
+        });
+        set
     }
 }
 
@@ -88,7 +97,6 @@ impl UnresolvedGroupSymbol {
             .iter()
             .map(|g| {
                 let identifier = g.name.to_string();
-                let unique = g.unique;
                 UnresolvedGroupConfig {
                     symbol: UnresolvedType {
                         generic_base: None,

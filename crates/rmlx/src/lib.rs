@@ -82,9 +82,6 @@ pub enum Error {
     #[error("Missing required field: {0}")]
     MissingRequiredField(String),
 
-    #[error("Count error")]
-    Count,
-
     #[error("Not enough elements from {group} group: {actual} found, need {expected}")]
     InsufficientElements {
         group: String,
@@ -98,4 +95,7 @@ pub enum Error {
         actual: u32,
         expected: Count,
     },
+
+    #[error("The element {0} is not unique")]
+    NotUniqueElement(String),
 }
