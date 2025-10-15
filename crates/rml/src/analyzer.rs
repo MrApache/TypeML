@@ -1,4 +1,4 @@
-use crate::ast::{ArgumentValue, Element, Expression};
+use crate::ast::Expression;
 use rmlx::{Count, CountEquality, ExpressionField, ExpressionSymbol, Symbol};
 use rmlx::{GroupConfig, SchemaModel, SymbolRef};
 use std::collections::{HashMap, HashSet};
@@ -14,7 +14,6 @@ pub struct PreviousElement {
     namespace: Option<String>,
     group: SymbolRef,
     state: usize,
-    is_container: bool,
     uniques: HashSet<SymbolRef>,
     constraints: HashMap<SymbolRef, Count>,
     counter: HashMap<SymbolRef, HashMap<(Option<String>, String), u32>>,
@@ -132,7 +131,6 @@ impl RmlAnalyzer {
                 namespace: namespace.map(str::to_string),
                 group: bind_group,
                 state: self.active,
-                is_container: false,
                 counter: HashMap::default(),
                 constraints: group.get_constraints(),
                 uniques: group.get_unique_groups(),
@@ -155,7 +153,6 @@ impl RmlAnalyzer {
             namespace: namespace.map(str::to_string),
             group: bind_group,
             state: self.active,
-            is_container: true,
             counter: HashMap::default(),
             constraints: group.get_constraints(),
             uniques: group.get_unique_groups(),
@@ -210,7 +207,7 @@ impl RmlAnalyzer {
         if let Some(last) = self.depth.last() {
             last.uniques.iter().try_for_each(|group| {
                 if let Some(elements) = last.counter.get(group) {
-                    if let Some(((ns, ident), count)) = elements.iter().find(|((_, _), count)| **count > 1) {
+                    if let Some(((ns, ident), _)) = elements.iter().find(|((_, _), count)| **count > 1) {
                         let full_path = format!("{}::{}", ns.clone().unwrap_or_default(), ident);
                         Err(rmlx::Error::NotUniqueElement(full_path))
                     } else {

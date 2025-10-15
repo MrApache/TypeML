@@ -1,6 +1,6 @@
 use crate::ast::{BaseType, Element, Field};
 use crate::{
-    AnalysisWorkspace, SchemaModel, TypeResolver, UnresolvedType,
+    AnalysisWorkspace, TypeResolver, UnresolvedType,
     semantic::symbol::{Symbol, SymbolRef},
 };
 use std::collections::HashMap;

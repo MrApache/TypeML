@@ -38,3 +38,5 @@
 //TODO Error locations
 //TODO Empty list error
 //TODO Extend check
+//TODO Metadata assignment
+//TODO Unresolved type error

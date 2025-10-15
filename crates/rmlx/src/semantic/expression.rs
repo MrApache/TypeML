@@ -1,6 +1,5 @@
-use crate::ast::{Annotation, AnnotationList, AnnotationValue, BaseType, Expression, Field};
-use crate::semantic::element::{UnresolvedElementField, UnresolvedElementSymbol};
-use crate::{AnalysisWorkspace, Error, SchemaModel, Symbol, SymbolRef, TypeResolver, UnresolvedType};
+use crate::ast::{Annotation, AnnotationValue, BaseType, Expression, Field};
+use crate::{AnalysisWorkspace, Symbol, SymbolRef, TypeResolver, UnresolvedType};
 use std::collections::HashMap;
 
 pub struct UnresolvedExpressionField {

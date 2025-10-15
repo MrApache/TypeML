@@ -23,9 +23,9 @@ impl UnresolvedSchema {
         let ast = RmlxParser::build_ast(source)?;
         let directive_result = process_directives(&ast);
         directive_result.uses.iter().try_for_each(|u| {
-            workspace.load_single_model(&to_url(path, u).map_err(crate::Error::UrlError)?);
+            workspace.load_single_model(&to_url(path, u).map_err(crate::Error::UrlError)?)?;
             Ok::<_, crate::Error>(())
-        });
+        })?;
 
         let enums = ast
             .custom_types

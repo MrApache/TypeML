@@ -1,6 +1,6 @@
 #![allow(clippy::missing_errors_doc)]
 #![allow(clippy::missing_panics_doc)]
-#![allow(unused)]
+//#![allow(unused)]
 //#![deny(clippy::unwrap_used)]
 
 mod ast;

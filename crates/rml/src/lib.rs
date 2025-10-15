@@ -1,6 +1,6 @@
 #![allow(clippy::missing_panics_doc)]
 #![allow(clippy::missing_errors_doc)]
-#![allow(unused)]
+//#![allow(unused)]
 
 mod analyzer;
 mod ast;
@@ -10,7 +10,6 @@ mod model;
 use crate::ast::{LayoutAst, build_layout_ast};
 use crate::cst::RmlNode;
 pub use crate::model::LayoutModel;
-use ::pest::Parser;
 use lexer_core::CstNode;
 use pest_derive::Parser;
 

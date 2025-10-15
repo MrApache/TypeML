@@ -30,7 +30,7 @@ impl LayoutModel {
 fn load_config_model(configs: Vec<Url>) -> Result<Arc<RwLock<SchemaModel>>, rmlx::Error> {
     assert!(!configs.is_empty(), "Config not found");
     let mut iter = configs.into_iter();
-    let mut workspace = AnalysisWorkspace::new(iter.next().unwrap()).run()?;
+    let workspace = AnalysisWorkspace::new(iter.next().unwrap()).run()?;
     Ok(workspace.model())
 }
 
@@ -38,7 +38,7 @@ fn validate_element(element: &Element, analyzer: &mut RmlAnalyzer) -> Result<(),
     let namespace = element.namespace.as_deref();
     let identifier = &element.identifier;
     if analyzer.is_allowed_element(namespace, identifier)? {
-        analyzer.enter_element(namespace, identifier);
+        analyzer.enter_element(namespace, identifier)?;
         element.attributes.iter().try_for_each(|attr| {
             match &attr.value {
                 AttributeValue::Expression(expr) => {

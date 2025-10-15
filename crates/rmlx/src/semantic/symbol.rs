@@ -31,6 +31,7 @@ impl TypeRef {
     }
 }
 
+#[allow(unused)]
 #[enum_dispatch]
 pub trait Symbol {
     fn identifier(&self) -> &str;
@@ -51,7 +52,7 @@ macro_rules! impl_symbol {
                 $ident
             }
 
-            fn can_parse(&self, value: &str, model: &SchemaModel) -> Result<(), crate::Error> {
+            fn can_parse(&self, value: &str, _: &SchemaModel) -> Result<(), crate::Error> {
                 $parse(value)?;
                 Ok(())
             }
@@ -78,7 +79,7 @@ impl Symbol for Str {
         "String"
     }
 
-    fn can_parse(&self, value: &str, model: &SchemaModel) -> Result<(), Error> {
+    fn can_parse(&self, value: &str, _: &SchemaModel) -> Result<(), Error> {
         if value == "true" || value == "false" {
             return Err(Error::InvalidArgumentType("Boolean".to_string(), "String".to_string()));
         }
@@ -164,7 +165,7 @@ impl GenericSymbol {
     #[must_use]
     pub fn construct_type(&self, other: &SymbolKind, other_ref: SymbolRef) -> SymbolKind {
         match &self.base {
-            SymbolKind::Array(value) => SymbolKind::Array(ArraySymbol {
+            SymbolKind::Array(_) => SymbolKind::Array(ArraySymbol {
                 identifier: format!("Array_{}", other.identifier()),
                 inner: other_ref,
             }),
@@ -180,7 +181,7 @@ impl GenericSymbol {
                     .map(|var| {
                         let ty = var.ty.as_ref().map(|ty| match ty {
                             TypeRef::Concrete(concrete) => TypeRef::Concrete(*concrete),
-                            TypeRef::Generic(generic) => TypeRef::Concrete(other_ref),
+                            TypeRef::Generic(_) => TypeRef::Concrete(other_ref),
                         });
                         EnumVariant {
                             identifier: var.identifier.clone(),

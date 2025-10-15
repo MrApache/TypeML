@@ -14,15 +14,9 @@ pub(crate) use loader::LoadError;
 pub use model::SchemaModel;
 pub use symbol::{Symbol, SymbolRef};
 
-use crate::semantic::group::{UnresolvedGroupConfig, UnresolvedGroupSymbol};
 use crate::semantic::symbol::{LazySymbol, SymbolKind};
-use crate::{
-    RmlxParser,
-    semantic::{loader::load_rmlx, unresolved_schema::UnresolvedSchema},
-};
-use std::collections::HashSet;
+use crate::semantic::{loader::load_rmlx, unresolved_schema::UnresolvedSchema};
 use std::fmt::Debug;
-use std::ops::Deref;
 use std::{
     collections::HashMap,
     sync::{Arc, RwLock},
@@ -84,11 +78,6 @@ impl AnalysisWorkspace {
         write.post_load()?;
         drop(write);
         Ok(self)
-    }
-
-    fn find_root(&self) -> Result<SymbolRef, crate::Error> {
-        let model = self.model.read().expect("Unreachable!");
-        model.get_root_group_ref()
     }
 
     fn load_model_internal(&mut self, source: &str, path: &Url) -> Result<(), crate::Error> {

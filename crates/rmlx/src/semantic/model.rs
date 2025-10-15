@@ -2,9 +2,8 @@ use crate::semantic::element::ElementSymbol;
 use crate::semantic::expression::ExpressionSymbol;
 use crate::semantic::group::GroupSymbol;
 use crate::semantic::symbol::{
-    ArraySymbol, F32, F64, GenericSymbol, I8, I16, I32, I64, Str, Symbol, SymbolKind, SymbolRef, U8, U16, U32, U64,
+    F32, F64, GenericSymbol, I8, I16, I32, I64, Str, Symbol, SymbolKind, SymbolRef, U8, U16, U32, U64,
 };
-use pest::pratt_parser::Op;
 use std::collections::HashMap;
 
 #[derive(Debug)]
@@ -45,7 +44,7 @@ impl SchemaModel {
             .zip(self.namespaces.iter())
             .try_for_each(|(module, namespace)| {
                 let mut occurrences: HashMap<&str, usize> = HashMap::new();
-                for (index, kind) in module.iter().enumerate() {
+                for kind in module {
                     *occurrences.entry(kind.identifier()).or_default() += 1;
                 }
 
@@ -74,14 +73,16 @@ impl SchemaModel {
         let main_group = GroupSymbol::main(root_ref);
         global.push(SymbolKind::Group(main_group));
 
-        //Remove generic Array type
+        //TODO Remove generic Array type
+        /*
         let array_index = global
             .iter()
             .enumerate()
             .find(|(_, s)| s.identifier() == "Array")
             .map(|(i, _)| i)
             .unwrap();
-        //global.remove(array_index); TODO
+        global.remove(array_index);
+        */
 
         Ok(())
     }
@@ -101,7 +102,7 @@ impl SchemaModel {
         let ty = type_table
             .iter()
             .enumerate()
-            .find(|(id, kind)| kind.identifier() == name);
+            .find(|(_, kind)| kind.identifier() == name);
 
         if let Some((id, kind)) = ty {
             TypeQuery {
@@ -121,7 +122,7 @@ impl SchemaModel {
             self.namespaces
                 .iter()
                 .enumerate()
-                .find(|(id, n)| *n == ns)
+                .find(|(_, n)| *n == ns)
                 .map(|(id, _)| id)
                 .ok_or(crate::Error::NamespaceNotFound(ns.to_string()))
         } else {
@@ -135,7 +136,7 @@ impl SchemaModel {
             self.namespaces
                 .iter()
                 .enumerate()
-                .find(|(id, n)| *n == ns)
+                .find(|(_, n)| *n == ns)
                 .map(|(id, _)| id)
         } else {
             Some(0)
