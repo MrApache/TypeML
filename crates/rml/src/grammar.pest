@@ -2,7 +2,7 @@ WHITESPACE    = _{ " " | "\t" | "\r" | "\n" | COMMENT_MULTI | LINE_COMMENT }
 COMMENT_MULTI = _{ "/*" ~ (!"*/" ~ ANY)* ~ "*/" }
 LINE_COMMENT  = _{ "//" ~ (!"\n" ~ ANY)* ~ ("\n" | EOI) }
 
-file = { SOI ~ directive* ~ element* ~ directive* ~ EOI }
+file = { SOI ~ directive* ~ element* ~ directive* ~ impls* ~ EOI }
 
 ident    = @{ (ASCII_ALPHA | "_") ~ (ASCII_ALPHANUMERIC | "_")* }
 ns_ident =  { ident ~ ("::" ~ ident)* }
@@ -18,7 +18,8 @@ string  = @{ "\"" ~ (!"\"" ~ ANY)* ~ "\"" }
 enum_val = @{ (ident | custom) }
 custom   = @{ (!(WHITESPACE | "{{" | "}}" | "[" | "]" | "{" | "," | "}" | "=" | ">" | "/") ~ ANY)+ }
 
-structure    = { "{{" ~ struct_field ~ ("," ~ struct_field?)* ~ "}}" }
+structure    = { "{{" ~ ( struct_fields | impl_ref) ~ "}}" }
+struct_fields = { struct_field ~ ("," ~ struct_field?)* }
 struct_field = { ident ~ ":" ~ field_value }
 field_value  = { boolean | enum_val | string }
 
@@ -32,13 +33,19 @@ tag       = {
     "<" ~ ns_ident ~ alias? ~ attribute* ~ ">" ~ element* ~ "</" ~ ns_ident ~ ">"
 }
 
-// Attributes
 attr_value = { boolean | enum_val | string | expression | structure }
 attribute  = { ident ~ "=" ~ attr_value }
 
-// Expression {ExpressionName arg1=val1, arg2=val2}
-expression = { "{" ~ ns_ident ~ expr_arg* ~ "}" }
-expr_arg   = { ident ~ "=" ~ arg_val }
+expression = {
+    "{" ~ ((ns_ident ~ expr_args) | impl_ref) ~ "}"
+}
+expr_args  = { expr_arg ~ ("," ~ expr_arg?)* }
+expr_arg   = { ident ~ ":" ~ arg_val }
 arg_val    = { boolean | enum_val | string | list_val }
 
 list_val = { "[" ~ (arg_val ~ ("," ~ arg_val)*)? ~ "]" }
+
+impl_ref   = { "$" ~ ident }
+impls     = { expr_impl | struct_impl }
+expr_impl = { "$" ~ "expr" ~ ident ~ "-" ~ ">" ~ ns_ident ~ "{" ~ expr_args ~ "}" }
+struct_impl = { "$" ~ "struct" ~ ident ~ "-" ~ ">" ~ ns_ident ~ "{" ~ struct_fields ~ "}" }

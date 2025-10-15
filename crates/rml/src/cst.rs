@@ -11,14 +11,11 @@ pub enum RmlNode {
 
     String,
     Boolean,
-
-    //Integer,
-    //Float,
     Number,
 
     EnumValue,
-    //NumberWithUnit,
     Struct,
+    StructFields,
     StructField,
     FieldValue,
 
@@ -33,9 +30,15 @@ pub enum RmlNode {
     Attribute,
 
     Expression,
+    ExprArgs,
     ExprArg,
     ArgValue,
     ListValue,
+
+    Impls,
+    ImplRef,
+    ExprImpl,
+    StructImpl,
 
     Symbol,
 }
@@ -57,6 +60,7 @@ impl CstKind for RmlNode {
 
             Rule::enum_val => RmlNode::EnumValue,
             Rule::structure => RmlNode::Struct,
+            Rule::struct_fields => RmlNode::StructFields,
             Rule::struct_field => RmlNode::StructField,
             Rule::field_value => RmlNode::FieldValue,
             Rule::directive_content => RmlNode::DirectiveContent,
@@ -67,9 +71,15 @@ impl CstKind for RmlNode {
             Rule::attr_value => RmlNode::AttrValue,
             Rule::attribute => RmlNode::Attribute,
             Rule::expression => RmlNode::Expression,
+            Rule::expr_args => RmlNode::ExprArgs,
             Rule::expr_arg => RmlNode::ExprArg,
             Rule::arg_val => RmlNode::ArgValue,
             Rule::list_val => RmlNode::ListValue,
+
+            Rule::impls => RmlNode::Impls,
+            Rule::impl_ref => RmlNode::ImplRef,
+            Rule::expr_impl => RmlNode::ExprImpl,
+            Rule::struct_impl => RmlNode::StructImpl,
             _ => RmlNode::Symbol,
         }
     }

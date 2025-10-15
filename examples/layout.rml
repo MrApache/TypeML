@@ -1,14 +1,9 @@
 #use <schema.rmlx> //Use rmlx file
+//#import <schema::*> //Import all types from namespace "schema"
 
 <base::Layout@Root>
-    <Node width=100% height=100%/>
-    <BackgroundColor self={
-        base::Component
-        target="Player"
-        path="color"
-        with=["ABC", "123", "ABC"]
-        without=["ABC", "123", "ABC"]
-    }/>
+    <Node width=100% height=100% border={{$NodeBorder}}/>
+    <BackgroundColor self={$ColorComponent}/>
     <base::ItemTemplate>
         <base::Entity>
             <Node width=30px height=40px border={{
@@ -22,6 +17,19 @@
     </base::ItemTemplate>
 </base::Layout>
 
+$expr ColorComponent -> base::Component {
+    target:  "Player",
+    path:    "color",
+    with:    ["ABC", "123", "ABC"],
+    without: ["ABC", "123", "ABC"],
+}
+
+$struct NodeBorder -> UiRect {
+    left: 10px,
+    right: 10px,
+    top: 10px,
+    bottom: 10px,
+}
 //TODO Return error from 'can_parse'
 //TODO Expression group support
 //TODO An unique identifiers
@@ -41,3 +49,4 @@
 
 //TODO Metadata assignment
 //TODO Expression restrict support
+//TODO Separate expression implementation

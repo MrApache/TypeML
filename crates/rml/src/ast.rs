@@ -5,6 +5,7 @@ use lexer_core::CstNode;
 pub struct LayoutAst {
     pub directives: Vec<Directive>,
     pub root: Option<Element>,
+    pub impls: Vec<Impl>,
 }
 
 #[derive(Debug)]
@@ -31,6 +32,35 @@ pub struct Field {
 pub struct Struct {
     pub source: String,
     pub fields: Vec<Field>,
+}
+
+#[derive(Debug)]
+pub enum StructKind {
+    Ref(String),
+    Impl(Struct),
+}
+
+impl StructKind {
+    pub fn as_str(&self) -> &str {
+        match self {
+            StructKind::Ref(r) => r.as_str(),
+            StructKind::Impl(i) => i.source.as_str(),
+        }
+    }
+
+    pub fn as_struct<'a>(&'a self, impls: &'a [Impl]) -> &'a Struct {
+        match self {
+            StructKind::Ref(r) => impls
+                .iter()
+                .find(|i| i.identifier.as_str() == r)
+                .map(|i| match &i.kind {
+                    ImplKind::Struct(s) => s,
+                    ImplKind::Expr(_) => unreachable!(),
+                })
+                .unwrap(),
+            StructKind::Impl(i) => i,
+        }
+    }
 }
 
 #[derive(Debug)]
@@ -74,7 +104,6 @@ pub struct ExpressionArgument {
 
 #[derive(Debug)]
 pub struct Expression {
-    pub source: String,
     pub namespace: Option<String>,
     pub identifier: String,
     pub arguments: Vec<ExpressionArgument>,
@@ -89,13 +118,35 @@ impl Expression {
 }
 
 #[derive(Debug)]
+pub enum ExpressionKind {
+    Ref(String),
+    Impl(Expression),
+}
+
+impl ExpressionKind {
+    pub fn as_expr<'a>(&'a self, impls: &'a [Impl]) -> &'a Expression {
+        match self {
+            ExpressionKind::Ref(r) => impls
+                .iter()
+                .find(|i| i.identifier.as_str() == r)
+                .map(|i| match &i.kind {
+                    ImplKind::Expr(e) => e,
+                    ImplKind::Struct(_) => unreachable!(),
+                })
+                .unwrap(),
+            ExpressionKind::Impl(i) => i,
+        }
+    }
+}
+
+#[derive(Debug)]
 pub enum AttributeValue {
     Boolean(bool),
     Number(String),
     String(String),
     Enum(String),
-    Struct(Struct),
-    Expression(Expression),
+    Struct(StructKind),
+    Expression(ExpressionKind),
 }
 
 impl AttributeValue {
@@ -111,8 +162,8 @@ impl AttributeValue {
             AttributeValue::Number(value) => value.as_str(),
             AttributeValue::String(value) => value.as_str(),
             AttributeValue::Enum(value) => value.as_str(),
-            AttributeValue::Struct(value) => value.source.as_str(),
-            AttributeValue::Expression(value) => value.source.as_str(),
+            AttributeValue::Struct(value) => value.as_str(),
+            AttributeValue::Expression(_) => unreachable!(),
         }
     }
 }
@@ -129,6 +180,18 @@ pub struct Element {
     pub identifier: String,
     pub attributes: Vec<Attribute>,
     pub children: Vec<Element>,
+}
+
+#[derive(Debug)]
+pub enum ImplKind {
+    Expr(Expression),
+    Struct(Struct),
+}
+
+#[derive(Debug)]
+pub struct Impl {
+    pub identifier: String,
+    pub kind: ImplKind,
 }
 
 fn build_directive(node: &CstNode<RmlNode>) -> Directive {
@@ -178,27 +241,29 @@ fn build_expression_argument(node: &CstNode<RmlNode>) -> ExpressionArgument {
     ExpressionArgument { identifier, value }
 }
 
-fn build_expression(node: &CstNode<RmlNode>) -> Expression {
-    let source = node
-        .text
-        .strip_prefix("{")
-        .unwrap()
-        .strip_suffix("}")
-        .unwrap()
-        .to_string();
-
-    let mut iter = node.children.iter();
-    let (namespace, identifier) = build_ident(iter.next().unwrap());
-    let arguments = iter
+fn build_expression_arguments(node: &CstNode<RmlNode>) -> Vec<ExpressionArgument> {
+    node.children
+        .iter()
         .filter(|c| matches!(c.kind, RmlNode::ExprArg))
         .map(build_expression_argument)
-        .collect::<Vec<_>>();
+        .collect()
+}
 
-    Expression {
-        source,
-        namespace,
-        identifier,
-        arguments,
+fn build_expression(node: &CstNode<RmlNode>) -> ExpressionKind {
+    let mut iter = node.children.iter();
+    let child = iter.next().unwrap();
+    match child.kind {
+        RmlNode::ImplRef => ExpressionKind::Ref(child.children.first().unwrap().text.clone()),
+        RmlNode::NsIdent => {
+            let (namespace, identifier) = build_ident(child);
+            let arguments = build_expression_arguments(iter.find(|c| matches!(c.kind, RmlNode::ExprArgs)).unwrap());
+            ExpressionKind::Impl(Expression {
+                namespace,
+                identifier,
+                arguments,
+            })
+        }
+        _ => unreachable!(),
     }
 }
 
@@ -220,7 +285,15 @@ fn build_struct_field(node: &CstNode<RmlNode>) -> Field {
     Field { identifier, value }
 }
 
-fn build_struct(node: &CstNode<RmlNode>) -> Struct {
+fn build_struct_fields(node: &CstNode<RmlNode>) -> Vec<Field> {
+    node.children
+        .iter()
+        .filter(|c| matches!(c.kind, RmlNode::StructField))
+        .map(build_struct_field)
+        .collect::<Vec<_>>()
+}
+
+fn build_struct(node: &CstNode<RmlNode>) -> StructKind {
     let source = node
         .text
         .strip_prefix("{{")
@@ -229,13 +302,15 @@ fn build_struct(node: &CstNode<RmlNode>) -> Struct {
         .unwrap()
         .to_string();
 
-    let fields = node
-        .children
-        .iter()
-        .filter(|c| matches!(c.kind, RmlNode::StructField))
-        .map(build_struct_field)
-        .collect::<Vec<_>>();
-    Struct { source, fields }
+    let child = node.children.first().unwrap();
+    match child.kind {
+        RmlNode::ImplRef => StructKind::Ref(child.children.first().unwrap().text.clone()),
+        RmlNode::StructFields => StructKind::Impl(Struct {
+            source,
+            fields: build_struct_fields(child),
+        }),
+        _ => unreachable!(),
+    }
 }
 
 fn build_attribute_value(node: &CstNode<RmlNode>) -> AttributeValue {
@@ -331,8 +406,54 @@ fn build_element(node: &CstNode<RmlNode>) -> Element {
     }
 }
 
+fn build_expr_impl(node: &CstNode<RmlNode>) -> Impl {
+    let mut iter = node.children.iter();
+    let ident = iter.next().unwrap().text.clone();
+    let (definition_ns, definition_ident) = build_ident(iter.next().unwrap());
+    let arguments = build_expression_arguments(iter.next().unwrap());
+
+    let expr = Expression {
+        namespace: definition_ns,
+        identifier: definition_ident,
+        arguments,
+    };
+
+    Impl {
+        identifier: ident,
+        kind: ImplKind::Expr(expr),
+    }
+}
+
+fn build_struct_impl(node: &CstNode<RmlNode>) -> Impl {
+    let mut iter = node.children.iter();
+    let identifier = iter.next().unwrap().text.clone();
+    let (definition_ns, definition_ident) = build_ident(iter.next().unwrap());
+    let fields_node = iter.next().unwrap();
+    let fields = build_struct_fields(fields_node);
+
+    let r#struct = Struct {
+        source: fields_node.text.clone(),
+        fields,
+    };
+
+    Impl {
+        identifier,
+        kind: ImplKind::Struct(r#struct),
+    }
+}
+
+fn build_impl(node: &CstNode<RmlNode>) -> Impl {
+    let child = node.children.first().unwrap();
+    match child.kind {
+        RmlNode::ExprImpl => build_expr_impl(child),
+        RmlNode::StructImpl => build_struct_impl(child),
+        _ => unreachable!(),
+    }
+}
+
 #[must_use]
 pub fn build_layout_ast(cst: &CstNode<RmlNode>) -> LayoutAst {
+    let mut impls = Vec::new();
     let mut directives = Vec::new();
     let mut root = None;
 
@@ -340,10 +461,15 @@ pub fn build_layout_ast(cst: &CstNode<RmlNode>) -> LayoutAst {
         match child.kind {
             RmlNode::Directive => directives.push(build_directive(child)),
             RmlNode::Element => root = Some(build_element(child)),
+            RmlNode::Impls => impls.push(build_impl(child)),
             RmlNode::Symbol => {}
             kind => unreachable!("{kind:#?}"),
         }
     }
 
-    LayoutAst { directives, root }
+    LayoutAst {
+        directives,
+        root,
+        impls,
+    }
 }
