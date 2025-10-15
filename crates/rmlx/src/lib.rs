@@ -72,4 +72,7 @@ pub enum Error {
 
     #[error("Expression {0} is not allowed in {1} group")]
     ExpressionIsNotAllowedInGroup(String, String), //Expression, Group
+
+    #[error("{0}::{1} is already defined")]
+    AlreadyDefinedType(String, String),
 }

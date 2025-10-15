@@ -39,7 +39,34 @@ impl Default for SchemaModel {
 }
 
 impl SchemaModel {
+    fn find_duplicate_identifiers(&mut self) -> Result<(), crate::Error> {
+        self.modules
+            .iter()
+            .zip(self.namespaces.iter())
+            .try_for_each(|(module, namespace)| {
+                let mut occurrences: HashMap<&str, usize> = HashMap::new();
+                for (index, kind) in module.iter().enumerate() {
+                    *occurrences.entry(kind.identifier()).or_default() += 1;
+                }
+
+                for (identifier, indices) in &occurrences {
+                    if *indices > 1 {
+                        return Err(crate::Error::AlreadyDefinedType(
+                            namespace.clone(),
+                            (*identifier).to_string(),
+                        ));
+                    }
+                }
+
+                Ok::<_, crate::Error>(())
+            })?;
+
+        Ok(())
+    }
+
     pub(crate) fn post_load(&mut self) -> Result<(), crate::Error> {
+        self.find_duplicate_identifiers()?;
+
         let root_ref = self.get_root_group_ref()?;
         let global = self.modules.first_mut().unwrap();
 

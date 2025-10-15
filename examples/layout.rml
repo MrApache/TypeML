@@ -14,9 +14,9 @@
 
 //TODO Return error from 'can_parse'
 //TODO Expression group support
+//TODO An unique identifiers
 
 //TODO Deep value type checking
-//TODO An unique identifiers
 //TODO A namespace identifier should be equal file name
 //TODO Directive 'Include' that allow include type from namespace (+ Alias support)
 //TODO An unique element support
@@ -24,3 +24,4 @@
 //TODO Expression restrict support
 //TODO Annotations errors
 //TODO Specify item attachment
+//TODO Error locations
