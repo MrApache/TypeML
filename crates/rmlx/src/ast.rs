@@ -162,7 +162,7 @@ pub struct TypeRef {
 }
 
 impl Display for TypeRef {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+    fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
         if let Some(path) = &self.namespace {
             write!(f, "{path}::{}", self.ident)
         } else {
@@ -220,7 +220,7 @@ impl Default for TypeIdent {
 }
 
 impl Display for TypeIdent {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+    fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
         match self {
             TypeIdent::Simple(ident) => write!(f, "{ident}"),
             TypeIdent::Generic(ident, inner) => write!(f, "{ident}_{inner}"),
@@ -421,8 +421,8 @@ fn build_attributes(node: &CstNode<RmlxNode>) -> Vec<Attribute> {
     let mut attributes = Vec::new();
 
     let mut iter = node.children.iter();
-    consume_token(&mut iter, &RmlxNode::Hash, Some("#"));
-    consume_token(&mut iter, &RmlxNode::Symbol, Some("["));
+    consume_token(&mut iter, RmlxNode::Hash, Some("#"));
+    consume_token(&mut iter, RmlxNode::Symbol, Some("["));
 
     for child in iter {
         if child.kind == RmlxNode::Attribute {
@@ -667,7 +667,7 @@ fn build_group_entry(node: &CstNode<RmlxNode>) -> GroupEntry {
     let mut count = None;
 
     let mut iter = node.children.iter();
-    consume_token(&mut iter, &RmlxNode::Plus, Some("+"));
+    consume_token(&mut iter, RmlxNode::Plus, Some("+"));
 
     for child in iter {
         match child.kind {
@@ -683,7 +683,7 @@ fn build_group_entry(node: &CstNode<RmlxNode>) -> GroupEntry {
 
 fn build_count(node: &CstNode<RmlxNode>) -> Count {
     let mut iter = node.children.iter();
-    consume_token(&mut iter, &RmlxNode::Symbol, Some("("));
+    consume_token(&mut iter, RmlxNode::Symbol, Some("("));
     match iter.next().expect("Unreachable!").text.as_str() {
         "*" => Count::ZeroOrMore,
         "?" => Count::ZeroOrOne,
@@ -730,12 +730,12 @@ fn build_expression(node: &CstNode<RmlxNode>) -> Expression {
     }
 }
 
-fn consume_token<'a, I>(iter: &mut I, expected_kind: &RmlxNode, expected_text: Option<&str>)
+fn consume_token<'a, I>(iter: &mut I, expected_kind: RmlxNode, expected_text: Option<&str>)
 where
     I: Iterator<Item = &'a CstNode<RmlxNode>>,
 {
     if let Some(node) = iter.next() {
-        if node.kind != *expected_kind {
+        if node.kind != expected_kind {
             unreachable!();
         }
         if let Some(text) = expected_text
