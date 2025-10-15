@@ -34,8 +34,8 @@ impl TypeRef {
 #[enum_dispatch]
 pub trait Symbol {
     fn identifier(&self) -> &str;
-    fn can_parse(&self, value: &str, model: &SchemaModel) -> Result<bool, Error> {
-        Ok(false)
+    fn can_parse(&self, value: &str, model: &SchemaModel) -> Result<(), Error> {
+        Err(Error::TypeIsNotParsable)
     }
     fn try_get_self_reference(&self, model: &SchemaModel) -> Option<&SymbolRef> {
         None
@@ -51,8 +51,9 @@ macro_rules! impl_symbol {
                 $ident
             }
 
-            fn can_parse(&self, value: &str, model: &SchemaModel) -> Result<bool, crate::Error> {
-                Ok($parse(value).is_ok())
+            fn can_parse(&self, value: &str, model: &SchemaModel) -> Result<(), crate::Error> {
+                $parse(value)?;
+                Ok(())
             }
         }
     };
@@ -68,7 +69,27 @@ impl_symbol!(U8, "u8", str::parse::<u8>);
 impl_symbol!(U16, "u16", str::parse::<u16>);
 impl_symbol!(U32, "u32", str::parse::<u32>);
 impl_symbol!(U64, "u64", str::parse::<u64>);
-impl_symbol!(Str, "String", str::parse::<String>);
+
+#[derive(Debug, Clone)]
+pub struct Str;
+
+impl Symbol for Str {
+    fn identifier(&self) -> &'static str {
+        "String"
+    }
+
+    fn can_parse(&self, value: &str, model: &SchemaModel) -> Result<(), Error> {
+        if value == "true" || value == "false" {
+            return Err(Error::InvalidArgumentType("Boolean".to_string(), "String".to_string()));
+        }
+
+        if !value.starts_with('"') && !value.ends_with('"') {
+            return Err(Error::InvalidArgumentType(value.to_string(), "String".to_string()));
+        }
+
+        Ok(())
+    }
+}
 
 #[derive(Debug, Clone)]
 pub struct ArraySymbol {
@@ -90,14 +111,13 @@ impl Symbol for ArraySymbol {
         &self.identifier
     }
 
-    fn can_parse(&self, value: &str, model: &SchemaModel) -> Result<bool, Error> {
-        let mut result = true;
+    fn can_parse(&self, value: &str, model: &SchemaModel) -> Result<(), Error> {
         value.split(',').map(str::trim).try_for_each(|value| {
             let kind = model.get_type_by_ref(self.inner).unwrap().unwrap();
-            result &= kind.can_parse(value, model)?;
+            kind.can_parse(value, model)?;
             Ok::<_, Error>(())
         })?;
-        Ok(result)
+        Ok(())
     }
 }
 
@@ -249,7 +269,14 @@ impl SymbolKind {
     pub fn as_element_symbol(&self) -> &ElementSymbol {
         match self {
             SymbolKind::Element(symbol) => symbol,
-            _ => panic!("Not a element symbol"),
+            _ => panic!("Not an element symbol"),
+        }
+    }
+
+    pub fn as_expression_symbol(&self) -> &ExpressionSymbol {
+        match self {
+            SymbolKind::Expression(symbol) => symbol,
+            _ => panic!("Not an expression symbol"),
         }
     }
 
@@ -259,5 +286,9 @@ impl SymbolKind {
 
     pub fn is_element_symbol(&self) -> bool {
         matches!(self, SymbolKind::Element(_))
+    }
+
+    pub fn is_expression_symbol(&self) -> bool {
+        matches!(self, SymbolKind::Expression(_))
     }
 }

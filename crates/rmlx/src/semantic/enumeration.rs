@@ -1,3 +1,4 @@
+use crate::Error::InvalidArgumentType;
 use crate::ast::{AnnotationValue, BaseType, Enum};
 use crate::{
     AnalysisWorkspace, Error, SchemaModel, TypeResolver, UnresolvedType,
@@ -117,32 +118,37 @@ impl Symbol for EnumSymbol {
         &self.identifier
     }
 
-    fn can_parse(&self, value: &str, model: &SchemaModel) -> Result<bool, Error> {
+    fn can_parse(&self, value: &str, model: &SchemaModel) -> Result<(), Error> {
         let default_inner_regex = Regex::new(r"([a-zA-Z][a-zA-Z0-9_]*)\((.*)\)")?;
 
-        self.variants.iter().try_fold(false, |acc, v| {
+        for variant in &self.variants {
             let mut result = false;
 
-            if let Some(pattern) = &v.pattern {
+            if let Some(pattern) = &variant.pattern {
                 let regex = Regex::new(pattern)?;
                 result = regex.is_match(value);
             }
 
             if !result
                 && default_inner_regex.is_match(value)
-                && let Some(ty) = &v.ty
+                && let Some(ty) = &variant.ty
                 && let Some(cap) = default_inner_regex.captures(value)
             {
                 let value = cap.get(2).expect("Unreachable!").as_str();
                 let ty = model.get_type_by_ref(ty.as_concrete()).unwrap().expect("Unreachable!");
-                result = v.identifier == cap.get(1).expect("Unreachable!").as_str() && ty.can_parse(value, model)?;
+                ty.can_parse(value, model)?;
+                result = variant.identifier == cap.get(1).expect("Unreachable!").as_str();
             }
 
             if !result {
-                result = v.identifier == value;
+                result = variant.identifier == value;
             }
 
-            Ok(acc || result)
-        })
+            if result {
+                return Ok(());
+            }
+        }
+
+        Err(InvalidArgumentType("Enum variant".to_string(), value.to_string()))
     }
 }

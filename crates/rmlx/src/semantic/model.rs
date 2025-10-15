@@ -1,4 +1,5 @@
 use crate::semantic::element::ElementSymbol;
+use crate::semantic::expression::ExpressionSymbol;
 use crate::semantic::group::GroupSymbol;
 use crate::semantic::symbol::{
     ArraySymbol, F32, F64, GenericSymbol, I8, I16, I32, I64, Str, Symbol, SymbolKind, SymbolRef, U8, U16, U32, U64,
@@ -28,7 +29,6 @@ impl Default for SchemaModel {
             SymbolKind::String(Str),
             SymbolKind::Generic(Box::new(GenericSymbol::option())),
             SymbolKind::Generic(Box::new(GenericSymbol::array())),
-            //SymbolKind::Array(ArraySymbol::default()),
         ];
 
         Self {
@@ -214,6 +214,20 @@ impl<'a> TypeQuery<'a> {
         self.kind.and_then(|k| {
             if k.is_group_symbol() {
                 Some(k.as_group_symbol())
+            } else {
+                None
+            }
+        })
+    }
+
+    pub fn is_expression_symbol(&self) -> bool {
+        self.kind.is_some_and(SymbolKind::is_expression_symbol)
+    }
+
+    pub fn as_expression_symbol(&self) -> Option<&'a ExpressionSymbol> {
+        self.kind.and_then(|k| {
+            if k.is_expression_symbol() {
+                Some(k.as_expression_symbol())
             } else {
                 None
             }

@@ -2,18 +2,18 @@
 
 //Count??
 @extend
-group Component;
+group Components;
 
 #[Description("Entity")]
 group Container {
-    + unique Component(*)
+    + unique Components(*)
     + Container(?)
     + Template(?)
 }
 
 #[Description("Main group")]
 group Root(1) {
-    + unique Component(*)
+    + unique Components(*)
     + Container(?)
     + Template(?)
 }
@@ -28,14 +28,14 @@ element Entity -> Container;
 element ItemTemplate -> Template;
 
 #[Description("Component only")]
-@groups   [Component]
+@groups   [Components]
 expression Resource {
     target: String,
     path:   String,
 }
 
 #[Description("Component only")]
-@groups   [Component]
+@groups   [Components]
 expression Component {
     target: String,
     path:   String,
@@ -44,7 +44,7 @@ expression Component {
 }
 
 #[Description("Template only")]
-@groups   [Component]
+@groups   [Components]
 @restrict [Template]
 expression Item {
     path: String,

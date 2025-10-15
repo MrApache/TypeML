@@ -298,6 +298,25 @@ fn build_directive(node: &CstNode<RmlxNode>) -> Directive {
     Directive { name, value }
 }
 
+fn build_ident(node: &CstNode<RmlxNode>) -> TypeRef {
+    let (namespace, ident) = match node.kind {
+        RmlxNode::Ident => (None, node.text.to_string()),
+        RmlxNode::NsIdent => {
+            if let Some((ns, ident)) = node.text.rsplit_once("::") {
+                (Some(ns.to_string()), ident.to_string())
+            } else {
+                (None, node.text.to_string())
+            }
+        }
+        _ => unreachable!(),
+    };
+
+    TypeRef {
+        namespace,
+        ident: TypeIdent::Simple(ident),
+    }
+}
+
 fn build_annotation_value(node: &CstNode<RmlxNode>) -> AnnotationValue {
     let child = node.children.first().unwrap();
     match child.kind {
@@ -306,7 +325,7 @@ fn build_annotation_value(node: &CstNode<RmlxNode>) -> AnnotationValue {
                 .children
                 .iter()
                 .filter_map(|c| {
-                    if let RmlxNode::Ident = c.kind {
+                    if let RmlxNode::NsIdent = c.kind {
                         Some(c.text.clone())
                     } else {
                         None

@@ -2,10 +2,25 @@
 
 <base::Layout@Root>
     <Node width=100% height=100%/>
+    <BackgroundColor self={base::Component with=["ABC", "123", "ABC"]}/>
+    <BackgroundColor self="msg"/>
     <base::ItemTemplate>
         <base::Entity>
-            <Node width=30px height=40px/>
-            <BackgroundColor self={Item}/>
+            <Node width={base::Item} height=40px/>
+            <BackgroundColor self={base::Item}/>
         </base::Entity>
     </base::ItemTemplate>
 </base::Layout>
+
+//TODO Return error from 'can_parse'
+//TODO Expression group support
+
+//TODO Deep value type checking
+//TODO An unique identifiers
+//TODO A namespace identifier should be equal file name
+//TODO Directive 'Include' that allow include type from namespace (+ Alias support)
+//TODO An unique element support
+//TODO An element counter support
+//TODO Expression restrict support
+//TODO Annotations errors
+//TODO Specify item attachment

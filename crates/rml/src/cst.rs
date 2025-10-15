@@ -35,12 +35,10 @@ pub enum RmlNode {
     Attribute,
 
     Expression,
-    ExprName,
     ExprArg,
     ArgName,
     ArgValue,
     ListValue,
-    Negation,
 
     Symbol,
 }
@@ -75,12 +73,10 @@ impl CstKind for RmlNode {
             Rule::attr_value => RmlNode::AttrValue,
             Rule::attribute => RmlNode::Attribute,
             Rule::expression => RmlNode::Expression,
-            Rule::expr_name => RmlNode::ExprName,
             Rule::expr_arg => RmlNode::ExprArg,
             Rule::arg_name => RmlNode::ArgName,
             Rule::arg_val => RmlNode::ArgValue,
             Rule::list_val => RmlNode::ListValue,
-            Rule::negation => RmlNode::Negation,
             _ => RmlNode::Symbol,
         }
     }

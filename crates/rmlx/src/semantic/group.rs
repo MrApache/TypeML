@@ -142,10 +142,6 @@ impl Symbol for GroupSymbol {
         &self.identifier
     }
 
-    fn can_parse(&self, value: &str, model: &SchemaModel) -> Result<bool, crate::Error> {
-        Ok(false)
-    }
-
     fn try_get_self_reference(&self, model: &SchemaModel) -> Option<&SymbolRef> {
         for group in &self.groups {
             let ty = model.get_type_by_ref(group.symbol()).unwrap().expect("Unreachable!");

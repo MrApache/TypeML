@@ -34,15 +34,13 @@ tag       = {
 }
 
 // Attributes
-attr_value = { enum_val | number | boolean | string | expression | structure }
+attr_value = { boolean | enum_val | number | string | expression | structure }
 attribute  = { ident ~ "=" ~ attr_value }
 
 // Expression {ExpressionName arg1=val1, arg2=val2}
-expression =  { "{" ~ expr_name ~ (WHITESPACE* ~ expr_arg)* ~ "}" }
-expr_name  = @{ ASCII_ALPHANUMERIC+ }
+expression =  { "{" ~ ns_ident ~ (WHITESPACE* ~ expr_arg)* ~ "}" }
 expr_arg   =  { arg_name ~ "=" ~ arg_val }
 arg_name   = @{ ASCII_ALPHANUMERIC+ }
-arg_val    =  { string | number | boolean | enum_val | list_val | negation }
+arg_val    =  { string | number | boolean | enum_val | list_val }
 
 list_val = { "[" ~ (arg_val ~ ("," ~ arg_val)*)? ~ "]" }
-negation = { "!" ~ arg_val }

@@ -139,6 +139,16 @@ pub struct ExpressionField {
     optional: bool,
 }
 
+impl ExpressionField {
+    pub fn ty(&self) -> SymbolRef {
+        self.ty
+    }
+
+    pub fn optional(&self) -> bool {
+        self.optional
+    }
+}
+
 #[derive(Debug, Clone)]
 pub struct ExpressionSymbol {
     identifier: String,
@@ -146,6 +156,24 @@ pub struct ExpressionSymbol {
     fields: Vec<ExpressionField>,
     groups: Vec<SymbolRef>,
     restrict: Vec<SymbolRef>,
+}
+
+impl ExpressionSymbol {
+    pub fn field(&self, name: &str) -> Option<&ExpressionField> {
+        self.fields.iter().find(|f| f.identifier == name)
+    }
+
+    pub fn fields(&self) -> &[ExpressionField] {
+        &self.fields
+    }
+
+    pub fn groups(&self) -> &[SymbolRef] {
+        &self.groups
+    }
+
+    pub fn restrict(&self) -> &[SymbolRef] {
+        &self.restrict
+    }
 }
 
 impl Symbol for ExpressionSymbol {

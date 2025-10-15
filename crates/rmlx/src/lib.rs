@@ -38,9 +38,6 @@ pub enum Error {
     IncorrectPattern(#[from] regex::Error),
 
     #[error("{0}")]
-    ParseBool(#[from] std::str::ParseBoolError),
-
-    #[error("{0}")]
     LoadError(#[from] LoadError),
 
     #[error("{0}")]
@@ -51,4 +48,28 @@ pub enum Error {
 
     #[error("Element {0} not found")]
     ElementNotFound(String),
+
+    #[error("Expression {0} not found")]
+    ExpressionNotFound(String),
+
+    #[error("Field {0} not found")]
+    FieldNotFound(String),
+
+    #[error("Type is not parsable")]
+    TypeIsNotParsable,
+
+    #[error("{0}")]
+    ParseBool(#[from] std::str::ParseBoolError),
+
+    #[error("{0}")]
+    ParseFloat(#[from] std::num::ParseFloatError),
+
+    #[error("{0}")]
+    ParseInt(#[from] std::num::ParseIntError),
+
+    #[error("Invalid argument type. Current is {0}, but expected {1}")]
+    InvalidArgumentType(String, String),
+
+    #[error("Expression {0} is not allowed in {1} group")]
+    ExpressionIsNotAllowedInGroup(String, String), //Expression, Group
 }

@@ -1,3 +1,4 @@
+use crate::ast::{ArgumentValue, Element, Expression};
 use rmlx::Symbol;
 use rmlx::{GroupConfig, SchemaModel, SymbolRef};
 use std::collections::{HashMap, HashSet};
@@ -155,7 +156,7 @@ impl RmlAnalyzer {
         self.active = previous_element.state;
     }
 
-    pub fn is_valid_attribute(&self, name: &str, value: &str) -> Result<bool, rmlx::Error> {
+    pub fn is_valid_attribute(&self, name: &str, value: &str) -> Result<(), rmlx::Error> {
         let model = self.model.read().expect("Unreachable!");
         let last_element = self.depth.last().expect("Unreachable!");
         let element_namespace = model.get_namespace_id(last_element.namespace.as_deref())?;
@@ -167,5 +168,59 @@ impl RmlAnalyzer {
         let field_type = model.get_type_by_ref(field.ty());
         let field_type = field_type.as_ref();
         field_type.can_parse(value, &model)
+    }
+
+    fn is_valid_expression_element_group(
+        namespace: Option<&str>,
+        name: &str,
+        groups: &[SymbolRef],
+        model: &SchemaModel,
+        expression: &Expression,
+    ) -> Result<(), rmlx::Error> {
+        let namespace_id = model.get_namespace_id(namespace)?;
+        let element = model
+            .get_type_by_name(namespace_id, name)
+            .as_element_symbol()
+            .expect("Unreachable!");
+
+        let bind_group = element.group();
+        if !groups.contains(&bind_group) {
+            let ty = model.get_type_by_ref(bind_group).unwrap().expect("Unreachable!");
+            let group = ty.as_group_symbol();
+            return Err(rmlx::Error::ExpressionIsNotAllowedInGroup(
+                expression.full_path(),
+                group.identifier().to_string(),
+            ));
+        }
+
+        Ok(())
+    }
+
+    pub fn is_valid_expression(
+        &self,
+        element_namespace: Option<&str>,
+        element_name: &str,
+        expression: &Expression,
+    ) -> Result<(), rmlx::Error> {
+        let model = self.model.read().expect("Unreachable!");
+        let expr_namespace = model.get_namespace_id(expression.namespace.as_deref())?;
+        let expr = model
+            .get_type_by_name(expr_namespace, &expression.identifier)
+            .as_expression_symbol()
+            .ok_or(rmlx::Error::ExpressionNotFound(expression.full_path()))?;
+
+        expression.arguments.iter().try_for_each(|arg| {
+            if let Some(field) = expr.field(&arg.identifier) {
+                let field_type = model.get_type_by_ref(field.ty());
+                let field_type = field_type.as_ref();
+                field_type.can_parse(arg.value.as_str(), &model)
+            } else {
+                Err(rmlx::Error::FieldNotFound(arg.identifier.to_string()))
+            }
+        })?;
+
+        Self::is_valid_expression_element_group(element_namespace, element_name, expr.groups(), &model, expression)?;
+
+        Ok(())
     }
 }

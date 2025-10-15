@@ -1,5 +1,5 @@
 use crate::analyzer::RmlAnalyzer;
-use crate::ast::{Element, LayoutAst};
+use crate::ast::{AttributeValue, Element, LayoutAst};
 use lexer_core::to_url;
 use rmlx::{AnalysisWorkspace, SchemaModel};
 use std::sync::{Arc, RwLock};
@@ -31,7 +31,6 @@ fn load_config_model(configs: Vec<Url>) -> Result<Arc<RwLock<SchemaModel>>, rmlx
     assert!(!configs.is_empty(), "Config not found");
     let mut iter = configs.into_iter();
     let mut workspace = AnalysisWorkspace::new(iter.next().unwrap()).run()?;
-    println!();
     Ok(workspace.model())
 }
 
@@ -41,12 +40,14 @@ fn validate_element(element: &Element, analyzer: &mut RmlAnalyzer) -> Result<(),
     if analyzer.is_allowed_element(namespace, identifier)? {
         analyzer.next_state(namespace, identifier);
         element.attributes.iter().try_for_each(|attr| {
-            assert!(
-                analyzer.is_valid_attribute(&attr.identifier, attr.value.as_str())?,
-                "Not valid attribute"
-            );
+            match &attr.value {
+                AttributeValue::Expression(expr) => {
+                    analyzer.is_valid_expression(element.namespace.as_deref(), &element.identifier, expr)
+                }
+                other => analyzer.is_valid_attribute(&attr.identifier, other.as_str()),
+            }?;
             Ok::<(), rmlx::Error>(())
-        });
+        })?;
         element
             .children
             .iter()

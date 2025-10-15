@@ -167,7 +167,7 @@ enum FlexWrap {
 }
 
 #[Path("bevy::prelude::Node")]
-element Node -> base::Component {
+element Node -> base::Components {
     display: Display,
     box_sizing: BoxSizing,
     position_type: PositionType,
@@ -203,6 +203,6 @@ element Node -> base::Component {
 }
 
 #[Path("bevy::prelude::BackgroundColor")]
-element BackgroundColor -> base::Component {
+element BackgroundColor -> base::Components {
     self: String,
 }

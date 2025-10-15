@@ -34,13 +34,36 @@ pub struct Struct {
 }
 
 #[derive(Debug)]
+pub struct List {
+    pub source: String,
+    pub values: Vec<ArgumentValue>,
+}
+
+#[derive(Debug)]
 pub enum ArgumentValue {
     String(String),
     Number(String),
     Boolean(bool),
     Enum(String),
-    ListValue(Vec<ArgumentValue>),
-    Negation(String),
+    ListValue(List),
+}
+
+impl ArgumentValue {
+    pub fn as_str(&self) -> &str {
+        match self {
+            ArgumentValue::String(value) => value.as_str(),
+            ArgumentValue::Number(value) => value.as_str(),
+            ArgumentValue::Boolean(value) => {
+                if *value {
+                    "true"
+                } else {
+                    "false"
+                }
+            }
+            ArgumentValue::Enum(value) => value.as_str(),
+            ArgumentValue::ListValue(value) => value.source.as_str(),
+        }
+    }
 }
 
 #[derive(Debug)]
@@ -52,8 +75,17 @@ pub struct ExpressionArgument {
 #[derive(Debug)]
 pub struct Expression {
     pub source: String,
+    pub namespace: Option<String>,
     pub identifier: String,
     pub arguments: Vec<ExpressionArgument>,
+}
+
+impl Expression {
+    #[must_use]
+    pub fn full_path(&self) -> String {
+        let ns = self.namespace.clone().unwrap_or_default();
+        format!("{ns}::{}", self.identifier)
+    }
 }
 
 #[derive(Debug)]
@@ -114,8 +146,17 @@ fn build_directive(node: &CstNode<RmlNode>) -> Directive {
     Directive { name, value }
 }
 
-fn build_list_value(node: &CstNode<RmlNode>) -> Vec<ArgumentValue> {
-    node.children.iter().map(build_argument_value).collect()
+fn build_list_value(node: &CstNode<RmlNode>) -> List {
+    let source = node
+        .text
+        .strip_prefix("[")
+        .unwrap()
+        .strip_suffix("]")
+        .unwrap()
+        .to_string();
+
+    let values = node.children.iter().map(build_argument_value).collect();
+    List { source, values }
 }
 
 fn build_argument_value(node: &CstNode<RmlNode>) -> ArgumentValue {
@@ -126,7 +167,6 @@ fn build_argument_value(node: &CstNode<RmlNode>) -> ArgumentValue {
         RmlNode::Boolean => ArgumentValue::Boolean(str::parse(&node.text).unwrap()),
         RmlNode::String => ArgumentValue::String(node.text.to_string()),
         RmlNode::ListValue => ArgumentValue::ListValue(build_list_value(child)),
-        RmlNode::Negation => ArgumentValue::Negation(node.text.to_string()),
         _ => unreachable!(),
     }
 }
@@ -148,7 +188,7 @@ fn build_expression(node: &CstNode<RmlNode>) -> Expression {
         .to_string();
 
     let mut iter = node.children.iter();
-    let identifier = iter.next().unwrap().text.clone();
+    let (namespace, identifier) = build_ident(iter.next().unwrap());
     let arguments = iter
         .filter(|c| matches!(c.kind, RmlNode::ExprArg))
         .map(build_expression_argument)
@@ -156,6 +196,7 @@ fn build_expression(node: &CstNode<RmlNode>) -> Expression {
 
     Expression {
         source,
+        namespace,
         identifier,
         arguments,
     }
@@ -221,7 +262,7 @@ fn build_alias(node: &CstNode<RmlNode>) -> String {
     node.children.first().unwrap().text.clone()
 }
 
-fn build_element_ident(node: &CstNode<RmlNode>) -> (Option<String>, String) {
+fn build_ident(node: &CstNode<RmlNode>) -> (Option<String>, String) {
     match node.kind {
         RmlNode::Ident => (None, node.text.to_string()),
         RmlNode::NsIdent => {
@@ -236,8 +277,8 @@ fn build_element_ident(node: &CstNode<RmlNode>) -> (Option<String>, String) {
 }
 
 fn build_element_from_tag(node: &CstNode<RmlNode>) -> Element {
-    let (open_ns, open_ident) = build_element_ident(node.children.first().unwrap());
-    let (close_ns, close_ident) = build_element_ident(node.children.last().unwrap());
+    let (open_ns, open_ident) = build_ident(node.children.first().unwrap());
+    let (close_ns, close_ident) = build_ident(node.children.last().unwrap());
     let mut alias = String::new();
     let mut children = vec![];
     let mut attributes = vec![];
@@ -263,7 +304,7 @@ fn build_element_from_tag(node: &CstNode<RmlNode>) -> Element {
 }
 
 fn build_element_from_empty_tag(node: &CstNode<RmlNode>) -> Element {
-    let (namespace, identifier) = build_element_ident(node.children.first().unwrap());
+    let (namespace, identifier) = build_ident(node.children.first().unwrap());
     let mut attributes = Vec::new();
 
     for child in node.children.iter().skip(1) {
