@@ -110,19 +110,24 @@ impl Symbol for StructSymbol {
 
     fn can_parse(&self, value: &str, model: &SchemaModel) -> Result<(), crate::Error> {
         let mut result = true;
-        value.split(',').try_for_each(|field| {
-            let mut parts = field.split('=');
-            let name = parts.next().expect("Unreachable!").trim();
-            let value = parts.next().expect("Unreachable!").trim();
-            if let Some(field) = self.field(name) {
-                let ty = model.get_type_by_ref(field.ty).unwrap().expect("Unreachable!");
-                ty.can_parse(value, model)?;
-            } else {
-                result = false;
-            }
+        value
+            .trim()
+            .split(',')
+            .map(str::trim)
+            .filter(|&s| !s.is_empty())
+            .try_for_each(|field| {
+                let mut parts = field.split(':');
+                let name = parts.next().expect("Unreachable!").trim();
+                let value = parts.next().expect("Unreachable!").trim();
+                if let Some(field) = self.field(name) {
+                    let ty = model.get_type_by_ref(field.ty).unwrap().expect("Unreachable!");
+                    ty.can_parse(value, model)?;
+                } else {
+                    result = false;
+                }
 
-            Ok::<(), crate::Error>(())
-        })?;
+                Ok::<(), crate::Error>(())
+            })?;
         if result {
             Ok(())
         } else {
