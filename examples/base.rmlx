@@ -12,7 +12,7 @@ group Container {
 }
 
 #[Description("Main group")]
-group Root(1) {
+group Root {
     + unique Components
     + Container
     + Template

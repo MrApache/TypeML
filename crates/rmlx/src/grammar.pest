@@ -65,7 +65,7 @@ element = { attribute_list* ~ ELEMENT ~ ident ~ ARROW ~ ns_ident ~ (block | SEMI
 count        = { LPAREN ~ ((number ~ DASH ~ number) | number | STAR | QMARK | PLUS) ~ RPAREN }
 group_entry  = { PLUS ~ UNIQUE? ~ ns_ident ~ count? }
 group_content = { LBRACE ~ group_entry* ~ RBRACE }
-group        = { (attribute_list | annotation)* ~ GROUP ~ ident ~ count* ~ (group_content | SEMI) }
+group        = { (attribute_list | annotation)* ~ GROUP ~ ident ~ (group_content | SEMI) }
 
 expression = { (attribute_list | annotation)* ~ EXPRESSION ~ ident ~ block }
 

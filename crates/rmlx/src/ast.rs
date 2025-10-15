@@ -256,7 +256,6 @@ pub struct Group {
     pub attributes: Vec<Attribute>,
     pub name: String,
     pub entries: Vec<GroupEntry>,
-    pub count: Option<Count>,
 }
 
 #[derive(Debug)]
@@ -627,7 +626,6 @@ fn build_group(node: &CstNode<RmlxNode>) -> Group {
     let mut attributes = Vec::new();
     let mut name = String::new();
     let mut entries = Vec::new();
-    let mut count = None;
 
     for child in &node.children {
         match child.kind {
@@ -635,7 +633,6 @@ fn build_group(node: &CstNode<RmlxNode>) -> Group {
             RmlxNode::AttributeList => attributes.extend(build_attributes(child)),
             RmlxNode::Ident => name.clone_from(&child.text),
             RmlxNode::GroupContent => entries.extend(build_group_entries(child)),
-            RmlxNode::Count => count = Some(build_count(child)),
             _ => {}
         }
     }
@@ -645,7 +642,6 @@ fn build_group(node: &CstNode<RmlxNode>) -> Group {
         attributes,
         name,
         entries,
-        count,
     }
 }
 
