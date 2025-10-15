@@ -8,7 +8,6 @@ mod tests {
         let ast = RmlParser::build_ast(&content);
         assert!(ast.is_ok(), "{}", ast.unwrap_err());
         let result = LayoutModel::validate(ast.unwrap(), PATH);
-        println!("{:#?}", result);
         assert!(result.is_ok(), "{}", result.unwrap_err());
     }
 }
