@@ -2,7 +2,6 @@ WHITESPACE    = _{ " " | "\t" | "\r" | "\n" | COMMENT_MULTI | LINE_COMMENT }
 COMMENT_MULTI = _{ "/*" ~ (!"*/" ~ ANY)* ~ "*/" }
 LINE_COMMENT  = _{ "//" ~ (!"\n" ~ ANY)* ~ ("\n" | EOI) }
 
-// Основной файл UI
 file = { SOI ~ directive* ~ element* ~ directive* ~ EOI }
 
 ident    = @{ (ASCII_ALPHA | "_") ~ (ASCII_ALPHANUMERIC | "_")* }
@@ -13,15 +12,15 @@ integer = @{ "-"? ~ ASCII_DIGIT+ }
 float   = @{ integer ~ ("." ~ integer*)? }
 number  = @{ float | integer }
 
-boolean          =  { "true" | "false" }
-string           = @{ "\"" ~ (!"\"" ~ ANY)* ~ "\"" }
-enum_val         = @{ (ident | number_with_unit) }
-number_with_unit =  { ASCII_DIGIT+ ~ (!(WHITESPACE | "/") ~ ANY)* }
+boolean =  { "true" | "false" }
+string  = @{ "\"" ~ (!"\"" ~ ANY)* ~ "\"" }
 
-structure    =  { "{{" ~ struct_field* ~ "}}" }
-struct_field =  { WHITESPACE* ~ field_name ~ "=" ~ field_value ~ ("," ~ WHITESPACE*)? }
-field_name   = @{ ASCII_ALPHANUMERIC+ }
-field_value  =  { string | number | boolean | enum_val }
+enum_val = @{ (ident | custom) }
+custom   = @{ (!(WHITESPACE | "{{" | "}}" | "[" | "]" | "{" | "," | "}" | "=" | ">" | "/") ~ ANY)+ }
+
+structure    = { "{{" ~ struct_field ~ ("," ~ struct_field?)* ~ "}}" }
+struct_field = { ident ~ ":" ~ field_value }
+field_value  = { boolean | enum_val | string }
 
 directive_content = { (!">" ~ ANY)* }
 directive         = { "#" ~ ident ~ ("<" ~ directive_content ~ ">")? }
@@ -34,13 +33,12 @@ tag       = {
 }
 
 // Attributes
-attr_value = { boolean | enum_val | number | string | expression | structure }
+attr_value = { boolean | enum_val | string | expression | structure }
 attribute  = { ident ~ "=" ~ attr_value }
 
 // Expression {ExpressionName arg1=val1, arg2=val2}
-expression =  { "{" ~ ns_ident ~ (WHITESPACE* ~ expr_arg)* ~ "}" }
-expr_arg   =  { arg_name ~ "=" ~ arg_val }
-arg_name   = @{ ASCII_ALPHANUMERIC+ }
-arg_val    =  { string | number | boolean | enum_val | list_val }
+expression = { "{" ~ ns_ident ~ expr_arg* ~ "}" }
+expr_arg   = { ident ~ "=" ~ arg_val }
+arg_val    = { boolean | enum_val | string | list_val }
 
 list_val = { "[" ~ (arg_val ~ ("," ~ arg_val)*)? ~ "]" }

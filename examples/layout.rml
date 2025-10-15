@@ -11,7 +11,12 @@
     }/>
     <base::ItemTemplate>
         <base::Entity>
-            <Node width=30px height=40px/>
+            <Node width=30px height=40px border={{
+                left: 2px,
+                right: 2px,
+                top: 3px,
+                bottom: 6px,
+            }}/>
             <BackgroundColor self="#FFFFFF"/>
         </base::Entity>
     </base::ItemTemplate>
