@@ -2,12 +2,18 @@
 
 <base::Layout@Root>
     <Node width=100% height=100%/>
-    <BackgroundColor self={base::Component with=["ABC", "123", "ABC"]}/>
+    <BackgroundColor self={
+        base::Component
+        target="Player"
+        path="color"
+        with=["ABC", "123", "ABC"]
+        without=["ABC", "123", "ABC"]
+    }/>
     <BackgroundColor self="msg"/>
     <base::ItemTemplate>
         <base::Entity>
-            <Node width={base::Item} height=40px/>
-            <BackgroundColor self={base::Item}/>
+            <Node width=30px height=40px/>
+            <BackgroundColor self="#FFFFFF"/>
         </base::Entity>
     </base::ItemTemplate>
 </base::Layout>
@@ -15,6 +21,7 @@
 //TODO Return error from 'can_parse'
 //TODO Expression group support
 //TODO An unique identifiers
+//TODO Expressions required and optional fields
 
 //TODO Deep value type checking
 //TODO A namespace identifier should be equal file name
@@ -25,3 +32,4 @@
 //TODO Annotations errors
 //TODO Specify item attachment
 //TODO Error locations
+//TODO Empty list error

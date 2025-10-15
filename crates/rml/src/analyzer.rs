@@ -1,5 +1,5 @@
 use crate::ast::{ArgumentValue, Element, Expression};
-use rmlx::Symbol;
+use rmlx::{ExpressionField, ExpressionSymbol, Symbol};
 use rmlx::{GroupConfig, SchemaModel, SymbolRef};
 use std::collections::{HashMap, HashSet};
 use std::sync::{Arc, RwLock};
@@ -196,6 +196,46 @@ impl RmlAnalyzer {
         Ok(())
     }
 
+    fn validate_expression_fields(
+        model: &SchemaModel,
+        expr: &ExpressionSymbol,
+        expression: &Expression,
+    ) -> Result<(), rmlx::Error> {
+        let field_map: HashMap<&str, &ExpressionField> =
+            expr.fields().iter().map(|field| (field.identifier(), field)).collect();
+
+        let mut used_fields = HashSet::new();
+
+        // Validate all provided arguments
+        for arg in &expression.arguments {
+            let arg_identifier = arg.identifier.as_str();
+
+            if let Some(field) = field_map.get(arg_identifier) {
+                // Check for duplicate fields
+                if !used_fields.insert(arg_identifier) {
+                    return Err(rmlx::Error::DuplicateField(arg.identifier.to_string()));
+                }
+
+                // Validate field type
+                let field_type = model.get_type_by_ref(field.ty());
+                let field_type = field_type.as_ref();
+                field_type.can_parse(arg.value.as_str(), model)?;
+            } else {
+                // Field doesn't exist in expression definition
+                return Err(rmlx::Error::FieldNotFound(arg.identifier.to_string()));
+            }
+        }
+
+        // Check for missing required fields
+        for field in expr.fields() {
+            if !field.is_optional() && !used_fields.contains(field.identifier()) {
+                return Err(rmlx::Error::MissingRequiredField(field.identifier().to_string()));
+            }
+        }
+
+        Ok(())
+    }
+
     pub fn is_valid_expression(
         &self,
         element_namespace: Option<&str>,
@@ -209,16 +249,17 @@ impl RmlAnalyzer {
             .as_expression_symbol()
             .ok_or(rmlx::Error::ExpressionNotFound(expression.full_path()))?;
 
-        expression.arguments.iter().try_for_each(|arg| {
-            if let Some(field) = expr.field(&arg.identifier) {
-                let field_type = model.get_type_by_ref(field.ty());
-                let field_type = field_type.as_ref();
-                field_type.can_parse(arg.value.as_str(), &model)
-            } else {
-                Err(rmlx::Error::FieldNotFound(arg.identifier.to_string()))
-            }
-        })?;
+        //expression.arguments.iter().try_for_each(|arg| {
+        //    if let Some(field) = expr.field(&arg.identifier) {
+        //        let field_type = model.get_type_by_ref(field.ty());
+        //        let field_type = field_type.as_ref();
+        //        field_type.can_parse(arg.value.as_str(), &model)
+        //    } else {
+        //        Err(rmlx::Error::FieldNotFound(arg.identifier.to_string()))
+        //    }
+        //})?;
 
+        Self::validate_expression_fields(&model, expr, expression)?;
         Self::is_valid_expression_element_group(element_namespace, element_name, expr.groups(), &model, expression)?;
 
         Ok(())

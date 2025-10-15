@@ -75,4 +75,10 @@ pub enum Error {
 
     #[error("{0}::{1} is already defined")]
     AlreadyDefinedType(String, String),
+
+    #[error("Duplicate field: {0}")]
+    DuplicateField(String),
+
+    #[error("Missing required field: {0}")]
+    MissingRequiredField(String),
 }

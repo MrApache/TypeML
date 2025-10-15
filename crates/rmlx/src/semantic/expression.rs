@@ -140,11 +140,18 @@ pub struct ExpressionField {
 }
 
 impl ExpressionField {
+    #[must_use]
+    pub fn identifier(&self) -> &str {
+        &self.identifier
+    }
+
+    #[must_use]
     pub fn ty(&self) -> SymbolRef {
         self.ty
     }
 
-    pub fn optional(&self) -> bool {
+    #[must_use]
+    pub fn is_optional(&self) -> bool {
         self.optional
     }
 }
@@ -159,18 +166,22 @@ pub struct ExpressionSymbol {
 }
 
 impl ExpressionSymbol {
+    #[must_use]
     pub fn field(&self, name: &str) -> Option<&ExpressionField> {
         self.fields.iter().find(|f| f.identifier == name)
     }
 
+    #[must_use]
     pub fn fields(&self) -> &[ExpressionField] {
         &self.fields
     }
 
+    #[must_use]
     pub fn groups(&self) -> &[SymbolRef] {
         &self.groups
     }
 
+    #[must_use]
     pub fn restrict(&self) -> &[SymbolRef] {
         &self.restrict
     }

@@ -8,6 +8,7 @@ mod structure;
 mod symbol;
 mod unresolved_schema;
 
+pub use expression::{ExpressionField, ExpressionSymbol};
 pub use group::{GroupConfig, GroupSymbol};
 pub(crate) use loader::LoadError;
 pub use model::SchemaModel;
