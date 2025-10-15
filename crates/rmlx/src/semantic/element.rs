@@ -17,10 +17,6 @@ impl ElementSymbol {
     pub fn group(&self) -> SymbolRef {
         self.bind
     }
-
-    pub fn fields(&self) -> &[ResolvedField] {
-        &self.fields
-    }
 }
 
 #[derive(Debug, Clone)]
@@ -30,10 +26,6 @@ pub struct ResolvedField {
 }
 
 impl ResolvedField {
-    pub fn identifier(&self) -> &str {
-        &self.identifier
-    }
-
     pub fn ty(&self) -> SymbolRef {
         self.ty
     }
