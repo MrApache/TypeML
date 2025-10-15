@@ -33,6 +33,15 @@ impl GroupSymbol {
             }],
         }
     }
+
+    #[must_use]
+    pub fn get_constraints(&self) -> HashMap<SymbolRef, Count> {
+        let mut map = HashMap::new();
+        self.groups.iter().for_each(|g| {
+            map.insert(g.symbol, g.count.unwrap_or(Count::ZeroOrMore));
+        });
+        map
+    }
 }
 
 #[derive(Debug, Clone)]

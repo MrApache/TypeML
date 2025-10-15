@@ -7,7 +7,7 @@ mod ast;
 mod cst;
 mod semantic;
 
-pub use ast::{SchemaAst, build_schema_ast};
+pub use ast::{Count, CountEquality, SchemaAst, build_schema_ast};
 pub use cst::RmlxNode;
 use lexer_core::CstNode;
 pub use pest::*;
@@ -81,4 +81,21 @@ pub enum Error {
 
     #[error("Missing required field: {0}")]
     MissingRequiredField(String),
+
+    #[error("Count error")]
+    Count,
+
+    #[error("Not enough elements from {group} group: {actual} found, need {expected}")]
+    InsufficientElements {
+        group: String,
+        actual: u32,
+        expected: Count,
+    },
+
+    #[error("Too many element from {group} group: found {actual}, need {expected}")]
+    ExcessiveElements {
+        group: String,
+        actual: u32,
+        expected: Count,
+    },
 }

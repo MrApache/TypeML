@@ -38,7 +38,7 @@ fn validate_element(element: &Element, analyzer: &mut RmlAnalyzer) -> Result<(),
     let namespace = element.namespace.as_deref();
     let identifier = &element.identifier;
     if analyzer.is_allowed_element(namespace, identifier)? {
-        analyzer.next_state(namespace, identifier);
+        analyzer.enter_element(namespace, identifier);
         element.attributes.iter().try_for_each(|attr| {
             match &attr.value {
                 AttributeValue::Expression(expr) => {
@@ -52,7 +52,7 @@ fn validate_element(element: &Element, analyzer: &mut RmlAnalyzer) -> Result<(),
             .children
             .iter()
             .try_for_each(|child| validate_element(child, analyzer))?;
-        analyzer.exit_state(namespace, identifier);
+        analyzer.exit_element(namespace, identifier)?;
         Ok(())
     } else {
         panic!("Incorrect element: {}", element.identifier);

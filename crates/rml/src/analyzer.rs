@@ -1,5 +1,5 @@
 use crate::ast::{ArgumentValue, Element, Expression};
-use rmlx::{ExpressionField, ExpressionSymbol, Symbol};
+use rmlx::{Count, CountEquality, ExpressionField, ExpressionSymbol, Symbol};
 use rmlx::{GroupConfig, SchemaModel, SymbolRef};
 use std::collections::{HashMap, HashSet};
 use std::sync::{Arc, RwLock};
@@ -12,7 +12,11 @@ pub struct AnalyzerState {
 pub struct PreviousElement {
     name: String,
     namespace: Option<String>,
+    group: SymbolRef,
     state: usize,
+    is_container: bool,
+    counter: HashMap<SymbolRef, HashMap<(Option<String>, String), u32>>,
+    constraints: HashMap<SymbolRef, Count>,
 }
 
 pub struct RmlAnalyzer {
@@ -108,7 +112,7 @@ impl RmlAnalyzer {
         Ok(groups.iter().any(|g| g.symbol() == bind_group))
     }
 
-    pub fn next_state(&mut self, namespace: Option<&str>, name: &str) -> Result<(), rmlx::Error> {
+    pub fn enter_element(&mut self, namespace: Option<&str>, name: &str) -> Result<(), rmlx::Error> {
         debug_assert!(self.is_allowed_element(namespace, name)?);
 
         let model = self.model.read().expect("Unreachable!");
@@ -125,7 +129,11 @@ impl RmlAnalyzer {
             self.depth.push(PreviousElement {
                 name: name.to_string(),
                 namespace: namespace.map(str::to_string),
+                group: bind_group,
                 state: self.active,
+                is_container: false,
+                counter: HashMap::default(),
+                constraints: group.get_constraints(),
             });
             return Ok(());
         }
@@ -143,17 +151,63 @@ impl RmlAnalyzer {
         self.depth.push(PreviousElement {
             name: name.to_string(),
             namespace: namespace.map(str::to_string),
+            group: bind_group,
             state: self.active,
+            is_container: true,
+            counter: HashMap::default(),
+            constraints: group.get_constraints(),
         });
         self.active = next;
 
         Ok(())
     }
 
-    pub fn exit_state(&mut self, namespace: Option<&str>, name: &str) {
+    fn get_group_full_path(&self, group: SymbolRef) -> String {
+        let model = self.model.read().expect("Unreachable!");
+        let group_kind = model.get_type_by_ref(group).unwrap().expect("Unreachable!");
+        let namespace = &model.namespaces[group.namespace];
+        format!("{namespace}::{}", group_kind.identifier())
+    }
+
+    fn check_and_change_counter(
+        &mut self,
+        group: SymbolRef,
+        namespace: Option<&str>,
+        name: &str,
+    ) -> Result<(), rmlx::Error> {
+        if let Some(last) = self.depth.last_mut() {
+            let counter = last.counter.entry(group).or_default();
+            let actual_count = counter
+                .entry((namespace.map(str::to_string), name.to_string()))
+                .or_default();
+            *actual_count += 1;
+
+            let actual_count = *actual_count;
+            let count = *last.constraints.get(&group).unwrap();
+            let result = count.in_range(actual_count);
+            return match result {
+                CountEquality::More => Err(rmlx::Error::ExcessiveElements {
+                    group: self.get_group_full_path(group),
+                    actual: actual_count,
+                    expected: count,
+                }),
+                CountEquality::Less => Err(rmlx::Error::InsufficientElements {
+                    group: self.get_group_full_path(group),
+                    actual: actual_count,
+                    expected: count,
+                }),
+                CountEquality::Ok => Ok(()),
+            };
+        }
+
+        Ok(())
+    }
+
+    pub fn exit_element(&mut self, namespace: Option<&str>, name: &str) -> Result<(), rmlx::Error> {
         let previous_element = self.depth.pop().expect("Unreachable!");
         assert!(previous_element.name == name && previous_element.namespace.as_deref() == namespace);
         self.active = previous_element.state;
+        self.check_and_change_counter(previous_element.group, namespace, name)
     }
 
     pub fn is_valid_attribute(&self, name: &str, value: &str) -> Result<(), rmlx::Error> {
@@ -248,16 +302,6 @@ impl RmlAnalyzer {
             .get_type_by_name(expr_namespace, &expression.identifier)
             .as_expression_symbol()
             .ok_or(rmlx::Error::ExpressionNotFound(expression.full_path()))?;
-
-        //expression.arguments.iter().try_for_each(|arg| {
-        //    if let Some(field) = expr.field(&arg.identifier) {
-        //        let field_type = model.get_type_by_ref(field.ty());
-        //        let field_type = field_type.as_ref();
-        //        field_type.can_parse(arg.value.as_str(), &model)
-        //    } else {
-        //        Err(rmlx::Error::FieldNotFound(arg.identifier.to_string()))
-        //    }
-        //})?;
 
         Self::validate_expression_fields(&model, expr, expression)?;
         Self::is_valid_expression_element_group(element_namespace, element_name, expr.groups(), &model, expression)?;

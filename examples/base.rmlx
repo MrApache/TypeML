@@ -6,16 +6,16 @@ group Components;
 
 #[Description("Entity")]
 group Container {
-    + unique Components(*)
-    + Container(?)
-    + Template(?)
+    + unique Components
+    + Container
+    + Template
 }
 
 #[Description("Main group")]
 group Root(1) {
-    + unique Components(*)
-    + Container(?)
-    + Template(?)
+    + unique Components
+    + Container
+    + Template
 }
 
 #[Description("Template")]

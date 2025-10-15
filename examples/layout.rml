@@ -22,14 +22,14 @@
 //TODO Expression group support
 //TODO An unique identifiers
 //TODO Expressions required and optional fields
-
 //TODO Deep value type checking
+
 //TODO A namespace identifier should be equal file name
 //TODO Directive 'Include' that allow include type from namespace (+ Alias support)
 //TODO An unique element support
 //TODO An element counter support
 //TODO Expression restrict support
 //TODO Annotations errors
-//TODO Specify item attachment
+//TODO Item attachment
 //TODO Error locations
 //TODO Empty list error

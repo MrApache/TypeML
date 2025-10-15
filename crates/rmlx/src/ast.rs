@@ -1,6 +1,6 @@
 use crate::cst::RmlxNode;
 use lexer_core::CstNode;
-use std::fmt::Display;
+use std::fmt::{Display, Formatter};
 
 fn trim_quotes(s: &str) -> &str {
     let s = s.strip_prefix('"').unwrap_or(s);
@@ -267,12 +267,76 @@ pub struct GroupEntry {
 }
 
 #[derive(Debug, Copy, Clone)]
+pub enum CountEquality {
+    More,
+    Less,
+    Ok,
+}
+
+#[derive(Debug, Copy, Clone)]
 pub enum Count {
     Single(u32),
     Range(u32, u32),
-    Asterisk,
-    Question,
-    Plus,
+    ZeroOrMore,
+    ZeroOrOne,
+    OneOrMore,
+}
+
+impl Count {
+    #[must_use]
+    pub const fn in_range(&self, value: u32) -> CountEquality {
+        match self {
+            Count::Single(single) => {
+                if value == *single {
+                    CountEquality::Ok
+                } else if value < *single {
+                    CountEquality::Less
+                } else {
+                    CountEquality::More
+                }
+            }
+            Count::Range(min, max) => {
+                let min = value >= *min;
+                let max = value < *max;
+                if min && max {
+                    CountEquality::Ok
+                } else if !min {
+                    CountEquality::Less
+                } else {
+                    CountEquality::More
+                }
+            }
+            Count::ZeroOrMore => CountEquality::Ok,
+            Count::ZeroOrOne => {
+                if value == 0 || value == 1 {
+                    CountEquality::Ok
+                } else {
+                    CountEquality::More
+                }
+            }
+            Count::OneOrMore => {
+                if value == 0 {
+                    CountEquality::Ok
+                } else {
+                    CountEquality::Less
+                }
+            }
+        }
+    }
+}
+
+impl Display for Count {
+    fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
+        let result = match self {
+            Count::Single(single) => format!("{single}"),
+            Count::Range(min, max) => format!("{min}-{max}"),
+            Count::ZeroOrMore => "0+".to_string(),
+            Count::ZeroOrOne => "0-1".to_string(),
+            Count::OneOrMore => "1+".to_string(),
+        };
+
+        write!(f, "{result}")
+    }
 }
 
 #[derive(Debug)]
@@ -621,9 +685,9 @@ fn build_count(node: &CstNode<RmlxNode>) -> Count {
     let mut iter = node.children.iter();
     consume_token(&mut iter, &RmlxNode::Symbol, Some("("));
     match iter.next().expect("Unreachable!").text.as_str() {
-        "*" => Count::Asterisk,
-        "?" => Count::Question,
-        "+" => Count::Plus,
+        "*" => Count::ZeroOrMore,
+        "?" => Count::ZeroOrOne,
+        "+" => Count::OneOrMore,
         _ if node.text.contains('-') => {
             let parts: Vec<u32> = node.text.split('-').filter_map(|p| p.parse().ok()).collect();
             Count::Range(parts[0], parts[1])
