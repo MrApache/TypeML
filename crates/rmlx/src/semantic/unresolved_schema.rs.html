@@ -453,7 +453,7 @@
             </div>
             <div class="column has-background-success-light p-0"
                  role="cell">
-                <pre class="has-background-success-light py-0 px-2">            workspace.load_single_model(&amp;to_url(path, u).map_err(crate::Error::UrlError)?);</pre>
+                <pre class="has-background-success-light py-0 px-2">            workspace.load_single_model(&amp;to_url(path, u).map_err(crate::Error::UrlError)?)?;</pre>
             </div>
         </div><div class="columns p-0 m-0" role="row">
             <div
@@ -485,7 +485,7 @@
             </div>
             <div class="column has-background-success-light p-0"
                  role="cell">
-                <pre class="has-background-success-light py-0 px-2">        });</pre>
+                <pre class="has-background-success-light py-0 px-2">        })?;</pre>
             </div>
         </div><div class="columns p-0 m-0" role="row">
             <div
@@ -2748,7 +2748,7 @@
         <footer class="footer">
             
                 <div class="content has-text-centered">
-                    <p class="heading">Date: 2025-10-15 15:04</p>
+                    <p class="heading">Date: 2025-10-15 15:20</p>
                 </div>
             
         </footer>
