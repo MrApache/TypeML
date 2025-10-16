@@ -7,7 +7,7 @@ rml = { path = "crates/rml" }
 rmlx = { path = "crates/rmlx" }
 lexer-core = { path = "crates/lexer-core" }
 
-tokio = { version = "1.47.1", features = ["full", "rt", "macros"] }
+tokio = { version = "1.48.0", features = ["full", "rt", "macros"] }
 tower-lsp = "0.20.0"
 url = "2.5.7"
 reqwest = "0.12.24"

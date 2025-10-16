@@ -3,13 +3,13 @@
 //#![allow(unused)]
 
 mod analyzer;
-mod ast;
 mod cst;
 mod model;
+mod resolved;
+mod unresolved;
 
-use crate::ast::{LayoutAst, build_layout_ast};
-use crate::cst::RmlNode;
 pub use crate::model::LayoutModel;
+use crate::unresolved::LayoutAst;
 use lexer_core::CstNode;
 use pest_derive::Parser;
 
@@ -20,6 +20,6 @@ pub struct RmlParser;
 impl RmlParser {
     pub fn build_ast(content: &str) -> Result<LayoutAst, rmlx::Error> {
         let cst = CstNode::new::<RmlParser>(content, Rule::file).map_err(rmlx::Error::PestError)?;
-        Ok(build_layout_ast(&cst))
+        Ok(LayoutAst::build(&cst))
     }
 }

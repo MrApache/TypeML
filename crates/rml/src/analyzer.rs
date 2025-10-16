@@ -1,4 +1,4 @@
-use crate::ast::Expression;
+use crate::unresolved::Expression;
 use rmlx::{Count, CountEquality, ExpressionField, ExpressionSymbol, Symbol};
 use rmlx::{GroupConfig, SchemaModel, SymbolRef};
 use std::collections::{HashMap, HashSet};

@@ -1,5 +1,5 @@
 use crate::analyzer::RmlAnalyzer;
-use crate::ast::{AttributeValue, Element, Impl, LayoutAst};
+use crate::unresolved::{AttributeValue, Element, Impl, LayoutAst};
 use lexer_core::to_url;
 use rmlx::{AnalysisWorkspace, SchemaModel};
 use std::sync::{Arc, RwLock};

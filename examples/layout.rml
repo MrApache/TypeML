@@ -38,15 +38,17 @@ $struct NodeBorder -> UiRect {
 //TODO An element counter support
 //TODO An unique element support
 //TODO Extend check
+//TODO Expression and struct implementations
 
-//TODO A namespace identifier should be equal file name
-//TODO Directive 'Include' that allow include type from namespace (+ Alias support)
-//TODO Annotations errors
-//TODO Item attachment
 //TODO Error locations
 //TODO Empty list error
+//TODO Annotations errors
+//TODO A namespace identifier should be equal file name
+//TODO Directive 'Include' that allow include type from namespace (+ Alias support)
+//TODO Item attachment
 //TODO Unresolved type error
+//TODO Multithreaded resolving
+//TODO Multiple configs
 
 //TODO Metadata assignment
 //TODO Expression restrict support
-//TODO Separate expression implementation
