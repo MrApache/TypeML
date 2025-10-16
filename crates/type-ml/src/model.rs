@@ -25,9 +25,9 @@ impl LayoutModel {
     }
 }
 
-fn load_config_model(configs: Vec<Url>) -> Result<SchemaModel, type_ml_definitions::Error> {
-    assert!(!configs.is_empty(), "Config not found");
-    let mut iter = configs.into_iter();
+fn load_config_model(definitions: Vec<Url>) -> Result<SchemaModel, type_ml_definitions::Error> {
+    assert!(!definitions.is_empty(), "Definition file not found");
+    let mut iter = definitions.into_iter();
     AnalysisWorkspace::new(iter.next().unwrap()).run()
 }
 
