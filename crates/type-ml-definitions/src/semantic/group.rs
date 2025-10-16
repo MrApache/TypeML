@@ -67,7 +67,7 @@ pub struct GroupConfig {
 
 impl GroupConfig {
     #[must_use]
-    pub fn symbol(&self) -> SymbolRef {
+    pub const fn symbol(&self) -> SymbolRef {
         self.symbol
     }
 }

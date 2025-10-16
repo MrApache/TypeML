@@ -30,15 +30,6 @@ $struct NodeBorder -> UiRect {
     top: 10px,
     bottom: 10px,
 }
-//TODO Return error from 'can_parse'
-//TODO Expression group support
-//TODO An unique identifiers
-//TODO Expressions required and optional fields
-//TODO Deep value type checking
-//TODO An element counter support
-//TODO An unique element support
-//TODO Extend check
-//TODO Expression and struct implementations
 
 //TODO Error locations
 //TODO Empty list error
@@ -46,9 +37,7 @@ $struct NodeBorder -> UiRect {
 //TODO A namespace identifier should be equal file name
 //TODO Directive 'Include' that allow include type from namespace (+ Alias support)
 //TODO Item attachment
-//TODO Unresolved type error
 //TODO Multithreaded resolving
 //TODO Multiple configs
-
 //TODO Metadata assignment
 //TODO Expression restrict support

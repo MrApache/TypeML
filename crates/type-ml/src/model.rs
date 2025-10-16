@@ -5,7 +5,6 @@ use type_ml_definitions::{AnalysisWorkspace, SchemaModel};
 use url::Url;
 
 pub struct LayoutModel;
-
 impl LayoutModel {
     pub fn validate(ast: LayoutAst, path: &str) -> Result<Element, type_ml_definitions::Error> {
         let configs = ast

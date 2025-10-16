@@ -138,23 +138,23 @@ impl UnresolvedSchema {
 
     pub fn next_unresolved(&self) -> Option<&str> {
         if !self.groups.is_empty() {
-            return self.groups.first().map(|g| g.identifier());
+            return self.groups.first().map(UnresolvedGroupSymbol::identifier);
         }
 
         if !self.expressions.is_empty() {
-            return self.expressions.first().map(|g| g.identifier());
+            return self.expressions.first().map(UnresolvedExpressionSymbol::identifier);
         }
 
         if !self.enums.is_empty() {
-            return self.enums.first().map(|g| g.identifier());
+            return self.enums.first().map(UnresolvedEnumSymbol::identifier);
         }
 
         if !self.structs.is_empty() {
-            return self.structs.first().map(|g| g.identifier());
+            return self.structs.first().map(UnresolvedStructSymbol::identifier);
         }
 
         if !self.elements.is_empty() {
-            return self.elements.first().map(|g| g.identifier());
+            return self.elements.first().map(UnresolvedElementSymbol::identifier);
         }
 
         None
@@ -212,10 +212,8 @@ impl<T> TryRetainMut<T> for Vec<T> {
             if f(&mut self[i])? {
                 i += 1;
             } else {
-                // Swap with last element and reduce length
                 self.swap_remove(i);
                 original_len -= 1;
-                // Don't increment i since we need to check the swapped element
             }
         }
 
