@@ -1,8 +1,8 @@
 use crate::unresolved::Expression;
-use rmlx::{Count, CountEquality, ExpressionField, ExpressionSymbol, Symbol};
-use rmlx::{GroupConfig, SchemaModel, SymbolRef};
 use std::collections::{HashMap, HashSet};
 use std::sync::{Arc, RwLock};
+use type_ml_definitions::{Count, CountEquality, ExpressionField, ExpressionSymbol, Symbol};
+use type_ml_definitions::{GroupConfig, SchemaModel, SymbolRef};
 
 pub struct AnalyzerState {
     group: SymbolRef,
@@ -96,13 +96,13 @@ impl RmlAnalyzer {
         }
     }
 
-    pub fn is_allowed_element(&self, namespace: Option<&str>, name: &str) -> Result<bool, rmlx::Error> {
+    pub fn is_allowed_element(&self, namespace: Option<&str>, name: &str) -> Result<bool, type_ml_definitions::Error> {
         let model = self.model.read().expect("Unreachable!");
         let namespace_id = model.get_namespace_id(namespace)?;
         let element = model
             .get_type_by_name(namespace_id, name)
             .as_element_symbol()
-            .ok_or(rmlx::Error::ElementNotFound(name.into()))?;
+            .ok_or(type_ml_definitions::Error::ElementNotFound(name.into()))?;
         let bind_group = element.group();
 
         let group_ref = self.states[self.active].group;
@@ -112,7 +112,7 @@ impl RmlAnalyzer {
         Ok(groups.iter().any(|g| g.symbol() == bind_group))
     }
 
-    pub fn enter_element(&mut self, namespace: Option<&str>, name: &str) -> Result<(), rmlx::Error> {
+    pub fn enter_element(&mut self, namespace: Option<&str>, name: &str) -> Result<(), type_ml_definitions::Error> {
         debug_assert!(self.is_allowed_element(namespace, name)?);
 
         let model = self.model.read().expect("Unreachable!");
@@ -174,7 +174,7 @@ impl RmlAnalyzer {
         group: SymbolRef,
         namespace: Option<&str>,
         name: &str,
-    ) -> Result<(), rmlx::Error> {
+    ) -> Result<(), type_ml_definitions::Error> {
         if let Some(last) = self.depth.last_mut() {
             let counter = last.counter.entry(group).or_default();
             let actual_count = counter
@@ -186,12 +186,12 @@ impl RmlAnalyzer {
             let count = *last.constraints.get(&group).unwrap();
             let result = count.in_range(actual_count);
             return match result {
-                CountEquality::More => Err(rmlx::Error::ExcessiveElements {
+                CountEquality::More => Err(type_ml_definitions::Error::ExcessiveElements {
                     group: self.get_group_full_path(group),
                     actual: actual_count,
                     expected: count,
                 }),
-                CountEquality::Less => Err(rmlx::Error::InsufficientElements {
+                CountEquality::Less => Err(type_ml_definitions::Error::InsufficientElements {
                     group: self.get_group_full_path(group),
                     actual: actual_count,
                     expected: count,
@@ -203,18 +203,18 @@ impl RmlAnalyzer {
         Ok(())
     }
 
-    fn check_elements_uniqueness(&self) -> Result<(), rmlx::Error> {
+    fn check_elements_uniqueness(&self) -> Result<(), type_ml_definitions::Error> {
         if let Some(last) = self.depth.last() {
             last.uniques.iter().try_for_each(|group| {
                 if let Some(elements) = last.counter.get(group) {
                     if let Some(((ns, ident), _)) = elements.iter().find(|((_, _), count)| **count > 1) {
                         let full_path = format!("{}::{}", ns.clone().unwrap_or_default(), ident);
-                        Err(rmlx::Error::NotUniqueElement(full_path))
+                        Err(type_ml_definitions::Error::NotUniqueElement(full_path))
                     } else {
-                        Ok::<(), rmlx::Error>(())
+                        Ok::<(), type_ml_definitions::Error>(())
                     }
                 } else {
-                    Ok::<(), rmlx::Error>(())
+                    Ok::<(), type_ml_definitions::Error>(())
                 }
             })?;
         }
@@ -222,7 +222,7 @@ impl RmlAnalyzer {
         Ok(())
     }
 
-    pub fn exit_element(&mut self, namespace: Option<&str>, name: &str) -> Result<(), rmlx::Error> {
+    pub fn exit_element(&mut self, namespace: Option<&str>, name: &str) -> Result<(), type_ml_definitions::Error> {
         let previous_element = self.depth.pop().expect("Unreachable!");
         assert!(previous_element.name == name && previous_element.namespace.as_deref() == namespace);
         self.active = previous_element.state;
@@ -230,7 +230,7 @@ impl RmlAnalyzer {
         self.check_elements_uniqueness()
     }
 
-    pub fn is_valid_attribute(&self, name: &str, value: &str) -> Result<(), rmlx::Error> {
+    pub fn is_valid_attribute(&self, name: &str, value: &str) -> Result<(), type_ml_definitions::Error> {
         let model = self.model.read().expect("Unreachable!");
         let last_element = self.depth.last().expect("Unreachable!");
         let element_namespace = model.get_namespace_id(last_element.namespace.as_deref())?;
@@ -250,7 +250,7 @@ impl RmlAnalyzer {
         groups: &[SymbolRef],
         model: &SchemaModel,
         expression: &Expression,
-    ) -> Result<(), rmlx::Error> {
+    ) -> Result<(), type_ml_definitions::Error> {
         let namespace_id = model.get_namespace_id(namespace)?;
         let element = model
             .get_type_by_name(namespace_id, name)
@@ -261,7 +261,7 @@ impl RmlAnalyzer {
         if !groups.contains(&bind_group) {
             let ty = model.get_type_by_ref(bind_group).unwrap().expect("Unreachable!");
             let group = ty.as_group_symbol();
-            return Err(rmlx::Error::ExpressionIsNotAllowedInGroup(
+            return Err(type_ml_definitions::Error::ExpressionIsNotAllowedInGroup(
                 expression.full_path(),
                 group.identifier().to_string(),
             ));
@@ -274,7 +274,7 @@ impl RmlAnalyzer {
         model: &SchemaModel,
         expr: &ExpressionSymbol,
         expression: &Expression,
-    ) -> Result<(), rmlx::Error> {
+    ) -> Result<(), type_ml_definitions::Error> {
         let field_map: HashMap<&str, &ExpressionField> =
             expr.fields().iter().map(|field| (field.identifier(), field)).collect();
 
@@ -287,7 +287,7 @@ impl RmlAnalyzer {
             if let Some(field) = field_map.get(arg_identifier) {
                 // Check for duplicate fields
                 if !used_fields.insert(arg_identifier) {
-                    return Err(rmlx::Error::DuplicateField(arg.identifier.to_string()));
+                    return Err(type_ml_definitions::Error::DuplicateField(arg.identifier.to_string()));
                 }
 
                 // Validate field type
@@ -296,14 +296,16 @@ impl RmlAnalyzer {
                 field_type.can_parse(arg.value.as_str(), model)?;
             } else {
                 // Field doesn't exist in expression definition
-                return Err(rmlx::Error::FieldNotFound(arg.identifier.to_string()));
+                return Err(type_ml_definitions::Error::FieldNotFound(arg.identifier.to_string()));
             }
         }
 
         // Check for missing required fields
         for field in expr.fields() {
             if !field.is_optional() && !used_fields.contains(field.identifier()) {
-                return Err(rmlx::Error::MissingRequiredField(field.identifier().to_string()));
+                return Err(type_ml_definitions::Error::MissingRequiredField(
+                    field.identifier().to_string(),
+                ));
             }
         }
 
@@ -315,13 +317,13 @@ impl RmlAnalyzer {
         element_namespace: Option<&str>,
         element_name: &str,
         expression: &Expression,
-    ) -> Result<(), rmlx::Error> {
+    ) -> Result<(), type_ml_definitions::Error> {
         let model = self.model.read().expect("Unreachable!");
         let expr_namespace = model.get_namespace_id(expression.namespace.as_deref())?;
         let expr = model
             .get_type_by_name(expr_namespace, &expression.identifier)
             .as_expression_symbol()
-            .ok_or(rmlx::Error::ExpressionNotFound(expression.full_path()))?;
+            .ok_or(type_ml_definitions::Error::ExpressionNotFound(expression.full_path()))?;
 
         Self::validate_expression_fields(&model, expr, expression)?;
         Self::is_valid_expression_element_group(element_namespace, element_name, expr.groups(), &model, expression)?;

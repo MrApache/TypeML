@@ -3,8 +3,8 @@ members = ["crates/*"]
 resolver = "3"
 
 [workspace.dependencies]
-rml = { path = "crates/rml" }
-rmlx = { path = "crates/rmlx" }
+type-ml = { path = "crates/type-ml" }
+type-ml-definitions = { path = "crates/type-ml-definitions" }
 lexer-core = { path = "crates/lexer-core" }
 
 tokio = { version = "1.48.0", features = ["full", "rt", "macros"] }

@@ -2,8 +2,8 @@ use lexer_core::{
     COMMENT_TOKEN, CstNode, KEYWORD_TOKEN, MACRO_TOKEN, NUMBER_TOKEN, OPERATOR_TOKEN, PARAMETER_TOKEN, STRING_TOKEN,
     TYPE_TOKEN,
 };
-use rmlx::RmlxNode;
 use tower_lsp::lsp_types::SemanticToken;
+use type_ml_definitions::RmlxNode;
 
 // directive_content = @{ (!">" ~ ANY)* }
 // directive = HASH ~ ident ~ (LT ~ directive_content ~ GT)?

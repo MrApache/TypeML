@@ -18,8 +18,8 @@ use pest_derive::Parser;
 pub struct RmlParser;
 
 impl RmlParser {
-    pub fn build_ast(content: &str) -> Result<LayoutAst, rmlx::Error> {
-        let cst = CstNode::new::<RmlParser>(content, Rule::file).map_err(rmlx::Error::PestError)?;
+    pub fn build_ast(content: &str) -> Result<LayoutAst, type_ml_definitions::Error> {
+        let cst = CstNode::new::<RmlParser>(content, Rule::file).map_err(type_ml_definitions::Error::PestError)?;
         Ok(LayoutAst::build(&cst))
     }
 }

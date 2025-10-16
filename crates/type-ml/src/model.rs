@@ -1,14 +1,14 @@
 use crate::analyzer::RmlAnalyzer;
 use crate::unresolved::{AttributeValue, Element, Impl, LayoutAst};
 use lexer_core::to_url;
-use rmlx::{AnalysisWorkspace, SchemaModel};
 use std::sync::{Arc, RwLock};
+use type_ml_definitions::{AnalysisWorkspace, SchemaModel};
 use url::Url;
 
 pub struct LayoutModel;
 
 impl LayoutModel {
-    pub fn validate(ast: LayoutAst, path: &str) -> Result<Element, rmlx::Error> {
+    pub fn validate(ast: LayoutAst, path: &str) -> Result<Element, type_ml_definitions::Error> {
         let configs = ast
             .directives
             .iter()
@@ -27,14 +27,18 @@ impl LayoutModel {
     }
 }
 
-fn load_config_model(configs: Vec<Url>) -> Result<Arc<RwLock<SchemaModel>>, rmlx::Error> {
+fn load_config_model(configs: Vec<Url>) -> Result<Arc<RwLock<SchemaModel>>, type_ml_definitions::Error> {
     assert!(!configs.is_empty(), "Config not found");
     let mut iter = configs.into_iter();
     let workspace = AnalysisWorkspace::new(iter.next().unwrap()).run()?;
     Ok(workspace.model())
 }
 
-fn validate_element(impls: &[Impl], element: &Element, analyzer: &mut RmlAnalyzer) -> Result<(), rmlx::Error> {
+fn validate_element(
+    impls: &[Impl],
+    element: &Element,
+    analyzer: &mut RmlAnalyzer,
+) -> Result<(), type_ml_definitions::Error> {
     let namespace = element.namespace.as_deref();
     let identifier = &element.identifier;
     if analyzer.is_allowed_element(namespace, identifier)? {
@@ -51,7 +55,7 @@ fn validate_element(impls: &[Impl], element: &Element, analyzer: &mut RmlAnalyze
                 }
                 other => analyzer.is_valid_attribute(&attr.identifier, other.as_str()),
             }?;
-            Ok::<(), rmlx::Error>(())
+            Ok::<(), type_ml_definitions::Error>(())
         })?;
         element
             .children

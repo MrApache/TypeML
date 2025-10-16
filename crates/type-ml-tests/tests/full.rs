@@ -1,7 +1,7 @@
 #[cfg(test)]
 mod tests {
-    use rml::{LayoutModel, RmlParser};
-    const PATH: &str = concat!(env!("CARGO_WORKSPACE_DIR"), "examples/layout.rml");
+    use type_ml::{LayoutModel, RmlParser};
+    const PATH: &str = concat!(env!("CARGO_WORKSPACE_DIR"), "examples/layout.tml");
     #[test]
     fn test() {
         let content = std::fs::read_to_string(PATH).unwrap();

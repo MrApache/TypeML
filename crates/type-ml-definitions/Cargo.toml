@@ -1,5 +1,5 @@
 [package]
-name = "rmlx"
+name = "type-ml-definitions"
 version = "0.1.0"
 edition = "2024"
 

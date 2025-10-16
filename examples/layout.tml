@@ -1,4 +1,4 @@
-#use <schema.rmlx> //Use rmlx file
+#use <schema.tmd> //Use rmlx file
 //#import <schema::*> //Import all types from namespace "schema"
 
 <base::Layout@Root>

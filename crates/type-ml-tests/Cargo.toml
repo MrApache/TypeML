@@ -1,5 +1,5 @@
 [package]
-name = "rml-tests"
+name = "type-ml-tests"
 version = "0.1.0"
 edition = "2024"
 
@@ -8,8 +8,8 @@ name = "benchmark"
 harness = false
 
 [dependencies]
-rml.workspace = true
-rmlx.workspace = true
+type-ml.workspace = true
+type-ml-definitions.workspace = true
 lexer-core.workspace = true
 url.workspace = true
 

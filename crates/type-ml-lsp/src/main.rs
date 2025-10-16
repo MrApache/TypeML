@@ -4,7 +4,6 @@ mod tokens;
 
 use crate::tokens::get_tokens;
 use lexer_core::CstNode;
-use rmlx::{AnalysisWorkspace, RmlxParser, SchemaAst};
 use std::collections::HashMap;
 use std::ffi::OsStr;
 use std::path::Path;
@@ -20,6 +19,7 @@ use tower_lsp::lsp_types::{
     WorkDoneProgressOptions,
 };
 use tower_lsp::{Client, LanguageServer, LspService, Server};
+use type_ml_definitions::{AnalysisWorkspace, RmlxParser, SchemaAst};
 
 struct Backend {
     client: Client,
@@ -43,14 +43,14 @@ impl LanguageServer for Backend {
                         text_document_registration_options: TextDocumentRegistrationOptions {
                             document_selector: Some(vec![
                                 DocumentFilter {
-                                    language: Some("rust-markup-language".to_string()),
+                                    language: Some("type-markup-language".to_string()),
                                     scheme: None,
-                                    pattern: Some("*.{rml}".to_string()),
+                                    pattern: Some("*.{tml}".to_string()),
                                 },
                                 DocumentFilter {
-                                    language: Some("rust-markup-language-expressions".to_string()),
+                                    language: Some("type-markup-language-definitions".to_string()),
                                     scheme: None,
-                                    pattern: Some("*.{rmlx}".to_string()),
+                                    pattern: Some("*.{tmld}".to_string()),
                                 },
                             ]),
                         },
@@ -111,7 +111,7 @@ impl LanguageServer for Backend {
         let extension = Path::new(uri.path()).extension().and_then(|e| e.to_str()).unwrap();
 
         match extension {
-            "rml" => {
+            "tml" => {
                 /*
                 let stream = RmlTokenStream::new(&params.text_document.text);
                 let tokens = stream.to_vec();
@@ -126,7 +126,7 @@ impl LanguageServer for Backend {
                 );
                  */
             }
-            "rmlx" => {
+            "tmld" => {
                 let workspace = AnalysisWorkspace::new(uri.clone()).run().unwrap();
                 let mut schemas = self.schemas.write().unwrap();
                 schemas.insert(uri, workspace);
@@ -142,7 +142,7 @@ impl LanguageServer for Backend {
         let extension = Path::new(uri.path()).extension().and_then(OsStr::to_str).unwrap();
 
         match extension {
-            "rml" => {
+            "tml" => {
                 /*
                 let mut write = self.workspaces.write().unwrap();
                 let file = write.get_mut(&uri).unwrap();
@@ -150,7 +150,7 @@ impl LanguageServer for Backend {
                 file.content.clone_from(text);
                  */
             }
-            "rmlx" => {
+            "tmld" => {
                 let workspace = AnalysisWorkspace::new(uri.clone()).run().unwrap();
                 let mut schemas = self.schemas.write().unwrap();
                 schemas.insert(uri, workspace);
@@ -175,14 +175,14 @@ impl LanguageServer for Backend {
             .unwrap();
 
         let tokens = match extension {
-            "rmlx" => {
+            "tmld" => {
                 let read = self.schemas.read().unwrap();
                 let content = read.get(&params.text_document.uri).unwrap().source();
                 dbg!(content);
-                let cst = CstNode::new::<RmlxParser>(content, rmlx::Rule::file).unwrap();
+                let cst = CstNode::new::<RmlxParser>(content, type_ml_definitions::Rule::file).unwrap();
                 get_tokens(&cst)
             }
-            "rml" => vec![],
+            "tml" => vec![],
             _ => unreachable!(),
         };
 

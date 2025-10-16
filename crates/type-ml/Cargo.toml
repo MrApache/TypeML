@@ -1,10 +1,10 @@
 [package]
-name = "rml"
+name = "type-ml"
 version = "0.1.0"
 edition = "2024"
 
 [dependencies]
-rmlx.workspace = true
+type-ml-definitions.workspace = true
 lexer-core.workspace = true
 pest.workspace = true
 pest_derive.workspace = true

@@ -1,11 +1,10 @@
 [package]
-name = "rml-lsp"
+name = "type-ml-lsp"
 version = "0.1.0"
 edition = "2024"
 
 [dependencies]
-rmlx.workspace = true
+type-ml-definitions.workspace = true
 lexer-core.workspace = true
-
 tokio.workspace = true
 tower-lsp.workspace = true

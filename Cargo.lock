@@ -1321,52 +1321,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "rml"
-version = "0.1.0"
-dependencies = [
- "lexer-core",
- "pest",
- "pest_derive",
- "rmlx",
- "url",
-]
-
-[[package]]
-name = "rml-lsp"
-version = "0.1.0"
-dependencies = [
- "lexer-core",
- "rmlx",
- "tokio",
- "tower-lsp",
-]
-
-[[package]]
-name = "rml-tests"
-version = "0.1.0"
-dependencies = [
- "codspeed-divan-compat",
- "lexer-core",
- "rml",
- "rmlx",
- "url",
-]
-
-[[package]]
-name = "rmlx"
-version = "0.1.0"
-dependencies = [
- "enum_dispatch",
- "lexer-core",
- "pest",
- "pest_derive",
- "regex",
- "reqwest",
- "thiserror",
- "url",
-]
-
-[[package]]
 name = "rustc-hash"
 version = "2.1.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -1928,6 +1882,52 @@ name = "try-lock"
 version = "0.2.5"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "e421abadd41a4225275504ea4d6566923418b7f05506fbc9c0fe86ba7396114b"
+
+[[package]]
+name = "type-ml"
+version = "0.1.0"
+dependencies = [
+ "lexer-core",
+ "pest",
+ "pest_derive",
+ "type-ml-definitions",
+ "url",
+]
+
+[[package]]
+name = "type-ml-definitions"
+version = "0.1.0"
+dependencies = [
+ "enum_dispatch",
+ "lexer-core",
+ "pest",
+ "pest_derive",
+ "regex",
+ "reqwest",
+ "thiserror",
+ "url",
+]
+
+[[package]]
+name = "type-ml-lsp"
+version = "0.1.0"
+dependencies = [
+ "lexer-core",
+ "tokio",
+ "tower-lsp",
+ "type-ml-definitions",
+]
+
+[[package]]
+name = "type-ml-tests"
+version = "0.1.0"
+dependencies = [
+ "codspeed-divan-compat",
+ "lexer-core",
+ "type-ml",
+ "type-ml-definitions",
+ "url",
+]
 
 [[package]]
 name = "typenum"

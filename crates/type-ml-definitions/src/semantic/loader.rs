@@ -9,7 +9,7 @@ pub enum LoadError {
     InvalidUrl(String),
     #[error("local file not found or not a file: {0}")]
     LocalNotFound(String),
-    #[error("file does not have .rmlx extension")]
+    #[error("file does not have .type-ml-definitions extension")]
     WrongExtension,
     #[error("http error: {0}")]
     HttpError(#[from] reqwest::Error),
@@ -23,13 +23,13 @@ pub enum LoadError {
 
 /// Загружает содержимое источника `source` как String, если:
 ///  - источник доступен (локально или по http(s))
-///  - файл имеет расширение .rmlx (проверяется по пути или Content-Disposition)
+///  - файл имеет расширение .type-ml-definitions (проверяется по пути или Content-Disposition)
 ///
 /// Поддерживается:
 ///  - "http://..." и "https://..."
-///  - "file:///abs/path/to/file.rmlx"
-///  - "/local/path/to/file.rmlx" или "relative/path.rmlx"
-pub fn load_rmlx(url: &Url) -> Result<String, LoadError> {
+///  - "file:///abs/path/to/file.type-ml-definitions"
+///  - "/local/path/to/file.type-ml-definitions" или "relative/path.type-ml-definitions"
+pub fn load_tmd(url: &Url) -> Result<String, LoadError> {
     match url.scheme() {
         //"http" | "https" => load_remote_rmlx(url).await,
         "file" => match url.to_file_path() {
@@ -48,9 +48,9 @@ fn load_local_path(path: &Path) -> Result<String, LoadError> {
     if !path.exists() || !path.is_file() {
         return Err(LoadError::LocalNotFound(path.display().to_string()));
     }
-    // Проверяем расширение .rmlx (регистронезависимо)
+    // Проверяем расширение .type-ml-definitions (регистронезависимо)
     match path.extension().and_then(|s| s.to_str()) {
-        Some(ext) if ext.eq_ignore_ascii_case("rmlx") => {
+        Some(ext) if ext.eq_ignore_ascii_case("tmd") => {
             // читаем файл (асинхронно)
             //let s = tokio::fs::read_to_string(path).await?;
             let s = std::fs::read_to_string(path)?;
@@ -128,12 +128,12 @@ async fn load_remote_rmlx(url: &Url) -> Result<String, LoadError> {
             }
         }
 
-        // если filename найден и имеет расширение .rmlx — ок
+        // если filename найден и имеет расширение .type-ml-definitions — ок
         if let Some(fname) = filename_opt {
             if Path::new(&fname)
                 .extension()
                 .and_then(OsStr::to_str)
-                .is_some_and(|s| s.eq_ignore_ascii_case("rmlx"))
+                .is_some_and(|s| s.eq_ignore_ascii_case("tmd"))
             {
                 // получили тело как текст
                 let text = resp.text().await?;
@@ -150,17 +150,17 @@ async fn load_remote_rmlx(url: &Url) -> Result<String, LoadError> {
 
 fn has_rmlx_extension_in_url_path(url: &Url) -> bool {
     // берем путь, смотрим extension
-    let path = url.path(); // e.g. "/dir/file.rmlx"
+    let path = url.path(); // e.g. "/dir/file.type-ml-definitions"
     Path::new(path)
         .extension()
         .and_then(OsStr::to_str)
-        .is_some_and(|s| s.eq_ignore_ascii_case("rmlx"))
+        .is_some_and(|s| s.eq_ignore_ascii_case("tmd"))
 }
 
 /// Простая вычитка имени файла из Content-Disposition
 fn extract_filename_from_content_disposition(cd: &str) -> Option<String> {
     // ищем filename=... (учитываем кавычки)
-    // примеры: attachment; filename="example.rmlx" или attachment; filename=example.rmlx
+    // примеры: attachment; filename="example.type-ml-definitions" или attachment; filename=example.type-ml-definitions
     let lower = cd.to_lowercase();
     if let Some(pos) = lower.find("filename=") {
         // найдём с оригинальной строки от pos+len("filename=")

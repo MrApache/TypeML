@@ -15,7 +15,7 @@ pub use model::SchemaModel;
 pub use symbol::{Symbol, SymbolRef};
 
 use crate::semantic::symbol::{LazySymbol, SymbolKind};
-use crate::semantic::{loader::load_rmlx, unresolved_schema::UnresolvedSchema};
+use crate::semantic::{loader::load_tmd, unresolved_schema::UnresolvedSchema};
 use std::fmt::Debug;
 use std::{
     collections::HashMap,
@@ -70,7 +70,7 @@ impl AnalysisWorkspace {
     }
 
     pub fn run(mut self) -> Result<Self, crate::Error> {
-        self.source = load_rmlx(&self.path)?;
+        self.source = load_tmd(&self.path)?;
         let source = self.source.clone();
         let path = self.path.clone();
         self.load_model_internal(&source, &path)?;
@@ -127,7 +127,7 @@ impl AnalysisWorkspace {
     }
 
     pub(crate) fn load_single_model(&mut self, path: &Url) -> Result<(), crate::Error> {
-        let content = load_rmlx(path)?;
+        let content = load_tmd(path)?;
         self.load_model_internal(&content, path)
     }
 

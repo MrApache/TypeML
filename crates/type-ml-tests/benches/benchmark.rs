@@ -1,7 +1,7 @@
 use divan::Bencher;
 use lexer_core::CstNode;
-use rml::{LayoutModel, RmlParser};
-use rmlx::{AnalysisWorkspace, RmlxNode, RmlxParser, Rule, build_schema_ast};
+use type_ml::{LayoutModel, RmlParser};
+use type_ml_definitions::{AnalysisWorkspace, RmlxNode, RmlxParser, Rule, build_schema_ast};
 use url::Url;
 
 fn main() {
@@ -12,7 +12,7 @@ fn main() {
 fn parse_ast(bench: Bencher) {
     bench
         .with_inputs(|| {
-            const CONTENT: &str = include_str!(concat!(env!("CARGO_WORKSPACE_DIR"), "examples/schema.rmlx"));
+            const CONTENT: &str = include_str!(concat!(env!("CARGO_WORKSPACE_DIR"), "examples/schema.tmd"));
             CstNode::new::<RmlxParser>(CONTENT, Rule::file).unwrap()
         })
         .bench_values(|cst| build_schema_ast(&cst));
@@ -20,13 +20,13 @@ fn parse_ast(bench: Bencher) {
 
 #[divan::bench]
 fn parse_cst() {
-    const CONTENT: &str = include_str!(concat!(env!("CARGO_WORKSPACE_DIR"), "examples/schema.rmlx"));
+    const CONTENT: &str = include_str!(concat!(env!("CARGO_WORKSPACE_DIR"), "examples/schema.tmd"));
     let _: CstNode<RmlxNode> = CstNode::new::<RmlxParser>(CONTENT, Rule::file).unwrap();
 }
 
 #[divan::bench]
 fn semantic_analysis(bench: Bencher) {
-    const PATH: &str = concat!(env!("CARGO_WORKSPACE_DIR"), "examples/schema.rmlx");
+    const PATH: &str = concat!(env!("CARGO_WORKSPACE_DIR"), "examples/schema.tmd");
     bench
         .with_inputs(|| {
             let url = Url::from_file_path(PATH).unwrap();
@@ -39,7 +39,7 @@ fn semantic_analysis(bench: Bencher) {
 
 #[divan::bench]
 fn rml_full_analysis(bench: Bencher) {
-    const PATH: &str = concat!(env!("CARGO_WORKSPACE_DIR"), "examples/layout.rml");
+    const PATH: &str = concat!(env!("CARGO_WORKSPACE_DIR"), "examples/layout.tml");
     bench
         .with_inputs(|| {
             let content = std::fs::read_to_string(PATH).unwrap();
