@@ -1,0 +1,4 @@
+#namespace <definitions>
+
+group Root {}
+element Window -> FakeGroup;

@@ -1,0 +1,9 @@
+group Widget;
+group Root {
+    + unique Widget
+}
+
+element Window -> Root;
+element Text -> Widget {
+    value: String
+}

@@ -1,0 +1,8 @@
+#use <definitions.tmd>
+
+<Window>
+    <Text value="First widget"/>
+    <Text value="Second widget"/>
+    <Text value="Third widget"/>
+    <Text value="Fourth widget"/>
+</Window>

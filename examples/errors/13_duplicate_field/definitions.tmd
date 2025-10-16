@@ -1,0 +1,10 @@
+group Root {}
+
+element Window -> Root {
+    width: u32,
+}
+
+expression Size {
+    x: u32,
+    y: u32,
+}

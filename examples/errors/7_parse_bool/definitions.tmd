@@ -1,0 +1,7 @@
+group Root {}
+
+element Window -> Root {
+    width: u32,
+    height: u32,
+    allow_resize: bool,
+}

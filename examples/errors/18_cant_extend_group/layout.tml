@@ -1,0 +1,9 @@
+#use <custom_widgets.tmd>
+
+<definitions::Window>
+    <definitions::Text value="First widget"/>
+    <definitions::Text value="Second widget"/>
+    <definitions::Text value="Third widget"/>
+    <definitions::Text value="Fourth widget"/>
+    <List/>
+</definitions::Window>

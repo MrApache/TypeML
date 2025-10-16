@@ -1,0 +1,30 @@
+@extend
+group Widget;
+
+group Root {
+    + Widget
+}
+
+element Window -> Root {
+    width: u32,
+    height: u32,
+    allow_resize: bool,
+    smooth: f64,
+}
+
+element Text -> Widget {
+    value: String,
+    font_size: i8,
+    wrap: Wrap
+}
+
+enum Wrap {
+    NoWrap,
+    Wrap,
+}
+
+@groups [Widget]
+expression DynamicInteger {
+    min: u32,
+    max: u32,
+}

@@ -1,0 +1,5 @@
+#use <definitions.tmd>
+
+<Window>
+    <Text value="Hello, World!" font_size=14 wrap=100%/>
+</Window>

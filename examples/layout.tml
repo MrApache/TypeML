@@ -34,10 +34,12 @@ $struct NodeBorder -> UiRect {
 //TODO Error locations
 //TODO Empty list error
 //TODO Annotations errors
-//TODO A namespace identifier should be equal file name
+//TODO A namespace identifier should be equal file name (extend fix)
 //TODO Directive 'Include' that allow include type from namespace (+ Alias support)
 //TODO Item attachment
-//TODO Multithreaded resolving
+//TODO Fix duplicate fields in definitions
+//TODO Fix duplicate arguments in elements
+//TODO Fix duplicate struct fields
 //TODO Multiple configs
 //TODO Metadata assignment
 //TODO Expression restrict support

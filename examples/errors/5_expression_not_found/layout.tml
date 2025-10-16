@@ -1,0 +1,3 @@
+#use <definitions.tmd>
+
+<Window width=1920 height={Resource_Height min: 720, max: 1080}/>

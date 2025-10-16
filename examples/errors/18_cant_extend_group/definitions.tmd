@@ -1,0 +1,11 @@
+#namespace <definitions>
+
+group Widget;
+group Root {
+    + Widget
+}
+
+element Window -> Root;
+element Text -> Widget {
+    value: String
+}
