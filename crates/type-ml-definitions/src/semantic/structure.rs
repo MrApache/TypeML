@@ -20,6 +20,7 @@ pub struct ResolvedField {
     ty: SymbolRef,
 }
 
+#[derive(Debug)]
 pub struct UnresolvedStructField {
     identifier: String,
     ty: UnresolvedType,
@@ -50,8 +51,9 @@ impl UnresolvedStructField {
     }
 }
 
+#[derive(Debug)]
 pub struct UnresolvedStructSymbol {
-    pub identifier: String,
+    identifier: String,
     pub fields: Vec<UnresolvedStructField>,
     pub metadata: HashMap<String, Option<BaseType>>,
     pub resolved: Vec<ResolvedField>,
@@ -73,6 +75,10 @@ impl UnresolvedStructSymbol {
             metadata,
             resolved: vec![],
         }
+    }
+
+    pub const fn identifier(&self) -> &str {
+        self.identifier.as_str()
     }
 }
 

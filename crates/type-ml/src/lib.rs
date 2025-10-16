@@ -8,6 +8,7 @@ mod model;
 mod resolved;
 mod unresolved;
 
+use crate::analyzer::RmlAnalyzer;
 pub use crate::model::LayoutModel;
 use crate::unresolved::LayoutAst;
 use lexer_core::CstNode;
@@ -22,4 +23,8 @@ impl RmlParser {
         let cst = CstNode::new::<RmlParser>(content, Rule::file).map_err(type_ml_definitions::Error::PestError)?;
         Ok(LayoutAst::build(&cst))
     }
+}
+
+pub trait NodeResolver<T> {
+    fn resolve(&self, analyzer: &RmlAnalyzer) -> T;
 }

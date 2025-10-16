@@ -72,12 +72,14 @@ impl GroupConfig {
     }
 }
 
+#[derive(Debug)]
 pub struct UnresolvedGroupConfig {
     symbol: UnresolvedType,
     unique: bool,
     count: Option<Count>,
 }
 
+#[derive(Debug)]
 pub struct UnresolvedGroupSymbol {
     identifier: String,
     extend: bool,
@@ -121,6 +123,10 @@ impl UnresolvedGroupSymbol {
             unresolved,
             resolved: vec![],
         }
+    }
+
+    pub const fn identifier(&self) -> &str {
+        self.identifier.as_str()
     }
 }
 

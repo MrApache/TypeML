@@ -101,4 +101,7 @@ pub enum Error {
 
     #[error("Group {0} is not extendable")]
     CantExtendGroup(String),
+
+    #[error("{0}: The type {1} can't be resolved")]
+    UnresolvedType(String, String), //Path, Type
 }

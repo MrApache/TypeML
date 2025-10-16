@@ -1,6 +1,5 @@
 use crate::unresolved::Expression;
 use std::collections::{HashMap, HashSet};
-use std::sync::{Arc, RwLock};
 use type_ml_definitions::{Count, CountEquality, ExpressionField, ExpressionSymbol, Symbol};
 use type_ml_definitions::{GroupConfig, SchemaModel, SymbolRef};
 
@@ -20,7 +19,7 @@ pub struct PreviousElement {
 }
 
 pub struct RmlAnalyzer {
-    model: Arc<RwLock<SchemaModel>>,
+    model: SchemaModel,
     depth: Vec<PreviousElement>,
     states: Vec<AnalyzerState>,
     active: usize,
@@ -82,12 +81,9 @@ impl RmlAnalyzer {
     }
 
     #[must_use]
-    pub fn new(model: Arc<RwLock<SchemaModel>>) -> Self {
-        let read_model = model.read().expect("Unreachable!");
-        let group = read_model.get_main_group_ref();
-        let states = Self::build_states(group, &read_model);
-        drop(read_model);
-
+    pub fn new(model: SchemaModel) -> Self {
+        let group = model.get_main_group_ref();
+        let states = Self::build_states(group, &model);
         Self {
             model,
             depth: vec![],
@@ -97,16 +93,16 @@ impl RmlAnalyzer {
     }
 
     pub fn is_allowed_element(&self, namespace: Option<&str>, name: &str) -> Result<bool, type_ml_definitions::Error> {
-        let model = self.model.read().expect("Unreachable!");
-        let namespace_id = model.get_namespace_id(namespace)?;
-        let element = model
+        let namespace_id = self.model.get_namespace_id(namespace)?;
+        let element = self
+            .model
             .get_type_by_name(namespace_id, name)
             .as_element_symbol()
             .ok_or(type_ml_definitions::Error::ElementNotFound(name.into()))?;
         let bind_group = element.group();
 
         let group_ref = self.states[self.active].group;
-        let ty = model.get_type_by_ref(group_ref).unwrap().expect("Unreachable!");
+        let ty = self.model.get_type_by_ref(group_ref).unwrap().expect("Unreachable!");
         let group = ty.as_group_symbol();
         let groups = group.groups();
         Ok(groups.iter().any(|g| g.symbol() == bind_group))
@@ -115,15 +111,15 @@ impl RmlAnalyzer {
     pub fn enter_element(&mut self, namespace: Option<&str>, name: &str) -> Result<(), type_ml_definitions::Error> {
         debug_assert!(self.is_allowed_element(namespace, name)?);
 
-        let model = self.model.read().expect("Unreachable!");
-        let namespace_id = model.get_namespace_id(namespace)?;
-        let element = model
+        let namespace_id = self.model.get_namespace_id(namespace)?;
+        let element = self
+            .model
             .get_type_by_name(namespace_id, name)
             .as_element_symbol()
             .expect("Unreachable!");
         let bind_group = element.group();
 
-        let ty = model.get_type_by_ref(bind_group).unwrap().expect("Unreachable!");
+        let ty = self.model.get_type_by_ref(bind_group).unwrap().expect("Unreachable!");
         let group = ty.as_group_symbol();
         if group.groups().is_empty() {
             self.depth.push(PreviousElement {
@@ -163,9 +159,8 @@ impl RmlAnalyzer {
     }
 
     fn get_group_full_path(&self, group: SymbolRef) -> String {
-        let model = self.model.read().expect("Unreachable!");
-        let group_kind = model.get_type_by_ref(group).unwrap().expect("Unreachable!");
-        let namespace = &model.namespaces[group.namespace];
+        let group_kind = self.model.get_type_by_ref(group).unwrap().expect("Unreachable!");
+        let namespace = &self.model.namespaces[group.namespace];
         format!("{namespace}::{}", group_kind.identifier())
     }
 
@@ -231,17 +226,17 @@ impl RmlAnalyzer {
     }
 
     pub fn is_valid_attribute(&self, name: &str, value: &str) -> Result<(), type_ml_definitions::Error> {
-        let model = self.model.read().expect("Unreachable!");
         let last_element = self.depth.last().expect("Unreachable!");
-        let element_namespace = model.get_namespace_id(last_element.namespace.as_deref())?;
-        let element = model
+        let element_namespace = self.model.get_namespace_id(last_element.namespace.as_deref())?;
+        let element = self
+            .model
             .get_type_by_name(element_namespace, &last_element.name)
             .as_element_symbol()
             .expect("Unreachable!");
         let field = element.field(name).expect("Unreachable!");
-        let field_type = model.get_type_by_ref(field.ty());
+        let field_type = self.model.get_type_by_ref(field.ty());
         let field_type = field_type.as_ref();
-        field_type.can_parse(value, &model)
+        field_type.can_parse(value, &self.model)
     }
 
     fn is_valid_expression_element_group(
@@ -318,15 +313,21 @@ impl RmlAnalyzer {
         element_name: &str,
         expression: &Expression,
     ) -> Result<(), type_ml_definitions::Error> {
-        let model = self.model.read().expect("Unreachable!");
-        let expr_namespace = model.get_namespace_id(expression.namespace.as_deref())?;
-        let expr = model
+        let expr_namespace = self.model.get_namespace_id(expression.namespace.as_deref())?;
+        let expr = self
+            .model
             .get_type_by_name(expr_namespace, &expression.identifier)
             .as_expression_symbol()
             .ok_or(type_ml_definitions::Error::ExpressionNotFound(expression.full_path()))?;
 
-        Self::validate_expression_fields(&model, expr, expression)?;
-        Self::is_valid_expression_element_group(element_namespace, element_name, expr.groups(), &model, expression)?;
+        Self::validate_expression_fields(&self.model, expr, expression)?;
+        Self::is_valid_expression_element_group(
+            element_namespace,
+            element_name,
+            expr.groups(),
+            &self.model,
+            expression,
+        )?;
 
         Ok(())
     }

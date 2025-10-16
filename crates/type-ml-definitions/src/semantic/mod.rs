@@ -16,35 +16,25 @@ pub use symbol::{Symbol, SymbolRef};
 
 use crate::semantic::symbol::{LazySymbol, SymbolKind};
 use crate::semantic::{loader::load_tmd, unresolved_schema::UnresolvedSchema};
+use std::collections::HashMap;
 use std::fmt::Debug;
-use std::{
-    collections::HashMap,
-    sync::{Arc, RwLock},
-};
 use url::Url;
 
+#[derive(Debug)]
 pub struct UnresolvedType {
     generic_base: Option<String>,
     namespace: Option<String>,
     identifier: String,
 }
 
+#[derive(Debug)]
 pub struct AnalysisWorkspace {
     source: String,
     path: Url,
-    pub model: Arc<RwLock<SchemaModel>>,
+    model: SchemaModel,
 
     namespace_stack: Vec<usize>,
     unresolved: HashMap<String, UnresolvedSchema>,
-}
-
-impl Debug for AnalysisWorkspace {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        f.debug_struct("AnalysisWorkspace")
-            .field("path", &self.path)
-            .field("namespace_stack", &self.namespace_stack)
-            .finish()
-    }
 }
 
 impl AnalysisWorkspace {
@@ -54,14 +44,9 @@ impl AnalysisWorkspace {
             source: String::new(),
             path,
             unresolved: HashMap::default(),
-            model: Arc::new(RwLock::new(SchemaModel::default())),
+            model: SchemaModel::default(),
             namespace_stack: vec![],
         }
-    }
-
-    #[must_use]
-    pub fn model(&self) -> Arc<RwLock<SchemaModel>> {
-        self.model.clone()
     }
 
     #[must_use]
@@ -69,15 +54,21 @@ impl AnalysisWorkspace {
         &self.source
     }
 
-    pub fn run(mut self) -> Result<Self, crate::Error> {
+    pub fn run(mut self) -> Result<SchemaModel, crate::Error> {
         self.source = load_tmd(&self.path)?;
         let source = self.source.clone();
         let path = self.path.clone();
         self.load_model_internal(&source, &path)?;
-        let mut write = self.model.write().expect("Unreachable!");
-        write.post_load()?;
-        drop(write);
-        Ok(self)
+        self.model.post_load()?;
+        if !self.unresolved.is_empty()
+            && let Some((path, schema)) = self.unresolved.into_iter().next()
+        {
+            return Err(crate::Error::UnresolvedType(
+                path,
+                schema.next_unresolved().unwrap().to_string(),
+            ));
+        }
+        Ok(self.model)
     }
 
     fn load_model_internal(&mut self, source: &str, path: &Url) -> Result<(), crate::Error> {
@@ -108,17 +99,15 @@ impl AnalysisWorkspace {
             }
 
             symbols.retain(|f| {
-                let mut model = self.model.write().expect("Unreachable!");
-                if let Some(r) = f.try_get_self_reference(&model) {
-                    model.replace_type(r, f.clone());
+                if let Some(r) = f.try_get_self_reference(&self.model) {
+                    self.model.replace_type(r, f.clone());
                     return false;
                 }
 
                 true
             });
 
-            let mut write = self.model.write().expect("Unreachable!");
-            let vec = write.modules.get_mut(namespace_id).expect("Unreachable!");
+            let vec = self.model.modules.get_mut(namespace_id).expect("Unreachable!");
             vec.extend(symbols);
         }
         self.namespace_stack.pop();
@@ -132,16 +121,14 @@ impl AnalysisWorkspace {
     }
 
     fn get_or_add_namespace_id(&mut self, namespace: Option<&str>) -> usize {
-        let mut model = self.model.write().expect("Unreachable!");
-
         if let Some(ns) = namespace {
-            if let Some(id) = model.try_get_namespace_id(namespace) {
+            if let Some(id) = self.model.try_get_namespace_id(namespace) {
                 return id;
             }
 
-            let id = model.namespaces.len();
-            model.namespaces.push(ns.to_string());
-            model.modules.push(Vec::new());
+            let id = self.model.namespaces.len();
+            self.model.namespaces.push(ns.to_string());
+            self.model.modules.push(Vec::new());
             return id;
         }
 
@@ -169,7 +156,6 @@ impl AnalysisWorkspace {
             iter
         };
 
-        let mut model = self.model.write().expect("model is not poisoned");
         let identifier = if let Some(generic) = &ty.generic_base {
             format!("{generic}_{}", ty.identifier)
         } else {
@@ -178,15 +164,15 @@ impl AnalysisWorkspace {
 
         ns_iter.find_map(|namespace| {
             let namespace = *namespace;
-            if let Some(id) = model.get_type_id(namespace, &identifier) {
+            if let Some(id) = self.model.get_type_id(namespace, &identifier) {
                 Some(SymbolRef { namespace, id })
             } else if let Some(generic) = &ty.generic_base
-                && let Some(generic) = model.get_type_by_name(namespace, generic).unwrap()
-                && let Some((target_ref, target)) = model.get_type_by_name(0, &ty.identifier).unwrap_with_ref()
+                && let Some(generic) = self.model.get_type_by_name(namespace, generic).unwrap()
+                && let Some((target_ref, target)) = self.model.get_type_by_name(0, &ty.identifier).unwrap_with_ref()
             {
                 let generic = generic.as_generic_symbol();
                 let ct = generic.construct_type(target, target_ref);
-                model.add_symbol(namespace, ct);
+                self.model.add_symbol(namespace, ct);
                 None
             } else {
                 None
@@ -196,8 +182,7 @@ impl AnalysisWorkspace {
 
     fn create_self_reference(&mut self, ty: &UnresolvedType) -> SymbolRef {
         let namespace = self.get_or_add_namespace_id(ty.namespace.as_deref());
-        let mut model = self.model.write().expect("model is not poisoned");
-        let type_table = model.get_mut_type_table_by_namespace_id(namespace);
+        let type_table = self.model.get_mut_type_table_by_namespace_id(namespace);
         let id = type_table.len();
         type_table.push(SymbolKind::Lazy(LazySymbol {
             source: id,

@@ -9,13 +9,15 @@ use crate::{
 };
 use lexer_core::to_url;
 
+#[derive(Debug)]
 pub struct UnresolvedSchema {
     namespace: Option<String>,
-    structs: Vec<UnresolvedStructSymbol>,
-    enums: Vec<UnresolvedEnumSymbol>,
     groups: Vec<UnresolvedGroupSymbol>,
-    elements: Vec<UnresolvedElementSymbol>,
     expressions: Vec<UnresolvedExpressionSymbol>,
+
+    enums: Vec<UnresolvedEnumSymbol>,
+    structs: Vec<UnresolvedStructSymbol>,
+    elements: Vec<UnresolvedElementSymbol>,
 }
 
 impl UnresolvedSchema {
@@ -132,6 +134,30 @@ impl UnresolvedSchema {
 
     pub fn namespace(&self) -> Option<&str> {
         self.namespace.as_deref()
+    }
+
+    pub fn next_unresolved(&self) -> Option<&str> {
+        if !self.groups.is_empty() {
+            return self.groups.first().map(|g| g.identifier());
+        }
+
+        if !self.expressions.is_empty() {
+            return self.expressions.first().map(|g| g.identifier());
+        }
+
+        if !self.enums.is_empty() {
+            return self.enums.first().map(|g| g.identifier());
+        }
+
+        if !self.structs.is_empty() {
+            return self.structs.first().map(|g| g.identifier());
+        }
+
+        if !self.elements.is_empty() {
+            return self.elements.first().map(|g| g.identifier());
+        }
+
+        None
     }
 }
 

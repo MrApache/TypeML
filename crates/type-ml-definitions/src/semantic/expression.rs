@@ -2,6 +2,7 @@ use crate::ast::{Annotation, AnnotationValue, BaseType, Expression, Field};
 use crate::{AnalysisWorkspace, Symbol, SymbolRef, TypeResolver, UnresolvedType};
 use std::collections::HashMap;
 
+#[derive(Debug)]
 pub struct UnresolvedExpressionField {
     identifier: String,
     ty: UnresolvedType,
@@ -22,6 +23,7 @@ impl UnresolvedExpressionField {
     }
 }
 
+#[derive(Debug)]
 pub struct UnresolvedExpressionSymbol {
     identifier: String,
     metadata: HashMap<String, Option<BaseType>>,
@@ -81,6 +83,10 @@ impl UnresolvedExpressionSymbol {
             resolved_groups: vec![],
             resolved_fields: vec![],
         }
+    }
+
+    pub const fn identifier(&self) -> &str {
+        self.identifier.as_str()
     }
 }
 

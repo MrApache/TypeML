@@ -1,7 +1,6 @@
 use crate::analyzer::RmlAnalyzer;
 use crate::unresolved::{AttributeValue, Element, Impl, LayoutAst};
 use lexer_core::to_url;
-use std::sync::{Arc, RwLock};
 use type_ml_definitions::{AnalysisWorkspace, SchemaModel};
 use url::Url;
 
@@ -20,18 +19,17 @@ impl LayoutModel {
             .collect::<Vec<_>>();
 
         let model = load_config_model(configs)?;
-        let mut analyzer = RmlAnalyzer::new(model.clone());
+        let mut analyzer = RmlAnalyzer::new(model);
         let root = ast.root.unwrap();
         validate_element(&ast.impls, &root, &mut analyzer)?;
         Ok(root)
     }
 }
 
-fn load_config_model(configs: Vec<Url>) -> Result<Arc<RwLock<SchemaModel>>, type_ml_definitions::Error> {
+fn load_config_model(configs: Vec<Url>) -> Result<SchemaModel, type_ml_definitions::Error> {
     assert!(!configs.is_empty(), "Config not found");
     let mut iter = configs.into_iter();
-    let workspace = AnalysisWorkspace::new(iter.next().unwrap()).run()?;
-    Ok(workspace.model())
+    AnalysisWorkspace::new(iter.next().unwrap()).run()
 }
 
 fn validate_element(

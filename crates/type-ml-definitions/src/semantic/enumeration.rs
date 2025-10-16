@@ -7,6 +7,7 @@ use crate::{
 use regex::Regex;
 use std::collections::HashMap;
 
+#[derive(Debug)]
 pub struct UnresolvedEnumSymbol {
     identifier: String,
     variants: Vec<UnresolvedVariant>,
@@ -14,6 +15,7 @@ pub struct UnresolvedEnumSymbol {
     resolved: Vec<EnumVariant>,
 }
 
+#[derive(Debug)]
 pub struct UnresolvedVariant {
     identifier: String,
     ty: Option<UnresolvedType>,
@@ -61,6 +63,10 @@ impl UnresolvedEnumSymbol {
             metadata,
             resolved: vec![],
         }
+    }
+
+    pub const fn identifier(&self) -> &str {
+        self.identifier.as_str()
     }
 }
 

@@ -127,9 +127,9 @@ impl LanguageServer for Backend {
                  */
             }
             "tmld" => {
-                let workspace = AnalysisWorkspace::new(uri.clone()).run().unwrap();
-                let mut schemas = self.schemas.write().unwrap();
-                schemas.insert(uri, workspace);
+                //let workspace = AnalysisWorkspace::new(uri.clone()).run().unwrap();
+                //let mut schemas = self.schemas.write().unwrap();
+                //schemas.insert(uri, workspace);
                 //self.client.publish_diagnostics(uri.clone(), std::mem::take(&mut model.diagnostics), None).await;
             }
             _ => unreachable!("Unsupported file type '{extension}'"),
@@ -151,9 +151,9 @@ impl LanguageServer for Backend {
                  */
             }
             "tmld" => {
-                let workspace = AnalysisWorkspace::new(uri.clone()).run().unwrap();
-                let mut schemas = self.schemas.write().unwrap();
-                schemas.insert(uri, workspace);
+                //let workspace = AnalysisWorkspace::new(uri.clone()).run().unwrap();
+                //let mut schemas = self.schemas.write().unwrap();
+                //schemas.insert(uri, workspace);
                 //self.client.publish_diagnostics(uri.clone(), std::mem::take(&mut schema.diagnostics), None).await;
             }
             _ => unreachable!(),

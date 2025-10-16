@@ -31,6 +31,7 @@ impl ResolvedField {
     }
 }
 
+#[derive(Debug)]
 pub struct UnresolvedElementField {
     identifier: String,
     ty: UnresolvedType,
@@ -45,8 +46,9 @@ impl UnresolvedElementField {
     }
 }
 
+#[derive(Debug)]
 pub struct UnresolvedElementSymbol {
-    pub identifier: String,
+    identifier: String,
     pub bind: UnresolvedType,
     pub resolved_bind: Option<SymbolRef>,
     pub fields: Vec<UnresolvedElementField>,
@@ -74,6 +76,10 @@ impl UnresolvedElementSymbol {
             resolved: vec![],
         }
     }
+
+    pub const fn identifier(&self) -> &str {
+        self.identifier.as_str()
+    }
 }
 
 impl TypeResolver<ElementSymbol> for UnresolvedElementSymbol {
@@ -93,13 +99,12 @@ impl TypeResolver<ElementSymbol> for UnresolvedElementSymbol {
             && let Some(ty) = workspace.get_type(&self.bind)
         {
             let namespace_id = workspace.namespace_stack.last().copied().unwrap_or_default();
-            let model = workspace.model.read().unwrap();
-            if let Some(value) = model.can_extend_group(ty, namespace_id) {
+            if let Some(value) = workspace.model.can_extend_group(ty, namespace_id) {
                 if value {
                     self.resolved_bind = Some(ty);
                 } else {
-                    let namespace = model.get_namespace_by_id(namespace_id);
-                    let group = model.get_type_by_ref(ty).as_group_symbol().unwrap();
+                    let namespace = workspace.model.get_namespace_by_id(namespace_id);
+                    let group = workspace.model.get_type_by_ref(ty).as_group_symbol().unwrap();
                     let full_path = format!("{namespace}::{}", group.identifier());
                     return Err(crate::Error::CantExtendGroup(full_path));
                 }
