@@ -133,7 +133,11 @@ impl Symbol for ElementSymbol {
 }
 
 impl ElementSymbol {
-    pub fn field(&self, name: &str) -> Option<&ResolvedField> {
-        self.fields.iter().find(|f| f.identifier == name)
+    pub fn field(&self, name: &str) -> Result<&ResolvedField, crate::Error> {
+        self.fields
+            .iter()
+            .find(|f| f.identifier == name)
+            .map(Ok)
+            .unwrap_or(Err(crate::Error::FieldNotFound(name.to_string())))
     }
 }
