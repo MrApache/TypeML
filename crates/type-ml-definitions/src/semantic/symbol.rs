@@ -60,6 +60,7 @@ macro_rules! impl_symbol {
     };
 }
 
+impl_symbol!(Bool, "bool", str::parse::<bool>);
 impl_symbol!(F32, "f32", str::parse::<f32>);
 impl_symbol!(F64, "f64", str::parse::<f64>);
 impl_symbol!(I8, "i8", str::parse::<i8>);
@@ -231,6 +232,7 @@ impl Symbol for LazySymbol {
 #[enum_dispatch(Symbol)]
 #[derive(Debug, Clone)]
 pub enum SymbolKind {
+    Bool(Bool),
     F32(F32),
     F64(F64),
     I8(I8),

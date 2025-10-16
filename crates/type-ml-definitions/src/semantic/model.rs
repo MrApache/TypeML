@@ -2,7 +2,7 @@ use crate::semantic::element::ElementSymbol;
 use crate::semantic::expression::ExpressionSymbol;
 use crate::semantic::group::GroupSymbol;
 use crate::semantic::symbol::{
-    F32, F64, GenericSymbol, I8, I16, I32, I64, Str, Symbol, SymbolKind, SymbolRef, U8, U16, U32, U64,
+    Bool, F32, F64, GenericSymbol, I8, I16, I32, I64, Str, Symbol, SymbolKind, SymbolRef, U8, U16, U32, U64,
 };
 use std::collections::HashMap;
 
@@ -15,6 +15,7 @@ pub struct SchemaModel {
 impl Default for SchemaModel {
     fn default() -> Self {
         let global = vec![
+            SymbolKind::Bool(Bool),
             SymbolKind::F32(F32),
             SymbolKind::F64(F64),
             SymbolKind::I8(I8),
