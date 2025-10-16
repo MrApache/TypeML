@@ -15,7 +15,7 @@
         <div>
             <p class="heading">Lines</p>
             <p class="title has-text-warning">
-                <abbr title="137 / 157">87.26 %</abbr></p>
+                <abbr title="135 / 155">87.1 %</abbr></p>
         </div>
     </div>
 
@@ -23,7 +23,7 @@
         <div>
             <p class="heading">Functions</p>
             <p class="title has-text-danger">
-                <abbr title="22 / 52">42.31 %</abbr></p>
+                <abbr title="22 / 42">52.38 %</abbr></p>
         </div>
     </div>
 
@@ -2293,7 +2293,7 @@
             </div>
             <div class="column has-background-danger-light p-0"
                  role="cell">
-                <pre class="has-background-danger-light py-0 px-2">            return self.groups.first().map(|g| g.identifier());</pre>
+                <pre class="has-background-danger-light py-0 px-2">            return self.groups.first().map(UnresolvedGroupSymbol::identifier);</pre>
             </div>
         </div><div class="columns p-0 m-0" role="row">
             <div
@@ -2357,7 +2357,7 @@
             </div>
             <div class="column has-background-danger-light p-0"
                  role="cell">
-                <pre class="has-background-danger-light py-0 px-2">            return self.expressions.first().map(|g| g.identifier());</pre>
+                <pre class="has-background-danger-light py-0 px-2">            return self.expressions.first().map(UnresolvedExpressionSymbol::identifier);</pre>
             </div>
         </div><div class="columns p-0 m-0" role="row">
             <div
@@ -2421,7 +2421,7 @@
             </div>
             <div class="column has-background-danger-light p-0"
                  role="cell">
-                <pre class="has-background-danger-light py-0 px-2">            return self.enums.first().map(|g| g.identifier());</pre>
+                <pre class="has-background-danger-light py-0 px-2">            return self.enums.first().map(UnresolvedEnumSymbol::identifier);</pre>
             </div>
         </div><div class="columns p-0 m-0" role="row">
             <div
@@ -2485,7 +2485,7 @@
             </div>
             <div class="column has-background-danger-light p-0"
                  role="cell">
-                <pre class="has-background-danger-light py-0 px-2">            return self.structs.first().map(|g| g.identifier());</pre>
+                <pre class="has-background-danger-light py-0 px-2">            return self.structs.first().map(UnresolvedStructSymbol::identifier);</pre>
             </div>
         </div><div class="columns p-0 m-0" role="row">
             <div
@@ -2549,7 +2549,7 @@
             </div>
             <div class="column has-background-danger-light p-0"
                  role="cell">
-                <pre class="has-background-danger-light py-0 px-2">            return self.elements.first().map(|g| g.identifier());</pre>
+                <pre class="has-background-danger-light py-0 px-2">            return self.elements.first().map(UnresolvedElementSymbol::identifier);</pre>
             </div>
         </div><div class="columns p-0 m-0" role="row">
             <div
@@ -3477,7 +3477,7 @@
             </div>
             <div class="column has-background-success-light p-0"
                  role="cell">
-                <pre class="has-background-success-light py-0 px-2">                &#x2F;&#x2F; Swap with last element and reduce length</pre>
+                <pre class="has-background-success-light py-0 px-2">                self.swap_remove(i);</pre>
             </div>
         </div><div class="columns p-0 m-0" role="row">
             <div
@@ -3493,7 +3493,7 @@
             </div>
             <div class="column has-background-success-light p-0"
                  role="cell">
-                <pre class="has-background-success-light py-0 px-2">                self.swap_remove(i);</pre>
+                <pre class="has-background-success-light py-0 px-2">                original_len -= 1;</pre>
             </div>
         </div><div class="columns p-0 m-0" role="row">
             <div
@@ -3509,7 +3509,7 @@
             </div>
             <div class="column has-background-success-light p-0"
                  role="cell">
-                <pre class="has-background-success-light py-0 px-2">                original_len -= 1;</pre>
+                <pre class="has-background-success-light py-0 px-2">            }</pre>
             </div>
         </div><div class="columns p-0 m-0" role="row">
             <div
@@ -3517,38 +3517,6 @@
                 id="218"
                 role="cell">
                 <a href="#218">218</a>
-            </div>
-            <div
-                class="column is-1 is-narrow p-0 has-text-centered has-text-success-light has-background-success"
-                role="cell" aria-label="58">
-                58
-            </div>
-            <div class="column has-background-success-light p-0"
-                 role="cell">
-                <pre class="has-background-success-light py-0 px-2">                &#x2F;&#x2F; Don&#x27;t increment i since we need to check the swapped element</pre>
-            </div>
-        </div><div class="columns p-0 m-0" role="row">
-            <div
-                class="column is-1 is-narrow p-0 has-text-centered"
-                id="219"
-                role="cell">
-                <a href="#219">219</a>
-            </div>
-            <div
-                class="column is-1 is-narrow p-0 has-text-centered has-text-success-light has-background-success"
-                role="cell" aria-label="58">
-                58
-            </div>
-            <div class="column has-background-success-light p-0"
-                 role="cell">
-                <pre class="has-background-success-light py-0 px-2">            }</pre>
-            </div>
-        </div><div class="columns p-0 m-0" role="row">
-            <div
-                class="column is-1 is-narrow p-0 has-text-centered"
-                id="220"
-                role="cell">
-                <a href="#220">220</a>
             </div>
             <div
                 class="column is-1 is-narrow p-0 has-text-centered has-text-white has-background-white"
@@ -3562,9 +3530,9 @@
         </div><div class="columns p-0 m-0" role="row">
             <div
                 class="column is-1 is-narrow p-0 has-text-centered"
-                id="221"
+                id="219"
                 role="cell">
-                <a href="#221">221</a>
+                <a href="#219">219</a>
             </div>
             <div
                 class="column is-1 is-narrow p-0 has-text-centered has-text-white has-background-white"
@@ -3578,9 +3546,9 @@
         </div><div class="columns p-0 m-0" role="row">
             <div
                 class="column is-1 is-narrow p-0 has-text-centered"
-                id="222"
+                id="220"
                 role="cell">
-                <a href="#222">222</a>
+                <a href="#220">220</a>
             </div>
             <div
                 class="column is-1 is-narrow p-0 has-text-centered has-text-success-light has-background-success"
@@ -3594,9 +3562,9 @@
         </div><div class="columns p-0 m-0" role="row">
             <div
                 class="column is-1 is-narrow p-0 has-text-centered"
-                id="223"
+                id="221"
                 role="cell">
-                <a href="#223">223</a>
+                <a href="#221">221</a>
             </div>
             <div
                 class="column is-1 is-narrow p-0 has-text-centered has-text-success-light has-background-success"
@@ -3610,9 +3578,9 @@
         </div><div class="columns p-0 m-0" role="row">
             <div
                 class="column is-1 is-narrow p-0 has-text-centered"
-                id="224"
+                id="222"
                 role="cell">
-                <a href="#224">224</a>
+                <a href="#222">222</a>
             </div>
             <div
                 class="column is-1 is-narrow p-0 has-text-centered has-text-white has-background-white"
@@ -3628,7 +3596,7 @@
         <footer class="footer">
             
                 <div class="content has-text-centered">
-                    <p class="heading">Date: 2025-10-16 08:44</p>
+                    <p class="heading">Date: 2025-10-16 09:32</p>
                 </div>
             
         </footer>
