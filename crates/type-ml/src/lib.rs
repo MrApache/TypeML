@@ -10,7 +10,7 @@ mod unresolved;
 
 use crate::analyzer::RmlAnalyzer;
 pub use crate::model::LayoutModel;
-use crate::unresolved::LayoutAst;
+pub use crate::unresolved::LayoutAst;
 use lexer_core::CstNode;
 use pest_derive::Parser;
 
