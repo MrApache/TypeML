@@ -233,7 +233,7 @@ impl RmlAnalyzer {
             .get_type_by_name(element_namespace, &last_element.name)
             .as_element_symbol()
             .expect("Unreachable!");
-        let field = element.field(name).expect("Unreachable!");
+        let field = element.field(name)?;
         let field_type = self.model.get_type_by_ref(field.ty());
         let field_type = field_type.as_ref();
         field_type.can_parse(value, &self.model)
