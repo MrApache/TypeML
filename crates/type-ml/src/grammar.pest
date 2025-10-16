@@ -16,7 +16,7 @@ boolean =  { "true" | "false" }
 string  = @{ "\"" ~ (!"\"" ~ ANY)* ~ "\"" }
 
 enum_val = @{ (ident | custom) }
-custom   = @{ (!(WHITESPACE | "{{" | "}}" | "[" | "]" | "{" | "," | "}" | "=" | ">" | "/") ~ ANY)+ }
+custom   = @{ (!(WHITESPACE | "{{" | "}}" | "[" | "]" | "{" | "," | "}" | "=" | ">" | "/" | "\"") ~ ANY)+ }
 
 structure    = { "{{" ~ ( struct_fields | impl_ref) ~ "}}" }
 struct_fields = { struct_field ~ ("," ~ struct_field?)* }
