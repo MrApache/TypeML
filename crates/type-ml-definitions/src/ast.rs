@@ -48,7 +48,6 @@ impl AnnotationList {
     }
 }
 
-// Rust-like атрибуты #[attr(...)]
 #[derive(Debug)]
 pub struct Attribute {
     pub name: String,
@@ -666,7 +665,16 @@ fn build_count(node: &CstNode<RmlxNode>) -> Count {
         "?" => Count::ZeroOrOne,
         "+" => Count::OneOrMore,
         _ if node.text.contains('-') => {
-            let parts: Vec<u32> = node.text.split('-').filter_map(|p| p.parse().ok()).collect();
+            let parts = node
+                .text
+                .strip_prefix('(')
+                .unwrap()
+                .strip_suffix(')')
+                .unwrap()
+                .trim()
+                .split('-')
+                .filter_map(|p| p.parse().ok())
+                .collect::<Vec<_>>();
             Count::Range(parts[0], parts[1])
         }
         _ => Count::Single(node.text.parse().unwrap_or(1)),
