@@ -1,4 +1,5 @@
-#use <base.tmd>
+#use <base>
+#library
 
 #[Path("bevy::prelude::Display")]
 enum Display {

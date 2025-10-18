@@ -1,19 +1,18 @@
-#namespace <base>
+#library
 
-//Count??
 @extend
 group Components;
 
 #[Description("Entity")]
 group Container {
-    + unique Components
+    @unique + Components
     + Container
     + Template
 }
 
 #[Description("Main group")]
 group Root {
-    + unique Components
+    @unique + Components
     + Container
     + Template
 }

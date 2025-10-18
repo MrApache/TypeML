@@ -1,21 +1,5 @@
-#use <schema.tmd> //Use rmlx file
+#use <schema.tmd>
 //#import <schema::*> //Import all types from namespace "schema"
-
-<base::Layout@Root>
-    <Node width=100% height=100% border={{$NodeBorder}}/>
-    <BackgroundColor self={$ColorComponent}/>
-    <base::ItemTemplate>
-        <base::Entity>
-            <Node width=30px height=40px border={{
-                left: 2px,
-                right: 2px,
-                top: 3px,
-                bottom: 6px,
-            }}/>
-            <BackgroundColor self="#FFFFFF"/>
-        </base::Entity>
-    </base::ItemTemplate>
-</base::Layout>
 
 $expr ColorComponent -> base::Component {
     target:  "Player",
@@ -30,6 +14,23 @@ $struct NodeBorder -> UiRect {
     top: 10px,
     bottom: 10px,
 }
+
+<base::Layout@Root>
+    <Node width=100% height=100% border=$NodeBorder/>
+    <BackgroundColor self=$ColorComponent/>
+    <base::ItemTemplate>
+        <base::Entity>
+            <Node width=30px height=40px border={{
+                left: 2px,
+                right: 2px,
+                top: 3px,
+                bottom: 6px,
+            }}/>
+            <BackgroundColor self="#FFFFFF"/>
+            <Counter default_value=100 triggers=[10, 100, 1000]/>
+        </base::Entity>
+    </base::ItemTemplate>
+</base::Layout>
 
 //TODO Error locations
 //TODO Empty list error
